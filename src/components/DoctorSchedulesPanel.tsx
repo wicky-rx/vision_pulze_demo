@@ -91,13 +91,17 @@ export function DoctorSchedulesPanel() {
       const resDocs = await fetch(`${API_BASE_URL}/api/appointments/doctors/slots`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
+      if (!resDocs.ok) throw new Error("Failed to fetch doctors");
       const doctors = await resDocs.json();
+      if (!Array.isArray(doctors)) throw new Error("Invalid doctors data format");
       setAllDoctors(doctors);
 
       const resApps = await fetch(`${API_BASE_URL}/api/appointments/daily?date=${dateStr}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
+      if (!resApps.ok) throw new Error("Failed to fetch appointments");
       const apps = await resApps.json();
+      if (!Array.isArray(apps)) throw new Error("Invalid appointments data format");
 
       const dayOfWeek = date.getDay();
       const doctorsWithTodaySchedule = doctors.map((doc: any) => {
@@ -140,7 +144,12 @@ export function DoctorSchedulesPanel() {
       const res = await fetch(`${API_BASE_URL}/api/appointments/doctors/${doctorId}/schedules`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
-      if (res.ok) setManageSchedules(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setManageSchedules(Array.isArray(data) ? data : []);
+      } else {
+        setManageSchedules([]);
+      }
     } catch (e) {
       console.error("Error fetching schedules", e);
     } finally {
@@ -255,7 +264,7 @@ export function DoctorSchedulesPanel() {
   };
 
   return (
-    <div className="w-full lg:w-[320px] shrink-0 h-auto lg:h-full flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 pb-8 lg:pb-0 px-2 lg:px-0 lg:pl-4 bg-white/50 overflow-x-hidden">
+    <div className="w-full lg:w-[320px] shrink-0 h-auto lg:h-full flex flex-col gap-4 border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 pb-8 lg:pb-0 px-2 lg:px-0 lg:pl-4 bg-white relative z-10 overflow-x-hidden">
       <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -306,7 +315,7 @@ export function DoctorSchedulesPanel() {
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="flex-1 justify-start text-xs h-9 font-bold bg-white border-slate-200 text-slate-700 hover:bg-[#1a365d] hover:text-white hover:border-[#1a365d] transition-all duration-300 rounded-none shadow-sm group">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-white transition-colors" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-900 transition-colors" />
                   {format(date, "MMMM do, yyyy")}
                 </Button>
               </PopoverTrigger>
@@ -338,11 +347,11 @@ export function DoctorSchedulesPanel() {
                 <SelectValue placeholder="Identify Doctor..." />
               </SelectTrigger>
               <SelectContent>
-                {allDoctors.map(doc => (
+                {Array.isArray(allDoctors) && allDoctors.map(doc => (
                   <SelectItem key={doc.id} value={doc.id} className="text-xs group">
                     <div className="flex flex-col py-0.5">
-                      <span className="font-semibold group-hover:text-white group-focus:text-white group-data-[state=checked]:text-white transition-colors">{doc.name}</span>
-                      <span className="text-[9px] text-muted-foreground/70 group-hover:text-white/80 group-focus:text-white/80 group-data-[state=checked]:text-white/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
+                      <span className="font-semibold group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 transition-colors">{doc.name}</span>
+                      <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
                     </div>
                   </SelectItem>
                 ))}

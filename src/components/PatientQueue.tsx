@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, Clock, Users, Pencil, Calendar as CalendarIcon, Upload, Trash2, FileText, Loader2, Check, AlertTriangle, Zap, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronRight, Clock, Users, Pencil, Calendar as CalendarIcon, Upload, Trash2, FileText, Loader2, Check, AlertTriangle, Zap, Image as ImageIcon, ChevronDown, ChevronUp, Stethoscope, Crosshair, Glasses, Pill } from "lucide-react";
 import { ScanReportGallery } from "./ScanReportGallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -171,6 +171,7 @@ export function PatientQueue({
       });
       if (!response.ok) throw new Error("Failed to fetch patients");
       const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("Invalid patients data format");
 
       const today = new Date().toDateString();
       const todayPatients = data.filter((p: any) => {
@@ -684,7 +685,7 @@ export function PatientQueue({
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 pr-5">
+                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 pr-2">
                     <div className="flex items-center gap-1.5">
                       {(() => {
                         const slot = getSlotLabel(patient);
@@ -724,8 +725,18 @@ export function PatientQueue({
                       <Pencil className="w-4 h-4" />
                     </button>
                   ) : (
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/40">
-                      <ChevronRight className="w-4 h-4" />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-orange-600 opacity-0 group-hover:opacity-100 transition-all z-10">
+                      {userRole === "OPTOMETRIST" ? (
+                        <Crosshair className="w-4 h-4" />
+                      ) : userRole === "DOCTOR" ? (
+                        <Stethoscope className="w-4 h-4" />
+                      ) : userRole === "OPTICALS" ? (
+                        <Glasses className="w-4 h-4" />
+                      ) : userRole === "PHARMACIST" ? (
+                        <Pill className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
                     </div>
                   )}
                 </div>

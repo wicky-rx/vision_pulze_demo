@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { type Patient } from "@/data/mockData";
-import { Printer, CheckCircle2, Loader2, Glasses, Stethoscope } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Glasses, Stethoscope, User, MapPin, Calendar, Clock, ChevronRight, UserCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -142,64 +142,69 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
   };
 
   return (
-    <div className="flex-1 p-4 sm:p-6 h-full flex flex-col overflow-y-auto bg-slate-50/30">
-      {/* Station Header */}
-      <div className="flex flex-col xl:grid xl:grid-cols-3 items-center gap-6 mb-6 bg-orange-50/80 border border-orange-200/60 p-4 shadow-sm text-slate-900">
-        {/* Col 1: Identification Badges */}
-        <div className="flex items-center gap-2">
-          {(() => {
-            const slot = calculateSessionSlot(patient, doctors);
-            if (!slot) return null;
-            return (
-              <Badge className="bg-blue-600 text-white text-[10px] px-2 font-bold rounded-none h-6 border-0">
-                {slot}
-              </Badge>
-            );
-          })()}
-          <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 font-bold rounded-none h-6">
-            Token-{patient?.tokenNumber || "—"}
-          </Badge>
-          <Badge className="bg-orange-50 text-orange-600 border border-orange-200 text-[10px] px-2 font-mono tracking-widest rounded-none h-6">MR-{patient?.mrNumber || "0000"}</Badge>
-        </div>
-
-        {/* Col 2: Patient Name & Details (Centered) */}
-        <div className="flex flex-col items-center justify-center text-center">
-          <span className="text-xl md:text-2xl text-slate-900 font-black uppercase tracking-tight leading-none mb-1">{patient?.name || "Unknown Patient"}</span>
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 mt-1">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-              {getPatientAgeString(patient)} • {patient?.gender} • {patient?.city || "Primary Center"}
-            </span>
-            <div className="hidden md:block h-3 w-px bg-slate-200" />
-            <div className="flex flex-wrap justify-center items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Consultant:</span>
-                <span className="text-[10px] font-black text-orange-600 uppercase tracking-tight">{patient?.consultingDoctor?.name || "Dr. Gajendran"}</span>
+    <div className="flex-1 relative overflow-hidden bg-slate-50/30">
+      <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
+      <div className="absolute inset-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 h-full flex flex-col z-10">
+      {/* Premium Station Header */}
+      <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
+          <div className="bg-gradient-to-br from-violet-500 to-violet-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-violet-200/50 hidden xs:flex items-center justify-center">
+            <Glasses className="w-5 h-5 md:w-6 md:h-6" />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge className="bg-violet-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Optometrist:</span>
-                <span className="text-[10px] font-black text-orange-600 uppercase tracking-tight">{patient?.refraction?.optometrist?.name || "Not Attended"}</span>
-              </div>
+            </div>
+            <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
+              <User className="w-3 h-3 text-slate-400" />
+              <span>{patient.gender}</span>
+              <span className="text-slate-300">•</span>
+              <span>{getPatientAgeString(patient)}</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-violet-600 font-black tracking-widest uppercase">Optical Dispensing</span>
             </div>
           </div>
         </div>
 
-        {/* Col 3: Status Indicator (Right Aligned) */}
-        <div className="flex justify-end items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
           {completed && (
-            <Badge className="bg-emerald-600 text-white border-0 gap-1.5 rounded-none px-4 py-1.5 h-auto font-black uppercase text-[10px] tracking-widest shadow-sm">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Completed
+            <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
+              <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
+              Visit Completed
             </Badge>
           )}
+          
+          <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+            <div className="text-right shrink-0">
+              <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Consultant</p>
+              </div>
+              <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{patient?.consultingDoctorName || patient?.consultation?.doctor?.name || "Dr. Gajendran"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 pl-4 border-l border-slate-200 hidden lg:flex">
+            <div className="text-right shrink-0">
+              <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Optometrist</p>
+              </div>
+              <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{patient?.refraction?.optometrist?.name || "Not Attended"}</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {!consultation ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 relative z-10">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No Active Prescription Found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 items-start relative z-10">
           {/* Clinical Reference Column */}
           <div className="xl:col-span-1 space-y-6">
             {/* Prescription Card */}
@@ -640,6 +645,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

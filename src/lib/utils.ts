@@ -82,25 +82,18 @@ export function getPatientAgeNumber(patient: any): number {
   return patient?.age ? parseInt(patient.age, 10) || 0 : 0;
 }
 
-export function truncateFileName(name: string, maxLength: number = 36) {
-  if (!name || name.length <= maxLength) return name;
+export function truncateFileName(name: string, maxLength?: number) {
+  if (!name) return name;
   const lastDotIndex = name.lastIndexOf('.');
-  if (lastDotIndex === -1) return name.substring(0, maxLength - 3) + "...";
+  const extension = lastDotIndex !== -1 ? name.substring(lastDotIndex) : "";
+  const nameWithoutExtension = lastDotIndex !== -1 ? name.substring(0, lastDotIndex) : name;
   
-  const extension = name.substring(lastDotIndex);
-  const nameWithoutExtension = name.substring(0, lastDotIndex);
-  
-  // Show start and end of filename
-  const charsToShow = maxLength - extension.length - 3; // 3 for ellipsis
-  if (charsToShow <= 3) return name.substring(0, maxLength - 3) + "...";
-  
-  const frontChars = Math.ceil(charsToShow / 2);
-  const backChars = Math.floor(charsToShow / 2);
+  if (nameWithoutExtension.length <= 10) return name;
   
   return (
-    nameWithoutExtension.substring(0, frontChars) +
+    nameWithoutExtension.substring(0, 5) +
     "..." +
-    nameWithoutExtension.substring(nameWithoutExtension.length - backChars) +
+    nameWithoutExtension.substring(nameWithoutExtension.length - 5) +
     extension
   );
 }

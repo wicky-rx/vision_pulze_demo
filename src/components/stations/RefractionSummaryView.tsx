@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 function SectionHeader({ icon: Icon, title, category = "Clinical Assessment" }: { icon: any, title: string, category?: string }) {
   return (
-    <div className="flex items-center gap-4 py-4 mb-6 border-b border-slate-100">
+    <div className="flex items-center gap-4 py-3 mb-4 border-b border-slate-100">
       <div className="p-3 bg-orange-600 text-white shadow-lg"><Icon className="w-6 h-6 shrink-0" /></div>
       <div className="flex flex-col">
         <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">{category}</span>
@@ -44,10 +44,10 @@ export function RefractionSummaryView({
   };
 
   return (
-    <div className="space-y-6 pb-10 max-w-[1400px] mx-auto bg-white p-6 border border-slate-100 shadow-sm">
+    <div className="space-y-4 pb-6 max-w-[1400px] mx-auto bg-white p-4 sm:p-6 border border-slate-100 shadow-sm">
 
       {/* 0. Clinical Metadata (Responsibility) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 py-4 bg-orange-50/50 border border-slate-100 mb-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-3 bg-orange-50/50 border border-slate-100 mb-2">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-orange-50 text-orange-600">
             <ShieldCheck className="w-4 h-4" />
@@ -68,7 +68,7 @@ export function RefractionSummaryView({
         </div>
       </div>
       {/* 1. Clinical Presentation & Background */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <SectionHeader icon={ClipboardList} title="Clinical Presentation" />
           <div className="px-4 py-2 bg-orange-50 border-l-4 border-orange-600">
@@ -221,7 +221,7 @@ export function RefractionSummaryView({
       {/* 5. Final Optometrist Recommendation */}
       <div className="space-y-4">
         <SectionHeader icon={Glasses} title="Final Optometrist Recommendation" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Spectacles Table */}
           <div className="space-y-2">
             <div className="flex items-center gap-4 mb-4">
@@ -293,7 +293,7 @@ export function RefractionSummaryView({
       {/* 6. Supplementary Protocol Matrix */}
       <div className="space-y-4">
         <SectionHeader icon={Thermometer} title="Supplementary Protocol Matrix" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Tonometry Table */}
           <Table className="border border-slate-200">
             <TableHeader className="bg-orange-50 border-y border-orange-100">
@@ -395,7 +395,7 @@ export function RefractionSummaryView({
       {/* 7. Final Clinical Remarks */}
       <div className="space-y-2">
         <SectionHeader icon={FileText} title="Optometrist Clinical Remarks" />
-        <div className="p-6 bg-orange-50 border border-slate-200 italic font-medium text-slate-600 text-sm leading-relaxed">
+        <div className="p-4 bg-orange-50 border border-slate-200 italic font-medium text-slate-600 text-sm leading-relaxed">
           {rd.optometristNotes || "No specific clinical remarks documented by the attending optometrist."}
         </div>
       </div>

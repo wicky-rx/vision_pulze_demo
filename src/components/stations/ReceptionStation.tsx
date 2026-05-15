@@ -684,9 +684,10 @@ export function ReceptionStation() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
-      <div className="bg-white border-b border-orange-100 px-4 md:px-8 py-5 flex items-center justify-between shrink-0 shadow-sm z-20">
-        <div className="flex items-center gap-5">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white relative">
+      <div className="bg-white border-b border-orange-100 px-4 md:px-8 py-3 flex items-center justify-between shrink-0 shadow-sm z-20 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
+        <div className="flex items-center gap-5 relative z-10">
           <div className="p-3 bg-orange-600 text-white shadow-lg"><UserPlus className="w-6 h-6 shrink-0" /></div>
           <div className="flex flex-col">
             <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Patient Enrollment</span>
@@ -696,30 +697,31 @@ export function ReceptionStation() {
       </div>
 
       <div className="flex-1 p-3 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-y-auto lg:overflow-y-hidden bg-orange-50/30 relative overflow-x-hidden">
-        <Tabs defaultValue="new" className="flex-1 flex flex-col min-w-0 lg:overflow-y-auto px-1
+        <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
+        <Tabs defaultValue="new" className="flex-1 flex flex-col min-w-0 lg:overflow-y-auto px-1 relative z-10
           lg:[&::-webkit-scrollbar]:w-1 
           lg:[&::-webkit-scrollbar-track]:bg-transparent 
           lg:[&::-webkit-scrollbar-thumb]:bg-slate-200/50 
           lg:[&::-webkit-scrollbar-thumb]:rounded-full">
-          <TabsList className="h-12 bg-slate-100 p-1 mb-8 grid grid-cols-2 w-full max-w-md mx-auto rounded-none border border-slate-200/80 shadow-inner backdrop-blur-sm shrink-0">
+          <TabsList className="h-12 bg-slate-100 p-1 mb-6 grid grid-cols-2 w-full max-w-md mx-auto rounded-none border border-slate-200/80 shadow-inner backdrop-blur-sm shrink-0">
             <TabsTrigger
               value="new"
-              className="h-full rounded-none gap-2 font-black text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
+              className="h-full rounded-none gap-2 font-black text-[12px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
               data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md
               data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-orange-600 data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
               relative hover:bg-slate-50 hover:text-orange-600"
             >
-              <UserPlus className="w-3.5 h-3.5" />
+              <UserPlus className="w-4 h-4" />
               New Patient
             </TabsTrigger>
             <TabsTrigger
               value="returning"
-              className="h-full rounded-none gap-2 font-black text-[11px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
+              className="h-full rounded-none gap-2 font-black text-[12px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
               data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md
               data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-orange-600 data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
               relative hover:bg-slate-50 hover:text-orange-600"
             >
-              <Search className="w-3.5 h-3.5" />
+              <Search className="w-4 h-4" />
               Returning Patient
             </TabsTrigger>
           </TabsList>
@@ -727,7 +729,7 @@ export function ReceptionStation() {
           {/* New Patient Registration */}
           <TabsContent value="new" className="px-1">
             <Card className="clinical-card bg-white shadow-md overflow-hidden border-slate-200">
-              <CardContent className="p-6 sm:p-10 space-y-8">
+              <CardContent className="p-6 sm:p-8 space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="space-y-1.5">
                     <Label className="clinical-label">Full Name *</Label>
@@ -891,12 +893,12 @@ export function ReceptionStation() {
                           <SelectItem key={doc.id} value={doc.id} className="group">
                             <div className="flex flex-col py-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold leading-none group-hover:text-white group-focus:text-white group-data-[state=checked]:text-white uppercase tracking-tight text-sm transition-colors">{doc.name}</span>
+                                <span className="font-bold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tight text-sm transition-colors">{doc.name}</span>
                                 {doc.schedules?.some((s: any) => s.dayOfWeek === new Date().getDay()) && (
                                   <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 font-black tracking-widest text-white">ON DUTY</Badge>
                                 )}
                               </div>
-                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-white/80 group-focus:text-white/80 group-data-[state=checked]:text-white/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
+                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -983,14 +985,14 @@ export function ReceptionStation() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label className="clinical-label">Address Details</Label>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-2 h-auto md:h-9 w-full">
                       <div className="flex-[0.9] min-w-0">
                         <Input
                           placeholder="Door No"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.doorNo}
                           onChange={(e) => handleInputChange("doorNo", e.target.value)}
                         />
@@ -998,7 +1000,7 @@ export function ReceptionStation() {
                       <div className="flex-[2] min-w-0">
                         <Input
                           placeholder="Street"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.street}
                           onChange={(e) => handleInputChange("street", e.target.value)}
                         />
@@ -1006,7 +1008,7 @@ export function ReceptionStation() {
                       <div className="flex-[1.5] min-w-0">
                         <Input
                           placeholder="Area"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.area}
                           onChange={(e) => handleInputChange("area", e.target.value)}
                         />
@@ -1014,7 +1016,7 @@ export function ReceptionStation() {
                       <div className="flex-[1.5] min-w-0 relative group">
                         <Input
                           placeholder="City"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.city}
                           onChange={(e) => handleInputChange("city", e.target.value)}
                           onFocus={() => setCityPopoverOpen(true)}
@@ -1025,7 +1027,7 @@ export function ReceptionStation() {
                             {TN_PLACES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
                               <div
                                 key={ct}
-                                className="px-3 py-2 text-[11px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
+                                className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   handleInputChange("city", ct);
@@ -1039,11 +1041,11 @@ export function ReceptionStation() {
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-2 h-auto md:h-9 w-full md:w-3/4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-2 h-auto md:h-10 w-full md:w-3/4">
                       <div className="flex-1 min-w-0 relative group">
                         <Input
                           placeholder="District"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.district}
                           onChange={(e) => handleInputChange("district", e.target.value)}
                           onFocus={() => setDistrictPopoverOpen(true)}
@@ -1054,7 +1056,7 @@ export function ReceptionStation() {
                             {TN_DISTRICTS.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
                               <div
                                 key={dist}
-                                className="px-3 py-2 text-[11px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
+                                className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   handleInputChange("district", dist);
@@ -1070,7 +1072,7 @@ export function ReceptionStation() {
                       <div className="flex-1 min-w-0 relative group">
                         <Input
                           placeholder="State"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.state}
                           onChange={(e) => handleInputChange("state", e.target.value)}
                           onFocus={() => setStatePopoverOpen(true)}
@@ -1081,7 +1083,7 @@ export function ReceptionStation() {
                             {INDIAN_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
                               <div
                                 key={st}
-                                className="px-3 py-2 text-[11px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
+                                className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   handleInputChange("state", st);
@@ -1097,7 +1099,7 @@ export function ReceptionStation() {
                       <div className="flex-[0.7] min-w-0">
                         <Input
                           placeholder="PIN"
-                          className="h-8 text-[11px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+                          className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.pincode}
                           onChange={(e) => handleInputChange("pincode", e.target.value)}
                           maxLength={6}
@@ -1109,7 +1111,7 @@ export function ReceptionStation() {
                 </div>
 
 
-                <div className="mt-8 flex flex-col sm:flex-row justify-center md:justify-end gap-3">
+                <div className="mt-4 flex flex-col sm:flex-row justify-center md:justify-end gap-3">
                   {patientData && (
                     <Button
                       variant="ghost"
@@ -1412,7 +1414,7 @@ export function ReceptionStation() {
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Consulting Personal</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-auto min-h-[40px] py-2">
                     <SelectValue placeholder="Select Doctor" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1438,12 +1440,10 @@ export function ReceptionStation() {
 
                       return activeDoctors.map(doc => (
                         <SelectItem key={doc.id} value={doc.id} className="text-xs group">
-                          <div className="flex flex-col py-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold leading-none group-hover:text-white group-focus:text-white group-data-[state=checked]:text-white uppercase tracking-tighter text-sm transition-colors">{doc.name}</span>
-                              <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold">ON DUTY</Badge>
-                            </div>
-                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-white/80 group-focus:text-white/80 group-data-[state=checked]:text-white/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
+                          <div className="flex items-center flex-wrap gap-2 py-0.5">
+                            <span className="font-semibold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tighter text-sm transition-colors">{doc.name}</span>
+                            <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold shrink-0">ON DUTY</Badge>
+                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight transition-colors sm:ml-auto">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
                       ));
@@ -1453,11 +1453,11 @@ export function ReceptionStation() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800">Cancel</Button>
               <Button
                 onClick={confirmStartNewVisit}
                 disabled={!selectedDoctorId || startingVisitMrn}
-                className="gap-2"
+                className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm"
               >
                 {startingVisitMrn ? (
                   <>
@@ -1517,12 +1517,12 @@ export function ReceptionStation() {
                         )}
                         disabled={appointmentDialogMode === "START_VISIT"}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-white" />
+                        <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-orange-900" />
                         {selectedAppointmentDate ? (
                           <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 leading-none">
-                            <span className="font-bold text-orange-600 group-hover:text-white uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
+                            <span className="font-bold text-orange-600 group-hover:text-orange-900 uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
                             <span className="hidden sm:inline-block w-[1px] h-3 bg-slate-200 group-hover:bg-white/30"></span>
-                            <span className="text-slate-500 group-hover:text-white/90 font-medium transition-colors">{format(selectedAppointmentDate, "PPP")}</span>
+                            <span className="text-slate-500 group-hover:text-orange-900/90 font-medium transition-colors">{format(selectedAppointmentDate, "PPP")}</span>
                           </div>
                         ) : <span>Pick a date</span>}
                       </Button>
@@ -1569,10 +1569,10 @@ export function ReceptionStation() {
                         <SelectItem key={doc.id} value={doc.id} className="group">
                           <div className="flex flex-col py-0.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold leading-none group-hover:text-white group-focus:text-white group-data-[state=checked]:text-white uppercase tracking-tighter transition-colors">{doc.name}</span>
+                              <span className="font-semibold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tighter transition-colors">{doc.name}</span>
                               <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold tracking-tighter shadow-sm">AVAILABLE</Badge>
                             </div>
-                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-white/80 group-focus:text-white/80 group-data-[state=checked]:text-white/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
+                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
                       ))}

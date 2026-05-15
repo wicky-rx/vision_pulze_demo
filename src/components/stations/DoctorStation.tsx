@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -272,6 +272,39 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       fetchCurrentConsultation();
     }
   }, [patient?.id, patient?.mrNumber]);
+  const handleContainerKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLElement;
+      if (!target || target.tagName === 'TEXTAREA' || e.isDefaultPrevented()) return;
+      if (!target.closest('[role="tabpanel"]')) return;
+      
+      e.preventDefault();
+      
+      const tabsList = ["summary", "diagnosis_history", "clinical", "investigation", "glass", "medical", "history"];
+      
+      setActiveTab(prev => {
+        const currentIndex = tabsList.indexOf(prev);
+        const nextIndex = (currentIndex + 1) % tabsList.length;
+        const nextTab = tabsList[nextIndex];
+        return nextTab;
+      });
+
+      setTimeout(() => {
+        const tabContent = document.querySelector(`[data-state="active"][role="tabpanel"]`) as HTMLElement;
+        if (tabContent) {
+          const focusableSelector = 'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+          const firstInput = tabContent.querySelector(focusableSelector) as HTMLElement;
+          if (firstInput) {
+            firstInput.focus();
+          } else {
+            tabContent.tabIndex = -1;
+            tabContent.focus();
+          }
+        }
+      }, 100);
+    }
+  }, []);
+
 
   const fetchVisitHistory = async () => {
     if (!patient?.mrNumber) return;
@@ -678,92 +711,84 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30 relative" onKeyDown={handleContainerKeyDown}>
       {/* Premium Diagnostic Header */}
-      <div className="bg-orange-50/80 border-b border-orange-200/60 px-4 sm:px-8 py-1.5 md:py-2 flex flex-col lg:flex-row lg:items-center justify-between shrink-0 shadow-sm z-20 gap-4 text-slate-900">
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="bg-orange-600 text-white p-2 hidden sm:block ring-1 ring-orange-200/50 shadow-md">
-            <Stethoscope className="w-5 h-5" />
+      <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
+            <Stethoscope className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 min-w-0">
-            <div className="flex items-center gap-3">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tighter uppercase leading-none truncate max-w-[150px] sm:max-w-none shadow-sm">{patient.name}</h2>
-              <div className="flex items-center gap-1.5">
-                {(() => {
-                  const slot = calculateSessionSlot(patient, doctors);
-                  if (!slot) return null;
-                  return (
-                    <Badge className="bg-orange-600 text-white text-[10px] sm:text-[11px] px-1.5 sm:px-2 font-bold rounded-none h-4 border-0 shadow-sm">
-                      {slot}
-                    </Badge>
-                  );
-                })()}
-                <Badge className="bg-white text-slate-500 border border-slate-200 text-[12px] px-2 font-bold rounded-none h-5">
-                  T-{patient.tokenNumber || "—"}
-                </Badge>
-                <Badge className={cn(
-                  "text-orange-600 text-[12px] px-2.5 font-mono tracking-widest rounded-none h-5 font-black shrink-0 border border-orange-200",
-                  "bg-orange-50"
-                )}>
-                  {localStatus === "consulted" ? "SIGNED" : "MR"}-{patient.mrNumber}
-                </Badge>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Badge className="bg-orange-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-slate-400 hover:text-orange-600 hover:bg-slate-100 rounded-none"
-                onClick={() => {
-                  fetchCurrentRefraction();
-                  fetchVisitHistory();
-                  toast({ title: "Refreshing Data", description: "Updating clinical findings..." });
-                }}
-              >
-                <RefreshCw className="h-3 w-3" />
-              </Button>
             </div>
-            <div className="hidden sm:block h-3 w-px bg-slate-200" />
-            <p className="text-[10px] sm:text-[12px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-              {getPatientAgeString(patient)} • {patient.gender} • {patient.city || "Primary Center"} • In Consultation
-            </p>
+            <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
+              <User className="w-3 h-3 text-slate-400" />
+              <span>{patient.gender}</span>
+              <span className="text-slate-300">•</span>
+              <span>{getPatientAgeString(patient)}</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-orange-600 font-black tracking-widest uppercase">Clinical Consultation</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto px-4 sm:px-0 sm:pb-0 pb-4">
+        <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
           {localStatus === "completed" && (
-            <Badge className="bg-orange-600 text-white border-0 gap-2 h-11 px-6 rounded-none font-black uppercase text-xs tracking-widest shadow-lg">
-              <CheckCircle2 className="w-5 h-5" />
+            <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
+              <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
               Visit Completed
             </Badge>
           )}
           {localStatus === "refraction_done" && (
-            <Button className="h-11 px-8 bg-status-doctor hover:bg-black text-white font-black uppercase tracking-[0.15em] rounded-none shadow-md transition-all text-xs flex-1 sm:flex-none" onClick={handleAttend} disabled={isAttending}>
-              <UserCheck className="w-5 h-5 mr-3 hidden sm:block" />
-              {isAttending ? "Accessing..." : "Begin Consultation"}
+            <Button 
+                onClick={handleAttend} 
+                disabled={isAttending}
+                className="h-10 md:h-12 bg-orange-600 hover:bg-black text-white px-6 md:px-8 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs rounded-none shadow-xl transition-all gap-2"
+            >
+                {isAttending ? "Accessing..." : (
+                    <>
+                        <UserCheck className="w-4 h-4" /> Begin Consultation
+                    </>
+                )}
             </Button>
           )}
           {(localStatus === "doctor" || localStatus === "consulted") && (
             <Button
               className={cn(
-                "h-11 px-8 font-black uppercase tracking-[0.15em] rounded-none shadow-lg transition-all text-xs flex-1 sm:flex-none group",
-                localStatus === "consulted" ? "bg-orange-600 hover:bg-orange-600" : "bg-orange-600 hover:bg-black"
+                "h-10 md:h-12 px-6 md:px-8 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs rounded-none shadow-xl transition-all gap-2",
+                localStatus === "consulted" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-orange-600 hover:bg-black"
               )}
               onClick={saveConsultation}
               disabled={isSubmitting}
             >
-              {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mr-3" /> : (
-                localStatus === "consulted" ? <ShieldCheck className="w-5 h-5 mr-3 text-orange-400" /> : <ShieldCheck className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
-              )}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
               {isSubmitting ? "Processing..." : (localStatus === "consulted" ? "Update Clinical Record" : "Finish and Signout")}
             </Button>
           )}
+
+          <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+            <div className="text-right shrink-0">
+              <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Medical Officer</p>
+              </div>
+              <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">Lead Physician</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative overflow-x-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
-          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10"
         >
           <div className="bg-white border-b shadow-sm z-10 sticky top-0 px-0 sm:px-8">
             <div className="flex overflow-x-auto sm:overflow-x-visible no-scrollbar scroll-smooth snap-x snap-mandatory w-full sm:w-auto">
@@ -1784,25 +1809,25 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               </DialogHeader>
 
               <ScrollArea className="flex-1 overflow-y-auto w-full">
-                <div className="p-4 sm:p-12 space-y-12 sm:space-y-16">
+                <div className="p-4 sm:p-6 space-y-8 sm:space-y-10">
                   {/* Refraction Data Part */}
-                  <div className="space-y-8">
-                    <div className="flex items-center gap-4 border-b-2 border-slate-900 pb-4 mb-6 sm:mb-10 w-fit">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 border-b-2 border-slate-900 pb-3 mb-4 sm:mb-6 w-fit">
                       <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
                       <h3 className="text-xl sm:text-3xl font-black text-orange-600 uppercase tracking-tighter">Optometry Evaluation</h3>
                     </div>
                     {selectedHistoricalVisit.refraction ? (
                       <RefractionSummaryView data={selectedHistoricalVisit.refraction} />
                     ) : (
-                      <div className="p-16 bg-white border-2 border-dashed border-slate-200 text-center opacity-60 italic font-bold text-slate-400">
+                      <div className="p-8 bg-white border-2 border-dashed border-slate-200 text-center opacity-60 italic font-bold text-slate-400">
                         No refraction protocol documented for this visit.
                       </div>
                     )}
                   </div>
 
                   {/* Consultation Summary Part */}
-                  <div className="space-y-8">
-                    <div className="flex items-center gap-4 py-4 mb-6 border-b border-slate-100">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4 py-3 mb-4 border-b border-slate-100">
                       <div className="p-3 bg-orange-600 text-white shadow-lg"><Stethoscope className="w-6 h-6 shrink-0" /></div>
                       <div className="flex flex-col">
                         <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Clinical Consultation</span>
@@ -1811,16 +1836,16 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     </div>
 
                     {selectedHistoricalVisit.consultation ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card className="clinical-card col-span-2">
-                          <div className="p-6 border-b border-slate-100 bg-white flex items-center gap-4">
+                          <div className="p-4 border-b border-slate-100 bg-white flex items-center gap-4">
                             <div className="p-2.5 bg-orange-600 text-white shadow-md"><Microscope className="w-5 h-5 shrink-0" /></div>
                             <div className="flex flex-col">
                               <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Clinical Investigation</span>
                               <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Diagnostic Observations</h4>
                             </div>
                           </div>
-                          <div className="p-10 space-y-12">
+                          <div className="p-4 sm:p-6 space-y-6">
                             {/* Slit Lamp Profile */}
                             {(() => {
                               try {
@@ -1836,7 +1861,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     <label className="text-[12px] font-black uppercase text-slate-400 tracking-widest">Slit Lamp Assessment (Anterior Segment)</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                       {['OD', 'OS'].map((eye) => (
-                                        <div key={eye} className="p-4 bg-white border border-slate-200 flex flex-col gap-2 shadow-sm">
+                                        <div key={eye} className="p-3 bg-white border border-slate-200 flex flex-col gap-2 shadow-sm">
                                           <div className={cn("text-[12px] font-black px-2 py-0.5 w-fit mb-1", eye === 'OD' ? "bg-orange-50 text-orange-600" : "bg-orange-50 text-orange-600")}>{eye} FINDINGS</div>
                                           <div className="space-y-1">
                                             {Object.entries(slitLamp).filter(([k, v]) => k !== 'dilation' && v && typeof v === 'object' && (v as any)[eye]).map(([key, val]: [string, any]) => {
@@ -1883,7 +1908,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     <label className="text-[12px] font-black uppercase text-slate-400 tracking-widest">Fundus Assessment (Posterior Segment)</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                       {['OD', 'OS'].map((eye) => (
-                                        <div key={eye} className="p-4 bg-white border border-slate-200 flex flex-col gap-2 shadow-sm">
+                                        <div key={eye} className="p-3 bg-white border border-slate-200 flex flex-col gap-2 shadow-sm">
                                           <div className={cn("text-[12px] font-black px-2 py-0.5 w-fit mb-1", eye === 'OD' ? "bg-orange-50 text-orange-600" : "bg-orange-50 text-orange-600")}>{eye} OPHTHALMOSCOPY</div>
                                           <div className="space-y-1">
                                             {Object.entries(fundus).filter(([k, v]) => v && typeof v === 'object' && (v as any)[eye]).map(([key, val]: [string, any]) => {
@@ -1910,29 +1935,29 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         </Card>
 
                         <Card className="clinical-card col-span-2">
-                          <div className="p-6 sm:p-8 border-b bg-orange-50/50">
-                            <label className="text-[11px] font-black uppercase text-slate-500 tracking-widest border-b border-slate-200 pb-2 mb-6 block">Final Assessment & Diagnosis</label>
+                          <div className="p-4 sm:p-6 border-b bg-orange-50/50">
+                            <label className="text-[11px] font-black uppercase text-slate-500 tracking-widest border-b border-slate-200 pb-2 mb-4 block">Final Assessment & Diagnosis</label>
                             {(() => {
                               const parts = selectedHistoricalVisit.consultation?.diagnosisText?.split(' | ') || [];
                               const od = parts[0]?.replace('OD: ', '') || "—";
                               const os = parts.length > 1 ? parts[1].replace('OS: ', '') : "—";
                               return (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-12">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                   <div className="space-y-3">
                                     <span className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-100 px-3 py-1">OD</span>
-                                    <p className="text-lg font-black text-orange-600 bg-white p-4 border-l-[4px] border-orange-600 shadow-sm uppercase">{od}</p>
+                                    <p className="text-base sm:text-lg font-black text-orange-600 bg-white p-3 border-l-[4px] border-orange-600 shadow-sm uppercase">{od}</p>
                                   </div>
                                   <div className="space-y-3">
                                     <span className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] bg-slate-100 px-3 py-1">OS</span>
-                                    <p className="text-lg font-black text-orange-600 bg-white p-4 border-l-[4px] border-orange-600 shadow-sm uppercase">{os}</p>
+                                    <p className="text-base sm:text-lg font-black text-orange-600 bg-white p-3 border-l-[4px] border-orange-600 shadow-sm uppercase">{os}</p>
                                   </div>
                                 </div>
                               );
                             })()}
                           </div>
-                          <div className="p-10 bg-slate-50/20 shadow-inner">
-                            <label className="text-[11px] font-black uppercase text-slate-500 tracking-widest border-b border-slate-200 pb-2 mb-6 block">Doctor's Clinical Notes</label>
-                            <p className="text-lg font-medium italic text-slate-700 leading-relaxed border-l-4 border-slate-400 pl-8">{selectedHistoricalVisit.consultation?.notes || "No specific consultative remarks."}</p>
+                          <div className="p-4 sm:p-6 bg-slate-50/20 shadow-inner">
+                            <label className="text-[11px] font-black uppercase text-slate-500 tracking-widest border-b border-slate-200 pb-2 mb-4 block">Doctor's Clinical Notes</label>
+                            <p className="text-base font-medium italic text-slate-700 leading-relaxed border-l-4 border-slate-400 pl-4 sm:pl-6">{selectedHistoricalVisit.consultation?.notes || "No specific consultative remarks."}</p>
 
                             {/* General Observations & Metadata */}
                             {(() => {
@@ -1941,9 +1966,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
                                 if (!parsed) return null;
                                 return (
-                                  <div className="space-y-6 pt-10 mt-10 border-t border-slate-200">
+                                  <div className="space-y-4 pt-6 mt-6 border-t border-slate-200">
                                     <label className="text-[12px] font-black uppercase text-slate-400 tracking-widest">Administrative & Diagnostic Metadata</label>
-                                    <div className="p-8 bg-slate-100/50 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    <div className="p-4 sm:p-6 bg-slate-100/50 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
                                       <div className="space-y-2">
                                         <span className="text-[12px] font-black text-slate-400 uppercase">Required Investigations</span>
                                         <p className="text-sm font-bold text-slate-900">{typeof parsed.required === 'object' ? (Array.isArray(parsed.required) ? parsed.required.join(", ") : "—") : (parsed.required || "No labs required")}</p>
@@ -1963,14 +1988,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                         {/* Prescriptions Summary */}
                         <Card className="clinical-card col-span-2">
-                          <div className="p-6 sm:p-8 border-b bg-orange-600 text-white">
-                            <h4 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
-                              <Pill className="w-6 h-6 shrink-0" />
-                              <div className="flex flex-col">
-                                <span className="text-[12px] font-black uppercase tracking-widest text-[#fb923c] mb-0.5">Clinical Pharmacy</span>
-                                <span>Medical Prescription</span>
-                              </div>
-                            </h4>
+                          <div className="p-4 border-b border-slate-100 bg-white flex items-center gap-4">
+                            <div className="p-2.5 bg-orange-600 text-white shadow-md"><Pill className="w-5 h-5 shrink-0" /></div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Clinical Pharmacy</span>
+                              <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Medical Prescription</h4>
+                            </div>
                           </div>
                           <div className="p-0 bg-white">
                             {(() => {
@@ -1982,17 +2005,17 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     <Table>
                                       <TableHeader className="bg-slate-50 border-b border-slate-200">
                                         <TableRow className="h-12 hover:bg-transparent">
-                                          <TableHead className="text-[12px] font-black uppercase tracking-widest pl-8 min-w-[200px]">Drug Name</TableHead>
+                                          <TableHead className="text-[12px] font-black uppercase tracking-widest pl-4 sm:pl-6 min-w-[200px]">Drug Name</TableHead>
                                           <TableHead className="text-[12px] font-black uppercase tracking-widest">Dose</TableHead>
                                           <TableHead className="text-[12px] font-black uppercase tracking-widest">Freq</TableHead>
                                           <TableHead className="text-[12px] font-black uppercase tracking-widest">Duration</TableHead>
-                                          <TableHead className="text-[12px] font-black uppercase tracking-widest pr-8">Eye</TableHead>
+                                          <TableHead className="text-[12px] font-black uppercase tracking-widest pr-4 sm:pr-6">Eye</TableHead>
                                         </TableRow>
                                       </TableHeader>
                                       <TableBody>
                                         {meds.map((m: any, idx: number) => (
-                                          <TableRow key={idx} className="h-16 hover:bg-orange-50/50 transition-colors border-slate-100">
-                                            <TableCell className="pl-8">
+                                          <TableRow key={idx} className="h-12 hover:bg-orange-50/50 transition-colors border-slate-100">
+                                            <TableCell className="pl-4 sm:pl-6">
                                               <div className="flex flex-col">
                                                 <span className="text-[12px] font-black text-orange-600 uppercase tracking-tight">{m.drug || m.name || "—"}</span>
                                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{m.route || "Topical"}</span>
@@ -2001,7 +2024,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                             <TableCell className="text-[11px] font-bold text-slate-600">{m.dosage || m.dose || "—"}</TableCell>
                                             <TableCell className="text-[11px] font-bold text-slate-600">{m.frequency || "—"}</TableCell>
                                             <TableCell className="text-[11px] font-bold text-slate-600 uppercase tracking-tighter">{m.duration || "—"}</TableCell>
-                                            <TableCell className="pr-8">
+                                            <TableCell className="pr-4 sm:pr-6">
                                               <Badge className="bg-orange-50 text-orange-600 border-orange-100 text-[10px] rounded-none px-2 font-black uppercase">{m.eye || "Both"}</Badge>
                                             </TableCell>
                                           </TableRow>
@@ -2011,18 +2034,20 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 );
                               }
-                              return <p className="text-xs font-bold text-slate-400 italic text-center py-12 uppercase tracking-widest bg-slate-50 border border-dashed border-slate-200 m-8">No medications documented for this visit</p>;
+                              return <p className="text-xs font-bold text-slate-400 italic text-center py-6 uppercase tracking-widest bg-slate-50 border border-dashed border-slate-200 m-4 sm:m-6">No medications documented for this visit</p>;
                             })()}
                           </div>
                         </Card>
 
                         <Card className="clinical-card">
-                          <div className="p-8 border-b bg-orange-600 text-white">
-                            <h4 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
-                              <Glasses className="w-6 h-6" /> Glass Prescription
-                            </h4>
+                          <div className="p-6 border-b border-slate-100 bg-white flex items-center gap-4">
+                            <div className="p-2.5 bg-orange-600 text-white shadow-md"><Glasses className="w-5 h-5 shrink-0" /></div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Optical Department</span>
+                              <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">Glass Prescription</h4>
+                            </div>
                           </div>
-                          <div className="p-8 bg-white font-mono">
+                          <div className="p-4 sm:p-6 bg-white font-mono">
                             {(() => {
                               const rawGlass = selectedHistoricalVisit.consultation?.finalGlassPrescription;
                               const glassRx = typeof rawGlass === 'string' ? JSON.parse(rawGlass) : rawGlass;
@@ -2032,9 +2057,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     {['distance', 'near'].map((part) => (
                                       <div key={part} className="space-y-3">
                                         <label className="text-[12px] font-black uppercase text-slate-400 tracking-widest">{part} (DV/NV)</label>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-2 gap-2 sm:gap-4">
                                           {['OD', 'OS'].map((eye) => (
-                                            <div key={eye} className="p-4 bg-slate-50 border border-slate-100">
+                                            <div key={eye} className="p-3 bg-slate-50 border border-slate-100">
                                               <span className="text-[11px] font-black text-orange-600 block mb-2">{eye}</span>
                                               <p className="text-sm font-black text-orange-600">
                                                 {glassRx[part]?.[eye]?.sphere || "0.00"} /
@@ -2049,13 +2074,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 );
                               }
-                              return <p className="text-sm font-bold text-slate-400 italic text-center py-10 uppercase tracking-widest bg-slate-50 border border-dashed border-slate-200">No glass prescription documented</p>;
+                              return <p className="text-sm font-bold text-slate-400 italic text-center py-6 uppercase tracking-widest bg-slate-50 border border-dashed border-slate-200">No glass prescription documented</p>;
                             })()}
                           </div>
                         </Card>
                       </div>
                     ) : (
-                      <div className="p-16 bg-white border-2 border-dashed border-slate-200 text-center opacity-60 italic font-bold text-slate-400">
+                      <div className="p-8 bg-white border-2 border-dashed border-slate-200 text-center opacity-60 italic font-bold text-slate-400">
                         No doctor's consultation data available for this visit.
                       </div>
                     )}

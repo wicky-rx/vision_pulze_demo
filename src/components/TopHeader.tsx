@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Search, ChevronDown, LogOut, User, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronDown, LogOut, User, Calendar as CalendarIcon } from "lucide-react";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -45,78 +45,86 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
   };
 
   return (
-    <header className="h-16 border-b border-orange-200 bg-orange-100 flex items-center justify-between px-6 shrink-0 shadow-lg z-50 transition-colors duration-300">
-      <div className="flex items-center gap-8">
+    <header className="h-16 md:h-20 border-b border-orange-200/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0 transition-all duration-500">
+      <div className="flex items-center gap-6 md:gap-10">
         {/* Logo Section */}
-        <div className="flex items-center lg:pr-8 lg:border-r border-orange-200/50 shrink-0">
+        <div className="flex items-center lg:pr-10 lg:border-r border-slate-200/60 shrink-0">
           <img
             src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
             alt="VPN Eye Hospital"
-            className="h-7 lg:h-9 w-auto object-contain"
+            className="h-8 lg:h-12 w-auto object-contain transition-transform hover:scale-105 duration-300"
           />
         </div>
 
-        <div>
-          <h2 className="text-sm lg:text-base font-black font-display truncate max-w-[120px] lg:max-w-none uppercase tracking-wider text-slate-900">
+        <div className="space-y-0.5">
+          <h2 className="text-sm lg:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse hidden sm:block" />
             {stationTitles[activeStation] || "Dashboard"}
           </h2>
-          <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest truncate text-slate-500">
+          <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <CalendarIcon className="w-3 h-3" />
             {new Date().toLocaleDateString("en-IN", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
-          </p>
-        </div>
-        <div className="hidden xl:flex flex-col justify-center border-l border-orange-200 pl-8">
-          <span className="text-xs font-black text-black">VPN EYE HOSPITAL</span>
-          <span className="text-[9px] font-bold uppercase tracking-tighter text-slate-500">25, Neela West Street, Nagapattinam - 611001</span>
-        </div>
-      </div>
-
-      <div className="hidden lg:flex flex-1 flex-col items-end justify-center pr-8">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Supported by Ragavarshini Traders</span>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* Global Search - Hidden for reception */}
-        {activeStation !== "reception" && (
-          <div className="relative w-64 hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="Search patients..."
-              className="pl-9 h-9 text-xs border-transparent focus:border-white/30 rounded-none transition-all font-bold bg-orange-200/50 text-slate-900 placeholder:text-slate-400 focus:bg-orange-200/80"
-            />
           </div>
-        )}
+        </div>
+        
+        <div className="hidden 2xl:flex flex-col justify-center border-l border-slate-200 pl-10">
+          <span className="text-xs font-black tracking-tight text-slate-900 leading-none mb-1">VPN EYE HOSPITAL</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">25, Neela West Street, Nagapattinam - 611001</span>
+        </div>
+      </div>
 
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center">
+        <div className="bg-orange-50/50 border border-orange-100 px-4 py-1.5 rounded-full shadow-sm">
+          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-orange-900/40 italic">Supported by Ragavarshini Traders</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 md:gap-6">
         {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-none hover:bg-white/10 transition-all border border-transparent hover:border-white/5">
-              <div className="w-8 h-8 rounded-none flex items-center justify-center border bg-orange-600/10 text-orange-600 border-orange-600/20">
-                <User className="w-4 h-4" />
+            <button className="group flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200 shadow-sm hover:shadow-md">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-200 group-hover:scale-105 transition-transform">
+                <User className="w-5 h-5" />
               </div>
-              <span className="hidden lg:inline text-xs font-black uppercase tracking-wider text-black">{userName}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <div className="hidden lg:flex flex-col items-start text-left">
+                <span className="text-[11px] font-black uppercase tracking-tight text-slate-900">{userName}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Practitioner</span>
+              </div>
+              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-orange-600 transition-colors" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-xl mt-1">
-            <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2">
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">My Account</span>
-              <span className="text-xs font-black text-foreground truncate">{userName}</span>
+          <DropdownMenuContent align="end" className="w-64 rounded-2xl mt-3 p-1 shadow-2xl border-slate-200/60">
+            <DropdownMenuLabel className="flex items-center gap-3 px-3 py-4 bg-slate-50/50 rounded-xl mb-1">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mb-1">My Profile</span>
+                <span className="text-sm font-black text-slate-900 truncate">{userName}</span>
+              </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-xs cursor-pointer gap-2"
-              onClick={() => setIsProfileOpen(true)}
-            >
-              <User className="w-3.5 h-3.5" />
-              Change Password
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-xs cursor-pointer gap-2 text-destructive focus:text-destructive"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Logout
-            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-slate-100" />
+            <div className="p-1">
+              <DropdownMenuItem
+                className="text-xs font-bold rounded-xl py-2.5 px-3 cursor-pointer gap-3 focus:bg-orange-50 focus:text-orange-900 transition-colors"
+                onClick={() => setIsProfileOpen(true)}
+              >
+                <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <User className="w-4 h-4" />
+                </div>
+                Change Password
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-xs font-bold rounded-xl py-2.5 px-3 cursor-pointer gap-3 text-rose-600 focus:bg-rose-50 focus:text-rose-700 transition-colors"
+                onClick={handleLogout}
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <LogOut className="w-4 h-4" />
+                </div>
+                Logout
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

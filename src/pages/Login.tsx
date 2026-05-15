@@ -114,6 +114,17 @@ const Login = () => {
         }
     }, [navigate]);
 
+    // Show session expired toast if redirected with expired=true
+    useEffect(() => {
+        if (searchParams.get("expired") === "true") {
+            toast({
+                variant: "destructive",
+                title: "Session Expired",
+                description: "Your session has ended. Please log in again to continue.",
+            });
+        }
+    }, [searchParams, toast]);
+
     // Redirect if no station is selected (or if it's invalid)
     useEffect(() => {
         if (!stationLabels[stationId]) {
@@ -245,13 +256,13 @@ const Login = () => {
                         </p>
                     </div>
                     <CardTitle className="text-3xl font-black font-sans text-slate-900 tracking-tight uppercase flex items-center justify-center gap-4">
-                        {stationId === "admin" ? "Admin Login" : "Station Login"}
+                        {stationLabels[stationId]} Login
                     </CardTitle>
                     <CardDescription className="text-slate-400 font-medium uppercase tracking-[0.2em] text-[10px]">
                         {stationId === "admin" ? (
                             <span className="text-primary font-black">Clinical Management System</span>
                         ) : (
-                            <>Terminal: <span className="text-primary font-black">{stationLabels[stationId]}</span></>
+                            <span className="text-primary font-black">Authorized Terminal Access</span>
                         )}
                     </CardDescription>
                 </CardHeader>

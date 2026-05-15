@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { type Patient } from "@/data/mockData";
-import { Printer, CheckCircle2, Loader2 } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Pill, ClipboardList, User, Activity, AlertCircle, Clock, Eye, Trash2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,13 +11,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { getPatientAgeString, getPatientAgeNumber, calculateSessionSlot, cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/config";
+import { sanitizeOptometryInput } from "@/lib/validation";
 
 export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient | null, doctors?: any[] }) {
     const { toast } = useToast();
     const [showPrint, setShowPrint] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [pharmacistNotes, setPharmacistNotes] = useState("");
+    const [completed, setCompleted] = useState(false);
+    
     const consultation = patient?.consultation;
+    const patientAge = getPatientAgeNumber(patient);
     
     useEffect(() => {
         if (patient) {
@@ -42,27 +46,26 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                 },
                 body: JSON.stringify({ 
                     medications: pharmacistNotes || "Dispensed",
-                    frameType: patient.optical?.frameType,
-                    lensType: patient.optical?.lensType
+                    status: "COMPLETED"
                 })
             });
 
             if (response.ok) {
                 setCompleted(true);
                 toast({ 
-                    title: "Dispensing Completed", 
-                    description: "Medications marked as dispensed and visit closed.",
+                    title: "Medication Fulfillment Successful", 
+                    description: "Inventory records updated and visit marked as finalized.",
                     className: "bg-emerald-600 text-white rounded-none border-0 font-bold"
                 });
                 window.dispatchEvent(new Event("patientQueueUpdated"));
             } else {
                 const err = await response.json();
-                throw new Error(err.message || "Failed to update status.");
+                throw new Error(err.message || "Failed to update pharmacy status.");
             }
         } catch (error: any) {
             toast({ 
                 variant: "destructive", 
-                title: "Submission Failed", 
+                title: "Dispatch Error", 
                 description: error.message 
             });
         } finally {
@@ -70,247 +73,289 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
         }
     };
 
-    return (
-        <div className="flex-1 p-4 sm:p-6 h-full flex flex-col overflow-y-auto bg-slate-50/30">
-            {/* Station Header */}
-            <div className="flex flex-col xl:grid xl:grid-cols-3 items-center gap-6 mb-6 bg-orange-50/80 border border-orange-200/60 p-4 shadow-sm text-slate-900">
-                {/* Col 1: Identification Badges */}
-                <div className="flex items-center gap-2">
-                    {(() => {
-                        const slot = calculateSessionSlot(patient, doctors);
-                        if (!slot) return null;
-                        return (
-                            <Badge className="bg-blue-600 text-white text-[10px] px-2 font-bold rounded-none h-6 border-0">
-                                {slot}
-                            </Badge>
-                        );
-                    })()}
-                    <Badge className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] px-2 font-bold rounded-none h-6">
-                        Token-{patient?.tokenNumber || "—"}
-                    </Badge>
-                    <Badge className="bg-orange-50 text-orange-600 border border-orange-200 text-[10px] px-2 font-mono tracking-widest rounded-none h-6">MR-{patient?.mrNumber || "0000"}</Badge>
+    if (!patient) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white p-12">
+                <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-6">
+                    <Pill className="w-10 h-10 text-orange-200" />
                 </div>
+                <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-300">Awaiting Patient Selection</h2>
+                <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Select a patient from the queue to manage dispensing</p>
+            </div>
+        );
+    }
 
-                {/* Col 2: Patient Name & Details (Centered) */}
-                <div className="flex flex-col items-center justify-center text-center">
-                    <span className="text-xl md:text-2xl text-slate-900 font-black uppercase tracking-tight leading-none mb-1">{patient?.name || "Unknown Patient"}</span>
-                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 mt-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                            {getPatientAgeString(patient)} • {patient?.gender} • {patient?.city || "Primary Center"}
-                        </span>
-                        <div className="hidden md:block h-3 w-px bg-slate-200" />
-                        <div className="flex flex-wrap justify-center items-center gap-3">
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Consultant:</span>
-                                <span className="text-[10px] font-black text-orange-600 uppercase tracking-tight">{consultation?.doctorName || patient?.consultingDoctor?.name || "Dr. Gajendran"}</span>
+    return (
+        <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
+            {/* Premium Station Header */}
+            <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
+                <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
+                    <div className="bg-gradient-to-br from-rose-500 to-rose-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-rose-200/50 hidden xs:flex items-center justify-center">
+                        <Pill className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                            <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <Badge className="bg-rose-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Optometrist:</span>
-                                <span className="text-[10px] font-black text-orange-600 uppercase tracking-tight">{(patient as any)?.refraction?.optometrist?.name || "Not Attended"}</span>
-                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
+                            <User className="w-3 h-3 text-slate-400" />
+                            <span>{patient.gender}</span>
+                            <span className="text-slate-300">•</span>
+                            <span>{getPatientAgeString(patient)}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-rose-600 font-black tracking-widest uppercase">Pharma fulfillment</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Col 3: Status Indicator (Right Aligned) */}
-                <div className="flex justify-end items-center gap-3">
+                <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
                     {completed && (
-                        <Badge className="bg-emerald-600 text-white border-0 gap-1.5 rounded-none px-4 py-1.5 h-auto font-black uppercase text-[10px] tracking-widest shadow-sm">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Completed
+                        <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
+                            <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
+                            Dispensed
                         </Badge>
                     )}
+                    
+                    {!completed && (
+                        <Button 
+                            onClick={handleComplete}
+                            disabled={isSubmitting}
+                            className="h-10 md:h-12 bg-rose-600 hover:bg-black text-white px-6 md:px-8 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs rounded-none shadow-xl transition-all gap-2"
+                        >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                            {isSubmitting ? "Processing..." : "Finalize Dispensing"}
+                        </Button>
+                    )}
+
+                    <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+                        <div className="text-right shrink-0">
+                            <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Consultant</p>
+                            </div>
+                            <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{patient?.consultingDoctorName || patient?.consultation?.doctor?.name || "Dr. Gajendran"}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 pl-4 border-l border-slate-200 hidden lg:flex">
+                        <div className="text-right shrink-0">
+                            <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Optometrist</p>
+                            </div>
+                            <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{patient?.refraction?.optometrist?.name || "Not Attended"}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {!consultation ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No Active Consultation Found</p>
-                </div>
-            ) : (
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Prescription Card */}
-                <Card className="shadow-sm border-status-pharmacy/20">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Doctor's Prescription</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        <div>
-                            <p className="text-[11px] text-muted-foreground">Diagnosis</p>
-                            <p className="font-bold text-[orange-600] uppercase text-xs">{consultation?.diagnosisText || "Not recorded"}</p>
-                        </div>
-                        <Separator />
-                        <div>
-                            <p className="text-[11px] text-muted-foreground">Prescription Type</p>
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                {Array.isArray(consultation?.prescriptionType) ? consultation.prescriptionType.map((t: string) => (
-                                    <Badge key={t} className="bg-accent/10 text-accent border-0 text-[10px] uppercase font-bold">{t}</Badge>
-                                )) : <Badge className="bg-accent/10 text-accent border-0 text-[10px]">Medication</Badge>}
+            {/* Main Clinical Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50/30 pb-24">
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 max-w-7xl mx-auto">
+                    
+                    {/* Prescription Detail Column */}
+                    <div className="xl:col-span-7 space-y-8">
+                        <div className="bg-white border-2 border-orange-100 rounded-none shadow-sm overflow-hidden">
+                            <div className="bg-orange-100 text-orange-600 px-6 py-3 flex items-center justify-between border-l-4 border-orange-600">
+                                <div className="flex items-center gap-3">
+                                    <ClipboardList className="w-4 h-4 text-orange-700" />
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.3em]">Medication Order #Rx-{patient.id?.slice(-6)}</h3>
+                                </div>
+                                <Badge variant="outline" className="border-orange-300 text-orange-700 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">Official Rx</Badge>
                             </div>
-                        </div>
-                        <Separator />
-                        <div>
-                            <p className="text-[11px] text-muted-foreground mb-1">Medication List</p>
-                            <div className="space-y-1 text-xs bg-muted/50 rounded-md p-2">
-                                {(() => {
-                                    const meds = consultation?.medicalPrescription;
-                                    if (!meds) return <p className="text-muted-foreground italic">No medications prescribed</p>;
-                                    
-                                    if (typeof meds === 'string') return <p className="font-bold text-slate-700">{meds}</p>;
-                                    
-                                    if (Array.isArray(meds)) {
-                                        return meds.map((m: any, i: number) => (
-                                            <div key={i} className="mb-2 last:mb-0 pb-2 border-b border-slate-200 last:border-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[8px] font-bold">{i+1}</span>
-                                                    <p className="font-black text-[orange-600] uppercase text-[10px]">{m.drug || m.medicine}</p>
+                            
+                            <div className="p-6 space-y-6">
+                                {/* Diagnosis Header */}
+                                <div className="bg-slate-50 p-4 border-l-4 border-slate-200">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Clinical Diagnosis</span>
+                                    <p className="text-xs font-black text-slate-900 uppercase leading-relaxed">{consultation?.diagnosisText || "No recorded diagnosis"}</p>
+                                </div>
+
+                                {/* Medication List Table */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest">
+                                        <div className="col-span-5">Drug / Preparation</div>
+                                        <div className="col-span-3 text-center">Dosage</div>
+                                        <div className="col-span-2 text-center">Frequency</div>
+                                        <div className="col-span-2 text-right">Eye</div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {Array.isArray(consultation?.medicalPrescription) ? (
+                                            consultation.medicalPrescription.map((m: any, i: number) => (
+                                                <div key={i} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-slate-100 items-center bg-white hover:bg-orange-50/30 transition-colors">
+                                                    <div className="col-span-5">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-orange-600 text-white text-[10px] font-black">{i+1}</span>
+                                                            <p className="font-black text-slate-900 uppercase text-[11px] tracking-tight">{m.drug || m.medicine}</p>
+                                                        </div>
+                                                        <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 pl-9">Duration: {m.duration}</p>
+                                                    </div>
+                                                    <div className="col-span-3 text-center text-[11px] font-bold text-slate-600">{m.dosage}</div>
+                                                    <div className="col-span-2 text-center">
+                                                        <Badge variant="outline" className="rounded-none border-orange-100 text-orange-600 text-[9px] font-black">{m.frequency}</Badge>
+                                                    </div>
+                                                    <div className="col-span-2 text-right">
+                                                        <span className={cn(
+                                                            "px-2 py-0.5 text-[10px] font-black uppercase",
+                                                            m.eye === 'OD' ? 'bg-blue-50 text-blue-600' : m.eye === 'OS' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-600'
+                                                        )}>{m.eye}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 pl-6">
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase"><span className="opacity-50">Dose:</span> {m.dosage}</p>
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase"><span className="opacity-50">Freq:</span> {m.frequency}</p>
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase"><span className="opacity-50">Dur:</span> {m.duration}</p>
-                                                    <p className="text-[9px] text-slate-500 font-bold uppercase"><span className="opacity-50">Eye:</span> {m.eye}</p>
-                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-12 text-center">
+                                                <AlertCircle className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 italic">No structured medication list found</p>
                                             </div>
-                                        ));
-                                    }
-                                    return <p>{JSON.stringify(meds)}</p>;
-                                })()}
-                            </div>
-                        </div>
-                        <Separator />
-                        <div>
-                            <p className="text-[11px] text-muted-foreground">Doctor</p>
-                            <p className="font-bold text-[orange-600] uppercase text-xs">{consultation?.doctorName || consultation?.doctor?.name || "Dr. Gajendran"}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Dispensing Form */}
-                <div className="col-span-2 space-y-6">
-                    {/* Medication Detail */}
-                    <Card className="shadow-sm">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">Medication Dispensing</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="space-y-1.5 col-span-1">
-                                    <Label className="text-xs font-medium">Prescription Summary</Label>
-                                    <div className="p-2 bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-700 min-h-[40px]">
-                                        {Array.isArray(consultation?.medicalPrescription) 
-                                            ? `${consultation.medicalPrescription.length} Medications Prescribed` 
-                                            : (typeof consultation?.medicalPrescription === 'string' ? consultation.medicalPrescription : "Clinical Rx Available")}
+                                        )}
                                     </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-medium">Dispensing Status</Label>
-                                    <Badge className={cn(
-                                        "w-full h-10 flex items-center justify-center rounded-none border-0 font-black uppercase text-[10px] tracking-widest",
-                                        completed ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-700"
-                                    )}>
-                                        {completed ? "Fulfillment Complete" : "Pending Action"}
-                                    </Badge>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-medium">Pharmacist Notes</Label>
-                                    <Input 
-                                        placeholder="Enter internal notes..." 
-                                        disabled={completed} 
-                                        className="disabled:opacity-80 rounded-none h-10 border-slate-200 text-xs font-bold" 
-                                        value={pharmacistNotes}
-                                        onChange={(e) => setPharmacistNotes(e.target.value)}
-                                    />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dispensing Action Column */}
+                    <div className="xl:col-span-5 space-y-8">
+                        {/* Dispatch Control */}
+                        <div className="bg-white border-2 border-slate-200 rounded-none shadow-sm">
+                            <div className="p-6 space-y-6">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 border-b border-slate-100 pb-3">Dispensing Control</h3>
+                                
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Internal Pharmacist Notes</label>
+                                        <textarea 
+                                            className="w-full h-32 p-4 text-[11px] font-bold border-2 border-slate-100 rounded-none focus:border-orange-600 focus:ring-0 transition-all bg-white placeholder:text-slate-300"
+                                            placeholder="Enter inventory details, batch numbers, or dispensing remarks..."
+                                            value={pharmacistNotes}
+                                            onChange={(e) => setPharmacistNotes(e.target.value)}
+                                            disabled={completed}
+                                        />
+                                    </div>
+
+                                    <div className="bg-blue-50 p-4 border-l-4 border-blue-600">
+                                        <div className="flex gap-3">
+                                            <Activity className="w-4 h-4 text-blue-600 shrink-0" />
+                                            <div>
+                                                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Dispensing Verification</p>
+                                                <p className="text-[10px] font-bold text-blue-800 leading-relaxed italic">
+                                                    Ensure all drug labels match the prescribed dosage and patient identification MR-{patient.mrNumber} is verified before final dispatch.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row justify-end gap-4 mt-10 pb-12 border-t border-slate-100 pt-8">
-                        <Button variant="outline" className="h-12 w-full sm:w-auto px-8 rounded-none border-slate-300 font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 hover:text-white transition-all gap-3" onClick={() => setShowPrint(true)}>
-                            <Printer className="w-4 h-4" />
-                            Print Bill
+                        {/* Summary Info */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-100 p-6 text-center">
+                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Patient Contact</span>
+                                <span className="block text-sm font-black text-slate-900 font-mono tracking-tighter">{patient.contactNumber || "N/A"}</span>
+                            </div>
+                            <div className="bg-slate-900 p-6 text-center text-white">
+                                <span className="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-2">Session Slot</span>
+                                <span className="block text-sm font-black uppercase">{calculateSessionSlot(patient, doctors) || "No Slot"}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="bg-white border-t border-slate-200 p-6 shadow-2xl z-30">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" className="h-14 px-8 rounded-none border-2 border-slate-200 font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 hover:text-white transition-all gap-3" onClick={() => setShowPrint(true)}>
+                            <Printer className="w-4 h-4" /> Print Invoice
                         </Button>
+                    </div>
+
+                    <div className="flex items-center gap-6 w-full sm:w-auto">
+                        {!completed && (
+                            <div className="flex items-center gap-3 text-slate-400 pr-4 border-r border-slate-100 mr-2 hidden lg:flex">
+                                <AlertCircle className="w-4 h-4" />
+                                <span className="text-[9px] font-black uppercase tracking-widest italic">Verification Required</span>
+                            </div>
+                        )}
                         <Button
+                            size="lg"
                             className={cn(
-                                "h-12 w-full sm:w-auto px-8 rounded-none font-black uppercase text-[10px] tracking-widest shadow-lg transition-all gap-3 disabled:pointer-events-none disabled:cursor-not-allowed",
-                                completed ? "bg-orange-600 text-white opacity-80" : "bg-emerald-600 hover:bg-black text-white"
+                                "h-14 px-12 rounded-none font-black uppercase tracking-[0.2em] transition-all text-[10px] w-full sm:w-auto shadow-xl gap-3",
+                                completed ? "bg-slate-100 text-slate-400 pointer-events-none" : "bg-emerald-600 text-white hover:bg-black"
                             )}
                             onClick={handleComplete}
                             disabled={completed || isSubmitting}
                         >
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                            {completed ? "Order Synchronized" : "Mark as Dispensed"}
+                            {completed ? "Visit Finalized" : "Confirm Dispatch"}
                         </Button>
                     </div>
                 </div>
             </div>
-            )}
 
-            {/* Print Preview Modal */}
+            {/* Print Modal */}
             <Dialog open={showPrint} onOpenChange={setShowPrint}>
-                <DialogContent className="max-w-lg p-0 border-0 rounded-none overflow-hidden shadow-2xl">
-                    <DialogHeader className="p-6 bg-orange-600 border-0 rounded-none flex flex-row items-center justify-between space-y-0">
-                        <DialogTitle className="text-white font-black uppercase tracking-[0.3em] text-[10px]">Pharmacy Bill Preview</DialogTitle>
-                    </DialogHeader>
-                    <div className="bg-white p-8 space-y-6">
-                        <div className="text-center border-b border-slate-100 pb-6 flex flex-col items-center">
-                            <img
-                                src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                                alt="VPN Eye Hospital"
-                                className="h-12 w-auto object-contain mb-2"
-                            />
-                            <h4 className="text-sm font-black text-[orange-600] uppercase tracking-tighter">Pharmacy Invoice</h4>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Nagapattinam • Primary Care Center</p>
+                <DialogContent className="max-w-xl p-0 border-0 rounded-none overflow-hidden shadow-2xl">
+                    <div className="bg-orange-600 p-6 text-center">
+                        <h2 className="text-white font-black uppercase tracking-[0.4em] text-xs">Pharmacy Bill Preview</h2>
+                    </div>
+                    <div className="bg-white p-10 space-y-8">
+                        <div className="text-center flex flex-col items-center">
+                            <img src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" alt="Logo" className="h-14 w-auto mb-4" />
+                            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">VPN Eye Hospital</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">World-Class Vision Care • Nagapattinam</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-[10px] bg-slate-50 p-4 border border-slate-100">
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest">MR Number:</span> <p className="font-black text-[orange-600] font-mono">MR-{patient?.mrNumber}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest">Patient Name:</span> <p className="font-black text-[orange-600] uppercase">{patient?.name}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest">Invoice Date:</span> <p className="font-bold text-slate-800">{new Date().toLocaleDateString("en-IN")}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest">Consultant:</span> <p className="font-bold text-slate-800 uppercase">{consultation?.doctorName || patient?.consultingDoctor?.name || "Dr. Gajendran"}</p></div>
+
+                        <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[10px] py-6 border-y border-slate-100">
+                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Patient Name</span> <p className="font-black text-orange-600 uppercase text-xs">{patient.name}</p></div>
+                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">MR Number</span> <p className="font-black text-orange-600 font-mono text-xs">MR-{patient.mrNumber}</p></div>
+                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Visit Date</span> <p className="font-bold text-slate-800">{new Date().toLocaleDateString("en-IN")}</p></div>
+                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Token No.</span> <p className="font-bold text-slate-800 uppercase tracking-tighter">Token-{patient.tokenNumber}</p></div>
                         </div>
-                        
+
                         <div className="space-y-4">
-                            <h5 className="text-[10px] font-black uppercase text-slate-900 border-b border-slate-900 pb-1 w-fit tracking-widest">Dispensed Medications</h5>
-                            <div className="space-y-2">
-                                {(() => {
-                                    const meds = consultation?.medicalPrescription;
-                                    if (!meds) return <p className="text-[10px] italic text-slate-400">No active prescription found.</p>;
-                                    if (typeof meds === 'string') return <div className="p-3 bg-slate-50/50 border border-slate-100 font-bold text-xs">{meds}</div>;
-                                    if (Array.isArray(meds)) {
-                                        return meds.map((m: any, i: number) => (
-                                            <div key={i} className="flex justify-between items-start text-[10px] border-b border-slate-100 pb-2 last:border-0">
-                                                <div>
-                                                    <p className="font-black text-[orange-600] uppercase">{m.drug || m.medicine || m.name}</p>
-                                                    <p className="text-slate-400 font-bold uppercase">{m.frequency} — {m.duration}</p>
-                                                    <p className="text-[9px] text-slate-400">{m.dosage}</p>
-                                                </div>
-                                                <p className="font-bold text-slate-600">{m.eye}</p>
-                                            </div>
-                                        ));
-                                    }
-                                    return null;
-                                })()}
-                            </div>
+                            <h5 className="text-[10px] font-black uppercase text-slate-900 tracking-[0.2em] border-b-2 border-slate-900 pb-1 w-fit">Bill Summary</h5>
+                            <table className="w-full text-[10px]">
+                                <thead className="border-b border-slate-200">
+                                    <tr className="text-slate-400 font-black uppercase text-left">
+                                        <th className="py-2">Item Description</th>
+                                        <th className="py-2 text-center">Dosage</th>
+                                        <th className="py-2 text-right">Eye</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Array.isArray(consultation?.medicalPrescription) && consultation.medicalPrescription.map((m: any, i: number) => (
+                                        <tr key={i} className="border-b border-slate-50">
+                                            <td className="py-3 font-black text-slate-900 uppercase">{m.drug || m.medicine}</td>
+                                            <td className="py-3 text-center font-bold text-slate-600">{m.dosage}</td>
+                                            <td className="py-3 text-right font-black text-orange-600">{m.eye}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <div className="pt-6 flex justify-between items-end border-t border-slate-100 italic">
-                            <p className="text-[8px] text-slate-400 font-bold max-w-[150px] leading-relaxed">This invoice verifies medication dispensing at VPN Eye Hospital pharmacy counter.</p>
+
+                        <div className="pt-12 flex justify-between items-end border-t border-slate-100 italic">
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black text-orange-600 uppercase">Hospital Contact</p>
+                                <p className="text-[8px] text-slate-400 font-bold">+91 4365 242000</p>
+                            </div>
                             <div className="text-right">
-                                <div className="w-20 h-px bg-slate-300 mb-1 ml-auto" />
-                                <p className="text-[8px] font-black uppercase tracking-widest text-[orange-600]">Pharmacist</p>
+                                <div className="w-24 h-px bg-slate-200 mb-2 ml-auto" />
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-900">Pharmacist Seal</p>
                             </div>
-                        </div>
-                        <div className="pt-6 text-center text-[9px] text-slate-400 font-bold uppercase tracking-widest border-t border-slate-100 mt-6">
-                            Thank you for trusting us with your vision care.
                         </div>
                     </div>
-                    <DialogFooter className="p-6 bg-slate-50 border-t flex items-center justify-center gap-4">
-                        <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Close</Button>
-                        <Button className="rounded-none bg-[orange-600] hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3" onClick={() => window.print()}>
-                            <Printer className="w-4 h-4" />
-                            Confirm & Print
+                    <DialogFooter className="p-6 bg-slate-50 border-t flex flex-row items-center justify-center gap-4">
+                        <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel</Button>
+                        <Button className="rounded-none bg-orange-600 hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3" onClick={() => window.print()}>
+                            <Printer className="w-4 h-4" /> Print Document
                         </Button>
                     </DialogFooter>
                 </DialogContent>

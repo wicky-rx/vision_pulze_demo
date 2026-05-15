@@ -7,6 +7,7 @@ import { RefractionStation } from "@/components/stations/RefractionStation";
 import { DoctorStation } from "@/components/stations/DoctorStation";
 import { OpticalStation } from "@/components/stations/OpticalStation";
 import { PharmacyStation } from "@/components/stations/PharmacyStation";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 type Station = "reception" | "refraction" | "doctor" | "consultation" | "clinical" | "optical" | "pharmacy" | "inventory" | "admin";
 
@@ -58,7 +59,12 @@ const Index = () => {
         return;
       }
 
-      if (stationRoleMap[stationId] && stationRoleMap[stationId] !== role) {
+      const requiredRole = stationRoleMap[stationId];
+      const isRoleValid = requiredRole === role || 
+                         (stationId === "optical" && (role === "OPTICAL" || role === "OPTICALS")) ||
+                         (stationId === "pharmacy" && (role === "PHARMACY" || role === "PHARMACIST"));
+
+      if (requiredRole && !isRoleValid) {
         // Unauthorized access, clear session and redirect
         localStorage.removeItem("user_session");
         localStorage.removeItem("token");
@@ -138,7 +144,9 @@ const Index = () => {
               setDoctors={setDoctors}
             />
             <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/10">
-              <ActiveComponent patient={selectedPatient} doctors={doctors} />
+              <ErrorBoundary>
+                <ActiveComponent patient={selectedPatient} doctors={doctors} />
+              </ErrorBoundary>
             </div>
           </div>
         </div>

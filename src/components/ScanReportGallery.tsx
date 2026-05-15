@@ -403,7 +403,7 @@ export function ScanReportGallery({
                   <div className="text-center overflow-hidden w-full px-1 pointer-events-none">
                     <p className="text-[10px] font-bold text-slate-900 uppercase truncate" title={doc.category}>{doc.category}</p>
                     <p className="text-[10px] text-foreground font-medium truncate" title={doc.title}>{truncateFileName(doc.title, 24)}</p>
-                    <p className="text-[8px] text-muted-foreground/70">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                    <p className="text-[8px] text-muted-foreground/90 font-bold">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
                   </div>
                   
                   <Badge variant="outline" className="text-[8px] px-1 py-0 bg-orange-50 border-orange-200 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none">
@@ -485,7 +485,7 @@ export function ScanReportGallery({
                 </div>
                 <div className="p-3 rounded-xl bg-muted/50 border border-border flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">File Name</span>
-                    <span className="text-sm font-medium truncate" title={selectedDoc?.title}>{selectedDoc?.title}</span>
+                    <span className="text-sm font-medium truncate" title={selectedDoc?.title}>{selectedDoc?.title ? truncateFileName(selectedDoc.title) : ''}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-muted/50 border border-border flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Upload Date</span>
@@ -497,7 +497,7 @@ export function ScanReportGallery({
                 {selectedDoc?.webViewLink && (
                     <Button 
                         onClick={() => window.open(selectedDoc.webViewLink, '_blank')}
-                        className="gap-2 text-orange-600 hover:text-orange-600/90 shadow-sm grow md:grow-0"
+                        className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <ExternalLink className="w-4 h-4" />
                         Open on Google Drive
@@ -507,7 +507,7 @@ export function ScanReportGallery({
                     <Button 
                         variant="outline"
                         onClick={() => window.open(selectedDoc.webContentLink, '_blank')}
-                        className="gap-2 grow md:grow-0"
+                        className="gap-2 bg-white hover:bg-orange-50 text-slate-700 border border-slate-200 hover:border-orange-200 hover:text-orange-600 shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <Download className="w-4 h-4" />
                         Download File
@@ -516,7 +516,7 @@ export function ScanReportGallery({
                 {selectedDoc?.filePath && (
                     <Button 
                         onClick={() => window.open(`${API_BASE_URL}/${selectedDoc.filePath}`, '_blank')}
-                        className="gap-2 text-orange-600 hover:text-orange-600/90 shadow-sm grow md:grow-0"
+                        className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <FileText className="w-4 h-4" />
                         View Server File
