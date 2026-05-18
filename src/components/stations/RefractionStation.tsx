@@ -135,7 +135,7 @@ const DiagnosticCard = React.memo(({
         </div>
         <div className="flex items-center gap-3">
           {action && action}
-          {badge && <Badge variant="outline" className="border-orange-300 text-orange-700 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">{badge}</Badge>}
+          {badge && <Badge variant="outline" className="border-orange-300 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">{badge}</Badge>}
           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
       </div>
@@ -223,7 +223,7 @@ const DualEyePrescriptionBlock = React.memo(({
       sectionId={stateKey}
       openSections={{ [stateKey]: isOpen }}
       onToggle={onToggle}
-      headerClassName={headerClassName || "bg-orange-50 text-orange-900 border-l-orange-600"}
+      headerClassName={headerClassName || "bg-orange-50 text-orange-600 border-l-orange-600"}
       badge={data?.distance?.OD?.sphere ? "Assessment Active" : undefined}
       action={onSync && (
         <Button
@@ -604,7 +604,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
         OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
       },
       contact: {
-        clType: [], // Array for multi-select: Disposable, Yearly, Toric
+        clType: ["Soft CL"], // Array for multi-select: Disposable, Yearly, Toric
         OD: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
         OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
       },
@@ -616,10 +616,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       OS: { sphere: "", cylinder: "", axis: "", qualityOfRef: "", cycloSphere: "", cycloCylinder: "", cycloAxis: "" },
     },
     glassPrescription: {
+      glassType: "SVN",
       OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
       OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
     },
     contactLensPrescription: {
+      clType: ["Soft CL"],
       OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
       OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
     },
@@ -840,6 +842,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                 }
               }
             });
+            // Map ocularComplaint string back to complaints array
+            if (serverData?.ocularComplaint && !draftData?.data?.complaints) {
+              final.complaints = serverData.ocularComplaint.split(',').map((s: string) => s.trim()).filter(Boolean);
+            }
 
             return final;
           });
@@ -1239,7 +1245,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       <div className="flex-1 relative overflow-hidden bg-slate-50/50">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
         <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300 transition-all overflow-x-hidden z-10">
-          <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 relative">
+          <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 relative" style={{ zoom: "110%" }}>
           <div className="bg-white shadow-xl border border-slate-200 p-3 sm:p-6 md:p-8">
             <fieldset 
               disabled={isLocked}
@@ -1581,7 +1587,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
               badge={formData.pgPower.activeTab.toUpperCase()}
             >
               <div className="space-y-8">
-                <div className="flex flex-wrap gap-6">
+                <div className="flex flex-col gap-6">
                     <RadioGroup
                       value={formData.pgPower.activeTab}
                       onValueChange={(val) => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: val } }))}
@@ -1615,7 +1621,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                 className={cn(
                                   "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
                                   isSelected
-                                    ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                                    ? "bg-orange-600 text-white border-orange-600 shadow-md"
                                     : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
                                 )}
                               >
@@ -1627,33 +1633,52 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       </div>
                     )}
                     {formData.pgPower.activeTab === "contact" && (
-                      <div className="space-y-3 min-w-[200px] flex-1">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Soft Contact Lens Type</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {["Disposable", "Yearly", "Toric"].map((type) => {
-                            const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
-                            const isSelected = currentTypes.includes(type);
-                            return (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() => {
-                                  const nextTypes = isSelected 
-                                    ? currentTypes.filter(t => t !== type)
-                                    : [...currentTypes, type];
+                      <div className="flex flex-col md:flex-row gap-6 md:gap-8 min-w-[200px] flex-1">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {["Soft CL", "RGP", "Scleral"].map((type) => {
+                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                              const isSelected = currentTypes.includes(type);
+                              const isDisabled = type === "RGP" || type === "Scleral";
+                              return (
+                                <button key={type} type="button" disabled={isDisabled} onClick={() => {
+                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
                                   setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                }}
-                                className={cn(
-                                  "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                  isSelected
-                                    ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                                    : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
-                                )}
-                              >
-                                {type}
-                              </button>
-                            );
-                          })}
+                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {["Disposable", "Yearly"].map((type) => {
+                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                              const isSelected = currentTypes.includes(type);
+                              return (
+                                <button key={type} type="button" onClick={() => {
+                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                  setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
+                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {["Spherical", "Toric", "Multifocal"].map((type) => {
+                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                              const isSelected = currentTypes.includes(type);
+                              return (
+                                <button key={type} type="button" onClick={() => {
+                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                  setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
+                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1730,12 +1755,16 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                 type="button"
                                 onClick={() => setFormData(p => ({
                                   ...p,
-                                  ishiharaTest: { ...(p.ishiharaTest || {}), status: opt.value }
+                                  ishiharaTest: { 
+                                    ...(p.ishiharaTest || {}), 
+                                    status: opt.value,
+                                    notes: opt.value === "CLEAR" ? "" : p.ishiharaTest?.notes 
+                                  }
                                 }))}
                                 className={cn(
                                   "flex-1 h-14 px-4 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
                                   isSelected
-                                    ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                                    ? "bg-orange-600 text-white border-orange-600 shadow-md"
                                     : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
                                 )}
                               >
@@ -1744,12 +1773,40 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             );
                           })}
                         </div>
-                          {formData.ishiharaTest?.status === "DEFICIENCY" && (
-                            <Input className="h-14 text-sm font-bold bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 italic" placeholder="Details (e.g. Red-Green)..." value={formData.ishiharaTest?.notes || ""} onChange={(e) => setFormData(p => {
-                              const current = p.ishiharaTest || {};
-                              return { ...p, ishiharaTest: { ...current, notes: sanitizeOptometryInput(e.target.value, 'notes') } };
-                            })} />
-                          )}
+                        <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity duration-300", formData.ishiharaTest?.status === "DEFICIENCY" ? "opacity-100" : "opacity-30 pointer-events-none")}>
+                          {["Red", "Green", "Red-Green", "Total"].map((def) => {
+                            const isDefSelected = formData.ishiharaTest?.notes === def;
+                            let colorClass = "";
+                            if (isDefSelected) {
+                              if (def === "Red") colorClass = "bg-red-500 text-white border-red-500";
+                              else if (def === "Green") colorClass = "bg-emerald-500 text-white border-emerald-500";
+                              else if (def === "Red-Green") colorClass = "bg-gradient-to-r from-red-500 to-emerald-500 text-white border-transparent";
+                              else if (def === "Total") colorClass = "bg-slate-700 text-white border-slate-700";
+                            } else {
+                              if (def === "Red") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-red-400 hover:text-red-600";
+                              else if (def === "Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600";
+                              else if (def === "Red-Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600";
+                              else if (def === "Total") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-slate-500 hover:text-slate-700";
+                            }
+
+                            return (
+                              <button
+                                key={def}
+                                type="button"
+                                onClick={() => setFormData(p => {
+                                  const current = p.ishiharaTest || {};
+                                  return { ...p, ishiharaTest: { ...current, notes: current.notes === def ? "" : def } };
+                                })}
+                                className={cn(
+                                  "h-12 text-[9px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                  colorClass
+                                )}
+                              >
+                                {def}
+                              </button>
+                            );
+                          })}
+                        </div>
                         </div>
                       </div>
                     </div>
@@ -1911,8 +1968,8 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 pt-4">
-                  <div className="xl:col-span-8 space-y-8">
+                <div className="pt-4">
+                  <div className="space-y-8">
                     {["OD", "OS"].map((eye) => (
                       <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1951,61 +2008,6 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       </div>
                     ))}
                   </div>
-
-                  <div className="xl:col-span-4 xl:border-l-2 border-emerald-50 pl-0 xl:pl-10 flex flex-col items-center">
-                    <label className="text-[10px] font-black uppercase text-slate-600 tracking-[0.2em] border-b-2 border-emerald-200 pb-2 mb-8 block text-center w-full">CTRR Diagnostic Documentation</label>
-
-                    <CTRRDrawingDialog
-                      initialData={formData.ctrr?.startsWith('/') ? `${API_BASE_URL}${formData.ctrr}` : formData.ctrr}
-                      onSave={(data) => setFormData(p => ({ ...p, ctrr: data }))}
-                      trigger={
-                        <Button variant="outline" className="h-20 w-full rounded-none border-2 border-dashed border-slate-300 hover:border-orange-600 hover:bg-slate-50 transition-all group">
-                          <div className="flex flex-col items-center gap-1">
-                            <Crosshair className="w-6 h-6 text-slate-300 group-hover:text-orange-600" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-orange-600">Capture CTRR (Power Cross)</span>
-                          </div>
-                        </Button>
-                      }
-                    />
-
-                    {formData.ctrr && (
-                      <div className="mt-12 w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="relative p-2 bg-white border-2 border-slate-200 shadow-xl group overflow-hidden">
-                          <img
-                            src={formData.ctrr.startsWith('/') ? `${API_BASE_URL}${formData.ctrr}` : formData.ctrr}
-                            alt="CTRR Grid"
-                            className="w-full h-auto grayscale-0 group-hover:grayscale transition-all duration-300"
-                            crossOrigin="anonymous"
-                          />
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-white text-[10px] font-black uppercase tracking-[0.3em]">Update Diagnostic Diagram</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-3">
-                          {formData.ctrr.startsWith('data:image') && (
-                            <Button
-                              size="sm"
-                              className="w-full h-12 bg-blue-600 hover:bg-black text-white rounded-none font-black uppercase tracking-widest text-[10px] shadow-lg"
-                              onClick={handleCTRRUpload}
-                              disabled={isUploadingCTRR}
-                            >
-                              {isUploadingCTRR ? "Synchronizing..." : "Sync to Patient Portfolio"}
-                            </Button>
-                          )}
-                          <div className="flex items-center justify-center gap-2">
-                            {formData.ctrr.startsWith('/') ? (
-                              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black tracking-widest uppercase">
-                                <ShieldCheck className="w-3.5 h-3.5" /> Immutable Archive
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest italic opacity-60">Pending Cloud Sync</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </DiagnosticCard>
@@ -2022,7 +2024,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                 syncTitle="Sync from Obj"
                 isOpen={!!openSections['acceptance']}
                 onToggle={() => toggleSection('acceptance')}
-                headerClassName="bg-orange-50 text-orange-900 border-l-orange-600"
+                headerClassName="bg-orange-50 text-orange-600 border-l-orange-600"
               />
             </div>
 
@@ -2085,20 +2087,52 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
               openSections={openSections}
               onToggle={toggleSection}
               headerClassName="bg-pink-50 text-pink-900 border-l-pink-600"
+              action={
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 px-4 bg-pink-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    syncAcceptanceToFinal();
+                  }}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Sync from Subjective
+                </Button>
+              }
             >
               <div className="space-y-6">
-                <div className="flex justify-end pb-4 border-b border-pink-100">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-9 px-4 bg-pink-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-md transition-all"
-                    onClick={syncAcceptanceToFinal}
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> Sync from Subjective Refraction
-                  </Button>
-                </div>
                 
                 <div className="clinical-group !bg-transparent !border-none !p-0">
+                  <div className="space-y-6 pb-6 mb-6 border-b border-pink-100">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Lens Architecture</label>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {[
+                          { label: "Single Vision (SVN)", value: "SVN" },
+                          { label: "Bifocals (KBF)", value: "KBF" },
+                          { label: "Progressive (PAL)", value: "PAL" }
+                        ].map((opt) => {
+                          const isSelected = (formData.glassPrescription?.glassType || "SVN") === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, glassPrescription: { ...p.glassPrescription, glassType: opt.value } }))}
+                              className={cn(
+                                "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                isSelected
+                                  ? "bg-pink-600 text-white border-pink-600 shadow-md"
+                                  : "bg-white text-slate-400 border-slate-100 hover:border-pink-200 hover:text-pink-600"
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-4 pt-2">
                     {["OD", "OS"].map((eye) => (
                       <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
@@ -2179,6 +2213,57 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             >
               <div className="space-y-6">
                 <div className="clinical-group !bg-transparent !border-none !p-0">
+                  <div className="space-y-6 pb-6 mb-6 border-b border-violet-100">
+                    <div className="flex flex-col md:flex-row gap-6 md:gap-12">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {["Soft CL", "RGP", "Scleral"].map((type) => {
+                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                            const isSelected = currentTypes.includes(type);
+                            const isDisabled = type === "RGP" || type === "Scleral";
+                            return (
+                              <button key={type} type="button" disabled={isDisabled} onClick={() => {
+                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {["Disposable", "Yearly"].map((type) => {
+                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                            const isSelected = currentTypes.includes(type);
+                            return (
+                              <button key={type} type="button" onClick={() => {
+                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {["Spherical", "Toric", "Multifocal"].map((type) => {
+                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                            const isSelected = currentTypes.includes(type);
+                            return (
+                              <button key={type} type="button" onClick={() => {
+                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-4 pt-2">
                     {["OD", "OS"].map((eye) => (
                       <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
@@ -2367,6 +2452,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ 
                               ...finalFormData, 
+                              complaint: Array.isArray(finalFormData.complaints) ? finalFormData.complaints.join(", ") : "",
                               systemicHistory: selectedChips,
                               refractionistName: userName 
                             })

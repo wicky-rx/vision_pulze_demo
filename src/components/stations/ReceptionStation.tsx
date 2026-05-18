@@ -893,12 +893,12 @@ export function ReceptionStation() {
                           <SelectItem key={doc.id} value={doc.id} className="group">
                             <div className="flex flex-col py-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tight text-sm transition-colors">{doc.name}</span>
+                                <span className="font-bold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tight text-sm transition-colors">{doc.name}</span>
                                 {doc.schedules?.some((s: any) => s.dayOfWeek === new Date().getDay()) && (
                                   <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 font-black tracking-widest text-white">ON DUTY</Badge>
                                 )}
                               </div>
-                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
+                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -965,9 +965,9 @@ export function ReceptionStation() {
                           <div className="border-t border-slate-100 mt-1">
                             <SelectItem 
                               value="ACTION:SCHEDULE" 
-                              className="text-[9px] font-bold text-slate-400 hover:text-primary rounded-none py-2 cursor-pointer flex items-center gap-2"
+                              className="text-[10px] font-bold text-orange-600 focus:bg-orange-50 focus:text-orange-600 rounded-none py-3 cursor-pointer flex items-center gap-2"
                             >
-                              <CalendarIcon className="w-3 h-3" />
+                              <CalendarIcon className="w-3.5 h-3.5" />
                               Schedule for later Date?
                             </SelectItem>
                           </div>
@@ -1473,23 +1473,29 @@ export function ReceptionStation() {
 
         {/* Doctor Selection Dialog for Returning Patient */}
         <Dialog open={isDoctorSelectOpen} onOpenChange={setIsDoctorSelectOpen}>
-          <DialogContent className="max-w-md">
-            <CardHeader className="bg-slate-50/10 border-b border-slate-100/50 pb-6">
-              <CardTitle className="text-xl font-black uppercase tracking-tighter text-orange-600 flex items-center gap-4">
-                <div className="w-1.5 h-6 bg-orange-600" /> Patient Information System
-              </CardTitle>
-              <DialogDescription className="hidden">
-                Select a consultant and an available time slot to start a patient visit.
-              </DialogDescription>
-            </CardHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Consulting Personal</Label>
+          <DialogContent className="max-w-md p-0 overflow-hidden border-orange-200">
+            <div className="bg-orange-50/80 border-b border-orange-100 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-200/50 flex items-center justify-center shrink-0">
+                <ClipboardList className="w-6 h-6 text-orange-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black uppercase tracking-tighter text-orange-600">
+                  Start Patient Visit
+                </DialogTitle>
+                <DialogDescription className="text-xs text-orange-600/80 font-medium mt-1">
+                  Assign a consulting physician and initiate the clinical workflow.
+                </DialogDescription>
+              </div>
+            </div>
+            
+            <div className="p-6 pt-4 space-y-4">
+              <div className="space-y-2.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Consulting Physician</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                  <SelectTrigger className="h-auto min-h-[40px] py-2">
-                    <SelectValue placeholder="Select Doctor" />
+                  <SelectTrigger className="h-12 border-orange-200 focus:ring-orange-500/30 hover:border-orange-300 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-400">
+                    <SelectValue placeholder="Select an on-duty doctor..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="border-orange-200 shadow-xl">
                     {(() => {
                       const today = new Date().getDay();
                       const now = new Date();
@@ -1507,15 +1513,15 @@ export function ReceptionStation() {
                       });
 
                       if (activeDoctors.length === 0) {
-                        return <div className="py-4 px-3 text-[10px] text-muted-foreground italic text-center font-bold tracking-widest uppercase">No doctors currently available in their active session</div>;
+                        return <div className="py-6 px-4 text-xs text-orange-600/80 italic text-center font-bold tracking-widest uppercase">No doctors currently available in their active session</div>;
                       }
 
                       return activeDoctors.map(doc => (
-                        <SelectItem key={doc.id} value={doc.id} className="text-xs group">
-                          <div className="flex items-center flex-wrap gap-2 py-0.5">
-                            <span className="font-semibold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tighter text-sm transition-colors">{doc.name}</span>
-                            <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold shrink-0">ON DUTY</Badge>
-                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight transition-colors sm:ml-auto">{doc.specialization?.name || "General"}</span>
+                        <SelectItem key={doc.id} value={doc.id} className="text-xs group focus:bg-orange-50">
+                          <div className="flex items-center flex-wrap gap-2 py-1">
+                            <span className="font-bold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tighter text-sm transition-colors">{doc.name}</span>
+                            <Badge className="h-4 px-1.5 text-[9px] bg-emerald-500/10 text-emerald-600 border-0 font-black shrink-0 tracking-widest uppercase">On Duty</Badge>
+                            <span className="text-[10px] font-semibold text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-widest transition-colors sm:ml-auto">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
                       ));
@@ -1524,26 +1530,27 @@ export function ReceptionStation() {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800">Cancel</Button>
+            
+            <div className="bg-slate-50/50 border-t border-slate-100 p-4 px-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-600 font-bold uppercase tracking-widest text-xs h-10">Cancel</Button>
               <Button
                 onClick={confirmStartNewVisit}
                 disabled={!selectedDoctorId || startingVisitMrn}
-                className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm"
+                className="gap-2 bg-orange-600 hover:bg-orange-600 text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all"
               >
                 {startingVisitMrn ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Creating...
+                    <div className="w-3.5 h-3.5 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+                    Starting...
                   </>
                 ) : (
                   <>
-                    Confirm Appointment
-                    <ArrowRight className="w-4 h-4" />
+                    Start Visit
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 
@@ -1589,12 +1596,12 @@ export function ReceptionStation() {
                         )}
                         disabled={appointmentDialogMode === "START_VISIT"}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-orange-900" />
+                        <CalendarIcon className="mr-2 h-4 w-4 group-hover:text-orange-600" />
                         {selectedAppointmentDate ? (
                           <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 leading-none">
-                            <span className="font-bold text-orange-600 group-hover:text-orange-900 uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
+                            <span className="font-bold text-orange-600 group-hover:text-orange-600 uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
                             <span className="hidden sm:inline-block w-[1px] h-3 bg-slate-200 group-hover:bg-white/30"></span>
-                            <span className="text-slate-500 group-hover:text-orange-900/90 font-medium transition-colors">{format(selectedAppointmentDate, "PPP")}</span>
+                            <span className="text-slate-500 group-hover:text-orange-600/90 font-medium transition-colors">{format(selectedAppointmentDate, "PPP")}</span>
                           </div>
                         ) : <span>Pick a date</span>}
                       </Button>
@@ -1641,10 +1648,10 @@ export function ReceptionStation() {
                         <SelectItem key={doc.id} value={doc.id} className="group">
                           <div className="flex flex-col py-0.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold leading-none group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 uppercase tracking-tighter transition-colors">{doc.name}</span>
+                              <span className="font-semibold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tighter transition-colors">{doc.name}</span>
                               <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold tracking-tighter shadow-sm">AVAILABLE</Badge>
                             </div>
-                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
+                            <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
                       ))}

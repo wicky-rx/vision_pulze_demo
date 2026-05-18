@@ -156,10 +156,10 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                         <div className="bg-white border-2 border-orange-100 rounded-none shadow-sm overflow-hidden">
                             <div className="bg-orange-100 text-orange-600 px-6 py-3 flex items-center justify-between border-l-4 border-orange-600">
                                 <div className="flex items-center gap-3">
-                                    <ClipboardList className="w-4 h-4 text-orange-700" />
+                                    <ClipboardList className="w-4 h-4 text-orange-600" />
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.3em]">Medication Order #Rx-{patient.id?.slice(-6)}</h3>
                                 </div>
-                                <Badge variant="outline" className="border-orange-300 text-orange-700 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">Official Rx</Badge>
+                                <Badge variant="outline" className="border-orange-300 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">Official Rx</Badge>
                             </div>
                             
                             <div className="p-6 space-y-6">

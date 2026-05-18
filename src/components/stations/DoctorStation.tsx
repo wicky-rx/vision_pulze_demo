@@ -79,6 +79,8 @@ interface Medication {
 }
 
 interface PrescriptionState {
+  glassType?: string;
+  clType?: string[];
   distance: {
     OD: { sphere: string; cylinder: string; axis: string };
     OS: { sphere: string; cylinder: string; axis: string };
@@ -103,9 +105,26 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   const [isHistoryDetailsOpen, setIsHistoryDetailsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+const OCULAR_COMPLAINTS = [
+  { key: 'eyePain', label: 'Eye Pain' },
+  { key: 'blurredVision', label: 'Blurred Vision' },
+  { key: 'irritation', label: 'Irritation' },
+  { key: 'photophobia', label: 'Photophobia' },
+  { key: 'redness', label: 'Redness' },
+  { key: 'watering', label: 'Watering' },
+  { key: 'discharge', label: 'Discharge' },
+  { key: 'itching', label: 'Itching' },
+  { key: 'dryness', label: 'Dryness' }
+] as const;
+
   // Form States
   const [investigation, setInvestigation] = useState({
+    diagnosisList: {
+      OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>,
+      OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>
+    },
     eom: { OD: "", OS: "" },
+    eyePain: "No",
     slitLamp: {
       lids: { OD: "", OS: "" },
       conjunctiva: { OD: "", OS: "" },
@@ -118,7 +137,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       tonometry: { OD: "", OS: "" },
       gonioscopy: { OD: "", OS: "" },
       synaptophore: { OD: "", OS: "" },
-      dilation: "",
+      dilation: { OD: "", OS: "" },
     },
     fundus: {
       vitreous: { OD: "", OS: "" },
@@ -181,7 +200,22 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         const parsed = JSON.parse(savedDraft);
         if (parsed && parsed.date === today && parsed.data) {
           const d = parsed.data;
-          if (d.investigation) setInvestigation(d.investigation);
+          if (d.investigation) {
+            const loadedInv = { ...d.investigation };
+            if (loadedInv.slitLamp && typeof loadedInv.slitLamp.dilation === 'string') {
+              loadedInv.slitLamp = {
+                ...loadedInv.slitLamp,
+                dilation: { OD: loadedInv.slitLamp.dilation, OS: loadedInv.slitLamp.dilation }
+              };
+            }
+            setInvestigation({
+              ...loadedInv,
+              diagnosisList: loadedInv.diagnosisList || {
+                OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' },
+                OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' }
+              }
+            });
+          }
           if (d.finalDiagnosis) setFinalDiagnosis(d.finalDiagnosis);
           if (d.medications && Array.isArray(d.medications) && d.medications.length > 0) {
             // Ensure medications have IDs for stable removal
@@ -241,7 +275,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         tonometry: { OD: "", OS: "" },
         gonioscopy: { OD: "", OS: "" },
         synaptophore: { OD: "", OS: "" },
-        dilation: "",
+        dilation: { OD: "", OS: "" },
       },
       fundus: {
         vitreous: { OD: "", OS: "" },
@@ -271,6 +305,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       fetchCurrentRefraction();
       fetchCurrentConsultation();
     }
+
+    const handleQueueUpdate = () => {
+      if (patient?.id) fetchCurrentRefraction();
+    };
+    window.addEventListener("patientQueueUpdated", handleQueueUpdate);
+    return () => window.removeEventListener("patientQueueUpdated", handleQueueUpdate);
   }, [patient?.id, patient?.mrNumber]);
   const handleContainerKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -338,66 +378,97 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
         // Sync initial diagnosis values if provided by refraction
         if (!finalDiagnosis.OD && !finalDiagnosis.OS && data?.ocularComplaint) {
-          setFinalDiagnosis({ OD: data.ocularComplaint, OS: data.ocularComplaint });
+          const lowerStr = data.ocularComplaint.toLowerCase();
+          const newDiagList = {
+             OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>,
+             OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>
+          };
+          let manualText = data.ocularComplaint;
+          
+          OCULAR_COMPLAINTS.forEach(c => {
+             if (lowerStr.includes(c.label.toLowerCase())) {
+                newDiagList.OD[c.key] = 'Yes';
+                newDiagList.OS[c.key] = 'Yes';
+                const regex = new RegExp(c.label + '[, ]*', 'ig');
+                manualText = manualText.replace(regex, '').trim();
+             }
+          });
+          
+          setInvestigation(prev => ({ ...prev, diagnosisList: newDiagList }));
+          setFinalDiagnosis({ OD: manualText, OS: manualText });
         }
 
         // Initialize glass prescription state from Refraction's final glass prescription, fallback to acceptance
         if (data?.glassPrescription?.OD?.sphere !== undefined || data?.acceptance?.distance) {
-          setGlassPrescription({
-            distance: {
-              OD: {
-                sphere: data?.glassPrescription?.OD?.sphere || data?.acceptance?.distance?.OD?.sphere || "",
-                cylinder: data?.glassPrescription?.OD?.cylinder || data?.acceptance?.distance?.OD?.cylinder || "",
-                axis: data?.glassPrescription?.OD?.axis || data?.acceptance?.distance?.OD?.axis || ""
-              },
-              OS: {
-                sphere: data?.glassPrescription?.OS?.sphere || data?.acceptance?.distance?.OS?.sphere || "",
-                cylinder: data?.glassPrescription?.OS?.cylinder || data?.acceptance?.distance?.OS?.cylinder || "",
-                axis: data?.glassPrescription?.OS?.axis || data?.acceptance?.distance?.OS?.axis || ""
-              },
-            },
-            near: {
-              OD: {
-                sphere: data?.glassPrescription?.OD?.nearDsph || data?.glassPrescription?.OD?.nearAdd || data?.acceptance?.near?.OD?.sphere || "",
-                cylinder: data?.glassPrescription?.OD?.nearCylinder || data?.acceptance?.near?.OD?.cylinder || "",
-                axis: data?.glassPrescription?.OD?.nearAxis || data?.acceptance?.near?.OD?.axis || ""
-              },
-              OS: {
-                sphere: data?.glassPrescription?.OS?.nearDsph || data?.glassPrescription?.OS?.nearAdd || data?.acceptance?.near?.OS?.sphere || "",
-                cylinder: data?.glassPrescription?.OS?.nearCylinder || data?.acceptance?.near?.OS?.cylinder || "",
-                axis: data?.glassPrescription?.OS?.nearAxis || data?.acceptance?.near?.OS?.axis || ""
-              },
+          setGlassPrescription(prev => {
+            const isEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
+            if (isEmpty || !isDraftLoaded) {
+              return {
+                glassType: data?.glassPrescription?.glassType || data?.pgPower?.glass?.glassType || "SVN",
+                distance: {
+                  OD: {
+                    sphere: data?.glassPrescription?.OD?.sphere || data?.acceptance?.distance?.OD?.sphere || "",
+                    cylinder: data?.glassPrescription?.OD?.cylinder || data?.acceptance?.distance?.OD?.cylinder || "",
+                    axis: data?.glassPrescription?.OD?.axis || data?.acceptance?.distance?.OD?.axis || ""
+                  },
+                  OS: {
+                    sphere: data?.glassPrescription?.OS?.sphere || data?.acceptance?.distance?.OS?.sphere || "",
+                    cylinder: data?.glassPrescription?.OS?.cylinder || data?.acceptance?.distance?.OS?.cylinder || "",
+                    axis: data?.glassPrescription?.OS?.axis || data?.acceptance?.distance?.OS?.axis || ""
+                  },
+                },
+                near: {
+                  OD: {
+                    sphere: data?.glassPrescription?.OD?.nearDsph || data?.glassPrescription?.OD?.nearAdd || data?.acceptance?.near?.OD?.sphere || "",
+                    cylinder: data?.glassPrescription?.OD?.nearCylinder || data?.acceptance?.near?.OD?.cylinder || "",
+                    axis: data?.glassPrescription?.OD?.nearAxis || data?.acceptance?.near?.OD?.axis || ""
+                  },
+                  OS: {
+                    sphere: data?.glassPrescription?.OS?.nearDsph || data?.glassPrescription?.OS?.nearAdd || data?.acceptance?.near?.OS?.sphere || "",
+                    cylinder: data?.glassPrescription?.OS?.nearCylinder || data?.acceptance?.near?.OS?.cylinder || "",
+                    axis: data?.glassPrescription?.OS?.nearAxis || data?.acceptance?.near?.OS?.axis || ""
+                  },
+                }
+              };
             }
+            return prev;
           });
         }
 
         if (data?.contactLensPrescription) {
           // Map from Refraction station's flat eye format to PrescriptionState format
-          setContactLensPrescription({
-            distance: {
-              OD: {
-                sphere: data.contactLensPrescription.OD?.sphere || "",
-                cylinder: data.contactLensPrescription.OD?.cylinder || "",
-                axis: data.contactLensPrescription.OD?.axis || ""
-              },
-              OS: {
-                sphere: data.contactLensPrescription.OS?.sphere || "",
-                cylinder: data.contactLensPrescription.OS?.cylinder || "",
-                axis: data.contactLensPrescription.OS?.axis || ""
-              },
-            },
-            near: {
-              OD: {
-                sphere: data.contactLensPrescription.OD?.nearDsph || data.contactLensPrescription.OD?.nearAdd || "",
-                cylinder: data.contactLensPrescription.OD?.nearCylinder || "",
-                axis: data.contactLensPrescription.OD?.nearAxis || ""
-              },
-              OS: {
-                sphere: data.contactLensPrescription.OS?.nearDsph || data.contactLensPrescription.OS?.nearAdd || "",
-                cylinder: data.contactLensPrescription.OS?.nearCylinder || "",
-                axis: data.contactLensPrescription.OS?.nearAxis || ""
-              },
+          setContactLensPrescription(prev => {
+            const isEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
+            if (isEmpty || !isDraftLoaded) {
+              return {
+                clType: data.contactLensPrescription.clType || ["Soft CL"],
+                distance: {
+                  OD: {
+                    sphere: data.contactLensPrescription.OD?.sphere || "",
+                    cylinder: data.contactLensPrescription.OD?.cylinder || "",
+                    axis: data.contactLensPrescription.OD?.axis || ""
+                  },
+                  OS: {
+                    sphere: data.contactLensPrescription.OS?.sphere || "",
+                    cylinder: data.contactLensPrescription.OS?.cylinder || "",
+                    axis: data.contactLensPrescription.OS?.axis || ""
+                  },
+                },
+                near: {
+                  OD: {
+                    sphere: data.contactLensPrescription.OD?.nearDsph || data.contactLensPrescription.OD?.nearAdd || "",
+                    cylinder: data.contactLensPrescription.OD?.nearCylinder || "",
+                    axis: data.contactLensPrescription.OD?.nearAxis || ""
+                  },
+                  OS: {
+                    sphere: data.contactLensPrescription.OS?.nearDsph || data.contactLensPrescription.OS?.nearAdd || "",
+                    cylinder: data.contactLensPrescription.OS?.nearCylinder || "",
+                    axis: data.contactLensPrescription.OS?.nearAxis || ""
+                  },
+                }
+              };
             }
+            return prev;
           });
         }
 
@@ -556,6 +627,16 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               return prev;
             });
           }
+
+          if (data.finalContactLensPrescription) {
+            setContactLensPrescription(prev => {
+              const isCLEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
+              if (isCLEmpty || !isDraftLoaded) {
+                return data.finalContactLensPrescription;
+              }
+              return prev;
+            });
+          }
         }
       }
     } catch (error) {
@@ -645,6 +726,17 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     if (!patient?.id || isSubmitting) return;
     setIsSubmitting(true);
 
+    const generateDiagnosisText = (diagList: any, manual: string) => {
+      const present: string[] = [];
+      if (diagList) {
+        OCULAR_COMPLAINTS.forEach(c => {
+          if (diagList[c.key] === 'Yes') present.push(c.label);
+        });
+      }
+      if (manual && manual.trim()) present.push(manual.trim());
+      return present.length > 0 ? present.join(', ') : 'NAD';
+    };
+
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/api/consultation/${patient.id}`, {
@@ -654,14 +746,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          anteriorSegment: { slitLamp: investigation.slitLamp, eom: investigation.eom },
+          anteriorSegment: { slitLamp: investigation.slitLamp, eom: investigation.eom, eyePain: (investigation.diagnosisList?.OD?.eyePain === 'Yes' || investigation.diagnosisList?.OS?.eyePain === 'Yes') ? 'Yes' : 'No' },
           fundusObservation: investigation.fundus,
           posteriorSegment: {
             required: investigation.required,
             other: investigation.other,
             adminInstructions: investigation.adminInstructions
           },
-          diagnosisText: `OD: ${finalDiagnosis.OD} | OS: ${finalDiagnosis.OS}`,
+          diagnosisText: `OD: ${generateDiagnosisText(investigation.diagnosisList?.OD, finalDiagnosis.OD)} | OS: ${generateDiagnosisText(investigation.diagnosisList?.OS, finalDiagnosis.OS)}`,
           medicalPrescription: medications,
           finalGlassPrescription: glassPrescription,
           finalContactLensPrescription: contactLensPrescription,
@@ -713,20 +805,20 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30 relative" onKeyDown={handleContainerKeyDown}>
       {/* Premium Diagnostic Header */}
-      <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
+      <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-2 md:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
         <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
-            <Stethoscope className="w-5 h-5 md:w-6 md:h-6" />
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2 md:p-3 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
+            <Stethoscope className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
+              <h2 className="text-sm md:text-lg font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
               <div className="flex items-center gap-1.5 shrink-0">
-                <Badge className="bg-orange-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
-                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
+                <Badge className="bg-orange-600 text-white text-[9px] md:text-[10px] px-2 md:px-2.5 font-mono tracking-widest rounded-full h-4 md:h-5 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[8px] md:text-[10px] px-2 font-black rounded-full h-4 md:h-5">T-{patient.tokenNumber || "—"}</Badge>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
+            <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
               <User className="w-3 h-3 text-slate-400" />
               <span>{patient.gender}</span>
               <span className="text-slate-300">•</span>
@@ -739,8 +831,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
         <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
           {localStatus === "completed" && (
-            <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
-              <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
+            <Badge className="bg-emerald-600 text-white border-0 gap-2 h-8 md:h-10 px-4 md:px-5 rounded-none font-black uppercase text-[9px] md:text-[10px] tracking-widest shadow-md shrink-0">
+              <CheckCircle2 className="w-4 h-4 md:w-4 md:h-4" />
               Visit Completed
             </Badge>
           )}
@@ -748,36 +840,24 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             <Button 
                 onClick={handleAttend} 
                 disabled={isAttending}
-                className="h-10 md:h-12 bg-orange-600 hover:bg-black text-white px-6 md:px-8 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs rounded-none shadow-xl transition-all gap-2"
+                className="h-8 md:h-10 bg-orange-600 hover:bg-black text-white px-5 md:px-6 font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px] rounded-none shadow-xl transition-all gap-2"
             >
                 {isAttending ? "Accessing..." : (
                     <>
-                        <UserCheck className="w-4 h-4" /> Begin Consultation
+                        <UserCheck className="w-3.5 h-3.5" /> Begin Consultation
                     </>
                 )}
             </Button>
           )}
-          {(localStatus === "doctor" || localStatus === "consulted") && (
-            <Button
-              className={cn(
-                "h-10 md:h-12 px-6 md:px-8 font-black uppercase tracking-[0.2em] text-[10px] md:text-xs rounded-none shadow-xl transition-all gap-2",
-                localStatus === "consulted" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-orange-600 hover:bg-black"
-              )}
-              onClick={saveConsultation}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-              {isSubmitting ? "Processing..." : (localStatus === "consulted" ? "Update Clinical Record" : "Finish and Signout")}
-            </Button>
-          )}
+
 
           <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
             <div className="text-right shrink-0">
               <div className="flex items-center justify-end gap-1.5 mb-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Medical Officer</p>
+                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Medical Officer</p>
               </div>
-              <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">Lead Physician</p>
+              <p className="text-[11px] md:text-xs font-black text-slate-900 truncate max-w-[150px]">Lead Physician</p>
             </div>
           </div>
         </div>
@@ -789,6 +869,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           value={activeTab}
           onValueChange={setActiveTab}
           className="flex-1 flex flex-col min-h-0 overflow-hidden relative z-10"
+          style={{ zoom: 1.1 } as React.CSSProperties}
         >
           <div className="bg-white border-b shadow-sm z-10 sticky top-0 px-0 sm:px-8">
             <div className="flex overflow-x-auto sm:overflow-x-visible no-scrollbar scroll-smooth snap-x snap-mandatory w-full sm:w-auto">
@@ -815,7 +896,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             </div>
           </div>
 
-          <TabsContent value="summary" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <div className="flex-1 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent relative z-10 bg-orange-50/50">
+          <TabsContent value="summary" className=" p-8 outline-none">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               <Card className="col-span-2 clinical-card">
                 <div className="p-8 border-b bg-orange-50/50">
@@ -882,7 +964,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           </TabsContent>
 
           {/* 2. Diagnosis (from Refraction Station) */}
-          <TabsContent value="diagnosis_history" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <TabsContent value="diagnosis_history" className=" p-8 outline-none">
             <div className="max-w-5xl mx-auto space-y-8">
               <Card className="clinical-card bg-white shadow-md overflow-hidden">
                 <div className="p-6 sm:p-8 border-b border-slate-100 bg-white">
@@ -891,13 +973,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 <div className="clinical-section !p-10 space-y-12">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="space-y-4">
-                      <label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-200 border px-3 py-1.5 inline-block">Ocular Complaints</label>
+                      <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-200 border px-3 py-1.5 inline-block">Ocular Complaints</label>
                       <div className="p-6 bg-orange-50/30 border-l-8 border-orange-400 text-lg font-bold text-orange-600">
                         {refractionData?.ocularComplaint || "No primary complaints recorded."}
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-200 border px-3 py-1.5 inline-block">Duration & Onset Details</label>
+                      <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-200 border px-3 py-1.5 inline-block">Duration & Onset Details</label>
                       <div className="p-6 bg-slate-100/50 border-l-8 border-slate-400 text-lg font-medium">
                         {refractionData?.complaintNotes || "Duration not specified."}
                       </div>
@@ -907,7 +989,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <Separator className="my-8" />
 
                   <div className="space-y-4">
-                    <label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-200 border px-3 py-1.5 inline-block">Systemic Health History</label>
+                    <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-200 border px-3 py-1.5 inline-block">Systemic Health History</label>
                     <div className="flex gap-4 flex-wrap">
                       {(() => {
                         let items = refractionData?.systemicHistory;
@@ -944,12 +1026,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           </TabsContent>
 
           {/* 3. Clinical Examination (Refraction Summary) */}
-          <TabsContent value="clinical" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <TabsContent value="clinical" className=" p-8 outline-none">
             <SectionHeader icon={ShieldCheck} category="Refraction Analysis" title="Subjective Acceptance Protocol" />
             <RefractionSummaryView data={{ ...refractionData, visitStatus: patient.status }} />
           </TabsContent>
 
-          <TabsContent value="investigation" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-2 lg:p-6 outline-none">
+          <TabsContent value="investigation" className=" p-2 lg:p-6 outline-none">
             <fieldset disabled={isLocked} className="contents">
               <div className="space-y-6 max-w-7xl mx-auto mb-8">
                 {isLocked && (
@@ -973,11 +1055,43 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                           <div className="flex flex-col flex-1 group">
                             <EyeIndicator eye="OD" />
-                            <Input className="h-12 text-base sm:text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" placeholder="NAD" value={investigation.eom.OD} onChange={e => updateInvestigation(['eom', 'OD'], e.target.value)} />
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                              {["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"].map(opt => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => updateInvestigation(['eom', 'OD'], opt)}
+                                  className={cn(
+                                    "p-2 h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                    investigation.eom.OD === opt
+                                      ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                      : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                           <div className="flex flex-col flex-1 group">
                             <EyeIndicator eye="OS" />
-                            <Input className="h-12 text-base sm:text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" placeholder="NAD" value={investigation.eom.OS} onChange={e => updateInvestigation(['eom', 'OS'], e.target.value)} />
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                              {["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"].map(opt => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => updateInvestigation(['eom', 'OS'], opt)}
+                                  className={cn(
+                                    "p-2 h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                    investigation.eom.OS === opt
+                                      ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                      : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -986,25 +1100,193 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     <div className="bg-orange-50/20 p-4 sm:p-6 border-x border-orange-100/30">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {[
-                          { id: "lids", label: "Lids", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "conjunctiva", label: "Conjunctiva", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "sclera", label: "Sclera", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "cornea", label: "Cornea", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "ac", label: "Anterior Chamber", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "iris", label: "Iris", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "pupil", label: "Pupil", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
-                          { id: "lens", label: "Lens", color: "bg-orange-50 !text-orange-700 !border-orange-100 border" },
+                          { id: "lids", label: "Lids", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "conjunctiva", label: "Conjunctiva", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "sclera", label: "Sclera", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "cornea", label: "Cornea", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "ac", label: "Anterior Chamber", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "iris", label: "Iris", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                          { id: "pupil", label: "Pupil", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
                         ].map((item) => (
                           <div key={item.id} className="clinical-group bg-white border border-slate-300 p-2 sm:p-4 space-y-4 shadow-sm">
                             <label className={cn("clinical-label !text-white px-2 py-1 text-[11px] inline-block", item.color)}>{item.label}</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="flex flex-col group">
                                 <EyeIndicator eye="OD" />
-                                <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OD} onChange={e => updateInvestigation(['slitLamp', item.id, 'OD'], e.target.value)} />
+                                {(() => {
+                                  const optionsMap: Record<string, string[]> = {
+                                    lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
+                                    conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
+                                    sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
+                                    cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
+                                    ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
+                                    iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
+                                    pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
+                                  };
+                                  const opts = optionsMap[item.id];
+                                  if (opts) {
+                                    return (
+                                      <div className="flex flex-col gap-2 w-full">
+                                        <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
+                                          {opts.map(opt => (
+                                            <button
+                                              key={opt}
+                                              type="button"
+                                              onClick={() => updateInvestigation(['slitLamp', item.id, 'OD'], opt)}
+                                              className={cn(
+                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                                (investigation.slitLamp as any)[item.id].OD === opt
+                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                              )}
+                                            >
+                                              {opt}
+                                            </button>
+                                          ))}
+                                        </div>
+                                        {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OD === "Dilated" && (
+                                          <div className="mt-3 p-3 bg-slate-50 border border-slate-200 shadow-inner w-full">
+                                            <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                              {["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"].map(drug => (
+                                                <button
+                                                  key={drug}
+                                                  type="button"
+                                                  onClick={() => updateInvestigation(['slitLamp', 'dilation', 'OD'], drug)}
+                                                  className={cn("p-1.5 min-h-[32px] text-[8px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight", typeof investigation.slitLamp.dilation === 'object' && investigation.slitLamp.dilation?.OD === drug ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:border-orange-300")}
+                                                >
+                                                  {drug}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OD} onChange={e => updateInvestigation(['slitLamp', item.id, 'OD'], e.target.value)} />
+                                  );
+                                })()}
                               </div>
                               <div className="flex flex-col group">
                                 <EyeIndicator eye="OS" />
-                                <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OS} onChange={e => updateInvestigation(['slitLamp', item.id, 'OS'], e.target.value)} />
+                                {(() => {
+                                  const optionsMap: Record<string, string[]> = {
+                                    lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
+                                    conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
+                                    sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
+                                    cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
+                                    ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
+                                    iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
+                                    pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
+                                  };
+                                  const opts = optionsMap[item.id];
+                                  if (opts) {
+                                    return (
+                                      <div className="flex flex-col gap-2 w-full">
+                                        <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
+                                          {opts.map(opt => (
+                                            <button
+                                              key={opt}
+                                              type="button"
+                                              onClick={() => updateInvestigation(['slitLamp', item.id, 'OS'], opt)}
+                                              className={cn(
+                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                                (investigation.slitLamp as any)[item.id].OS === opt
+                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                              )}
+                                            >
+                                              {opt}
+                                            </button>
+                                          ))}
+                                        </div>
+                                        {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OS === "Dilated" && (
+                                          <div className="mt-3 p-3 bg-slate-50 border border-slate-200 shadow-inner w-full">
+                                            <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                              {["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"].map(drug => (
+                                                <button
+                                                  key={drug}
+                                                  type="button"
+                                                  onClick={() => updateInvestigation(['slitLamp', 'dilation', 'OS'], drug)}
+                                                  className={cn("p-1.5 min-h-[32px] text-[8px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight", typeof investigation.slitLamp.dilation === 'object' && investigation.slitLamp.dilation?.OS === drug ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:border-orange-300")}
+                                                >
+                                                  {drug}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OS} onChange={e => updateInvestigation(['slitLamp', item.id, 'OS'], e.target.value)} />
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4">
+                        {[
+                          { id: "lens", label: "Lens", color: "bg-orange-50 !text-orange-600 !border-orange-100 border" },
+                        ].map((item) => (
+                          <div key={item.id} className="clinical-group bg-white border border-slate-300 p-2 sm:p-4 space-y-4 shadow-sm">
+                            <label className={cn("clinical-label !text-white px-2 py-1 text-[11px] inline-block", item.color)}>{item.label}</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="flex flex-col group">
+                                <EyeIndicator eye="OD" />
+                                {(() => {
+                                  const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
+                                  return (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
+                                      {opts.map(opt => (
+                                        <button
+                                          key={opt}
+                                          type="button"
+                                          onClick={() => updateInvestigation(['slitLamp', item.id, 'OD'], opt)}
+                                          className={cn(
+                                            "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                            (investigation.slitLamp as any)[item.id].OD === opt
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          )}
+                                        >
+                                          {opt}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                              <div className="flex flex-col group">
+                                <EyeIndicator eye="OS" />
+                                {(() => {
+                                  const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
+                                  return (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
+                                      {opts.map(opt => (
+                                        <button
+                                          key={opt}
+                                          type="button"
+                                          onClick={() => updateInvestigation(['slitLamp', item.id, 'OS'], opt)}
+                                          className={cn(
+                                            "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                            (investigation.slitLamp as any)[item.id].OS === opt
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          )}
+                                        >
+                                          {opt}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>
@@ -1015,49 +1297,94 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     <div className="bg-orange-50/10 p-4 sm:p-6 border-x border-b border-orange-100/30">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div className="space-y-4">
-                          <label className="text-[12px] font-black uppercase !text-orange-700 !bg-orange-50 !border-orange-100 border px-3 py-1.5 inline-block tracking-widest">Gonioscopy Evaluation</label>
+                          <label className="text-[12px] font-black uppercase !text-orange-600 !bg-orange-50 !border-orange-100 border px-3 py-1.5 inline-block tracking-widest">Gonioscopy Evaluation</label>
                           <div className="flex flex-col gap-4">
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OD" />
-                              <Input placeholder="NAD" className="h-10 sm:h-11 text-sm font-black rounded-none bg-white border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600" value={investigation.slitLamp.gonioscopy.OD} onChange={e => updateInvestigation(['slitLamp', 'gonioscopy', 'OD'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['slitLamp', 'gonioscopy', 'OD'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.slitLamp.gonioscopy.OD === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OS" />
-                              <Input placeholder="NAD" className="h-10 sm:h-11 text-sm font-black rounded-none bg-white border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600" value={investigation.slitLamp.gonioscopy.OS} onChange={e => updateInvestigation(['slitLamp', 'gonioscopy', 'OS'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['slitLamp', 'gonioscopy', 'OS'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.slitLamp.gonioscopy.OS === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
                         <div className="space-y-4">
-                          <label className="text-[12px] font-black uppercase !text-orange-700 !bg-orange-50 !border-orange-100 border px-3 py-1.5 inline-block tracking-widest">Synaptophore Profile</label>
+                          <label className="text-[12px] font-black uppercase !text-orange-600 !bg-orange-50 !border-orange-100 border px-3 py-1.5 inline-block tracking-widest">Synaptophore Profile</label>
                           <div className="flex flex-col gap-4">
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OD" />
-                              <Input placeholder="NAD" className="h-10 sm:h-11 text-sm font-black rounded-none bg-white border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600" value={investigation.slitLamp.synaptophore.OD} onChange={e => updateInvestigation(['slitLamp', 'synaptophore', 'OD'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['slitLamp', 'synaptophore', 'OD'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.slitLamp.synaptophore.OD === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OS" />
-                              <Input placeholder="NAD" className="h-10 sm:h-11 text-sm font-black rounded-none bg-white border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600" value={investigation.slitLamp.synaptophore.OS} onChange={e => updateInvestigation(['slitLamp', 'synaptophore', 'OS'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['slitLamp', 'synaptophore', 'OS'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.slitLamp.synaptophore.OS === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-[12px] font-black uppercase text-slate-400 tracking-widest pl-3 border-l-2 border-slate-300">Pupillary Dilation</label>
-                          <Select value={investigation.slitLamp.dilation} onValueChange={v => updateInvestigation(['slitLamp', 'dilation'], v)}>
-                            <SelectTrigger className="h-full min-h-[50px] text-sm font-bold rounded-none bg-white border-slate-200 focus:border-orange-600 focus:ring-0">
-                              <SelectValue placeholder="Select Dilation Drug / Status" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-none">
-                              <SelectItem value="NOT DILATED">NOT DILATED</SelectItem>
-                              <SelectItem value="Tropicacyl (Tropicamide)">Tropicacyl (Tropicamide)</SelectItem>
-                              <SelectItem value="Tropicacyl Plus (Phenylephrine)">Tropicacyl Plus (Phenylephrine)</SelectItem>
-                              <SelectItem value="Cyclopentolate">Cyclopentolate</SelectItem>
-                              <SelectItem value="Homatropine">Homatropine</SelectItem>
-                              <SelectItem value="Atropine">Atropine</SelectItem>
-                              <SelectItem value="Phenylephrine 10%">Phenylephrine 10%</SelectItem>
-                              <SelectItem value="Fully Dilated">Fully Dilated (Already)</SelectItem>
-                              <SelectItem value="Poor Dilation">Poor Dilation</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
                       </div>
                     </div>
@@ -1068,28 +1395,92 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       <SectionHeader icon={Activity} category="Retinal Analysis" title="Posterior Segment" />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div className="clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                          <label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
+                          <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OD" />
-                              <Input placeholder="NAD" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.vitreous.OD} onChange={e => updateInvestigation(['fundus', 'vitreous', 'OD'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'vitreous', 'OD'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.vitreous.OD === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OS" />
-                              <Input placeholder="NAD" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.vitreous.OS} onChange={e => updateInvestigation(['fundus', 'vitreous', 'OS'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'vitreous', 'OS'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.vitreous.OS === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
                         <div className="clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                          <label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
+                          <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OD" />
-                              <Input placeholder="NAD" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.retina.OD} onChange={e => updateInvestigation(['fundus', 'retina', 'OD'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'retina', 'OD'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.retina.OD === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OS" />
-                              <Input placeholder="NAD" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.retina.OS} onChange={e => updateInvestigation(['fundus', 'retina', 'OS'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'retina', 'OS'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.retina.OS === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1100,11 +1491,43 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OD" />
-                              <Input placeholder="Healthy Disc" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.disc.OD} onChange={e => updateInvestigation(['fundus', 'disc', 'OD'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'disc', 'OD'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.disc.OD === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex flex-col group">
                               <EyeIndicator eye="OS" />
-                              <Input placeholder="Healthy Disc" className="h-10 sm:h-12 text-base font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.fundus.disc.OS} onChange={e => updateInvestigation(['fundus', 'disc', 'OS'], e.target.value)} />
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                {["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"].map(opt => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => updateInvestigation(['fundus', 'disc', 'OS'], opt)}
+                                    className={cn(
+                                      "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
+                                      investigation.fundus.disc.OS === opt
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1114,53 +1537,71 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     <Separator className="!my-8 opacity-25" />
 
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-2 shadow-sm">
-                          <Label className="text-[11px] font-black uppercase tracking-widest text-orange-600">Applanation Tonometry (IOP)</Label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="flex flex-col flex-1">
-                              <EyeIndicator eye="OD" />
-                              <Input placeholder="mmHg" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.slitLamp.tonometry.OD} onChange={e => updateInvestigation(['slitLamp', 'tonometry', 'OD'], e.target.value, 'iop')} />
-                            </div>
-                            <div className="flex flex-col flex-1">
-                              <EyeIndicator eye="OS" />
-                              <Input placeholder="mmHg" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.slitLamp.tonometry.OS} onChange={e => updateInvestigation(['slitLamp', 'tonometry', 'OS'], e.target.value, 'iop')} />
-                            </div>
+                      <div className="clinical-group bg-white border border-slate-300 p-3 sm:p-5 shadow-sm">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-end">
+                          <div className="space-y-2 w-full sm:w-1/3 transition-all duration-300">
+                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Required Investigations</Label>
+                            <Select value={investigation.required} onValueChange={v => {
+                              setInvestigation({ ...investigation, required: v, other: v === "Other" ? investigation.other : "" });
+                            }}>
+                              <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-orange-600"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                              <SelectContent className="rounded-none font-bold">
+                                <SelectItem value="Nothing selected">Nothing selected</SelectItem>
+                                <SelectItem value="OCT">OCT: Optical Coherence Tomography</SelectItem>
+                                <SelectItem value="Fundus Photography">Fundus Photography / FFA</SelectItem>
+                                <SelectItem value="HVFA">HVFA: Humphrey Fields</SelectItem>
+                                <SelectItem value="Topography">Corneal Topography</SelectItem>
+                                <SelectItem value="Biometry">A-Scan / Biometry</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
+                          {investigation.required === "Other" && (
+                            <div className="flex-1 space-y-2 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
+                              <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Other / Specification</Label>
+                              <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
+                            </div>
+                          )}
                         </div>
-                        <div className="clinical-group bg-white border border-slate-300 p-3 sm:p-5 space-y-2 shadow-sm">
-                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Required Investigations</Label>
-                          <Select value={investigation.required} onValueChange={v => setInvestigation({ ...investigation, required: v })}>
-                            <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-orange-600"><SelectValue placeholder="Select type..." /></SelectTrigger>
-                            <SelectContent className="rounded-none font-bold">
-                              <SelectItem value="Nothing selected">Nothing selected</SelectItem>
-                              <SelectItem value="OCT">OCT: Optical Coherence Tomography</SelectItem>
-                              <SelectItem value="Fundus Photography">Fundus Photography / FFA</SelectItem>
-                              <SelectItem value="HVFA">HVFA: Humphrey Fields</SelectItem>
-                              <SelectItem value="Topography">Corneal Topography</SelectItem>
-                              <SelectItem value="Biometry">A-Scan / Biometry</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                        <Label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Other / Specification</Label>
-                        <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
                       </div>
                       <div className="clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
                         <Label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Clinical Opinion</Label>
                         <Textarea placeholder="Detailed findings..." className="min-h-[140px] text-base font-medium rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 p-5 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.opinion} onChange={e => updateInvestigation(['opinion'], e.target.value)} />
                       </div>
                       <div className="clinical-group bg-white border border-slate-300 p-3 sm:p-8 space-y-4 shadow-md">
-                        <Label className="clinical-label !bg-orange-50 !text-orange-700 !border-orange-100 border px-3 py-1.5 inline-block">Final Clinical Diagnosis</Label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-slate-100 pb-4">
+                          <Label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                          <div className="flex flex-col flex-1 group">
+                          <div className="flex flex-col flex-1 group gap-4">
                             <EyeIndicator eye="OD" />
-                            <Textarea placeholder="Final OD Diagnosis..." className="min-h-[100px] sm:min-h-[120px] text-lg sm:text-xl font-black text-orange-600 rounded-none border-orange-100 bg-orange-50/10 p-4 sm:p-6 flex-1 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                            <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
+                              {OCULAR_COMPLAINTS.map((c) => (
+                                <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
+                                  <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
+                                  <div className="flex gap-1.5 shrink-0">
+                                    <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
+                                    <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'No' || !investigation.diagnosisList?.OD?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
                           </div>
-                          <div className="flex flex-col flex-1 group" >
+                          <div className="flex flex-col flex-1 group gap-4">
                             <EyeIndicator eye="OS" />
-                            <Textarea placeholder="Final OS Diagnosis..." className="min-h-[100px] sm:min-h-[120px] text-lg sm:text-xl font-black text-orange-600 rounded-none border-orange-100 bg-orange-50/10 p-4 sm:p-6 flex-1 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                            <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
+                              {OCULAR_COMPLAINTS.map((c) => (
+                                <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
+                                  <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
+                                  <div className="flex gap-1.5 shrink-0">
+                                    <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
+                                    <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'No' || !investigation.diagnosisList?.OS?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
                           </div>
                         </div>
                       </div>
@@ -1171,7 +1612,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             </fieldset>
           </TabsContent>
           {/* 5. Glass Prescription */}
-          <TabsContent value="glass" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <TabsContent value="glass" className=" p-8 outline-none">
             <fieldset disabled={isLocked} className="contents">
               <div className="max-w-5xl mx-auto space-y-10 mb-12">
                 {isLocked && (
@@ -1191,7 +1632,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     <div className="bg-orange-50/80 border border-orange-200 shadow-sm overflow-hidden">
                       <div className="px-6 py-3 bg-orange-100/50 border-b border-orange-200 flex items-center gap-3">
                         <Activity className="w-4 h-4 text-orange-600" />
-                        <label className="text-[11px] font-black uppercase tracking-[0.15em] text-orange-700">Refraction Acceptance Data (Read-Only)</label>
+                        <label className="text-[11px] font-black uppercase tracking-[0.15em] text-orange-600">Refraction Acceptance Data (Read-Only)</label>
                       </div>
                       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-orange-200/50">
                         <div className="p-5 flex flex-col gap-1.5">
@@ -1241,6 +1682,35 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     </div>
                   </div>
                   <div className="p-6">
+                    <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Lens Architecture</label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {[
+                            { label: "Single Vision (SVN)", value: "SVN" },
+                            { label: "Bifocals (KBF)", value: "KBF" },
+                            { label: "Progressive (PAL)", value: "PAL" }
+                          ].map((opt) => {
+                            const isSelected = (glassPrescription.glassType || "SVN") === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setGlassPrescription(p => ({ ...p, glassType: opt.value }))}
+                                className={cn(
+                                  "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                  isSelected
+                                    ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                    : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                )}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                     <div className="hidden md:block space-y-6">
                       <div className="overflow-hidden border border-slate-200">
                         <Table className="font-mono">
@@ -1392,6 +1862,24 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     </div>
                   </div>
                   <div className="p-6">
+                    <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Contact Lens Type</label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {["Soft CL", "RGP", "Scleral"].map((type) => {
+                            const currentTypes = Array.isArray(contactLensPrescription.clType) ? contactLensPrescription.clType : [];
+                            const isSelected = currentTypes.includes(type);
+                            const isDisabled = type === "RGP" || type === "Scleral";
+                            return (
+                              <button key={type} type="button" disabled={isDisabled} onClick={() => {
+                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                setContactLensPrescription(p => ({ ...p, clType: nextTypes }));
+                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                     {/* Editable Contact Lens Power Table (Desktop) */}
                     <div className="hidden md:block space-y-6">
                       <div className="overflow-hidden border border-slate-200">
@@ -1533,7 +2021,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           </TabsContent>
 
           {/* 6. Medical Prescription */}
-          <TabsContent value="medical" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <TabsContent value="medical" className=" p-8 outline-none">
             <fieldset disabled={isLocked} className="contents">
               <div className="max-w-6xl mx-auto space-y-10 mb-12">
                 {isLocked && (
@@ -1687,7 +2175,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           </TabsContent>
 
           {/* 7. Case Record (History) */}
-          <TabsContent value="history" className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent bg-orange-50/50 p-8 outline-none">
+          <TabsContent value="history" className=" p-8 outline-none">
             <div className="max-w-5xl mx-auto space-y-12 mb-12">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -1762,6 +2250,23 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               )}
             </div>
           </TabsContent>
+
+          {(localStatus === "doctor" || localStatus === "consulted") && (
+            <div className="p-4 sm:p-8 pb-12 shrink-0 flex justify-end w-full">
+              <Button
+                className={cn(
+                  "h-12 px-8 font-black uppercase tracking-[0.2em] text-xs rounded-none shadow-xl transition-all gap-2",
+                  localStatus === "consulted" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-orange-600 hover:bg-black text-white"
+                )}
+                onClick={saveConsultation}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                {isSubmitting ? "Processing..." : (localStatus === "consulted" ? "Update Clinical Record" : "Finish and Signout")}
+              </Button>
+            </div>
+          )}
+          </div>
         </Tabs>
       </div>
 
@@ -1887,9 +2392,16 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       ))}
                                     </div>
                                     {slitLamp.dilation && (
-                                      <div className="p-3 bg-orange-50/50 border border-orange-100 flex justify-between items-center">
-                                        <span className="text-[11px] font-black uppercase text-orange-700 tracking-widest">Pupillary Dilation Response</span>
-                                        <p className="text-xs font-black text-orange-600">{slitLamp.dilation}</p>
+                                      <div className="p-3 bg-orange-50/50 border border-orange-100 flex flex-col gap-1.5">
+                                        <span className="text-[11px] font-black uppercase text-orange-600 tracking-widest">Pupillary Dilation Response</span>
+                                        {typeof slitLamp.dilation === 'string' ? (
+                                          <p className="text-xs font-black text-orange-600">{slitLamp.dilation}</p>
+                                        ) : (
+                                          <div className="flex gap-4">
+                                            {slitLamp.dilation.OD && <p className="text-xs font-black text-slate-700">OD: <span className="text-orange-600">{slitLamp.dilation.OD}</span></p>}
+                                            {slitLamp.dilation.OS && <p className="text-xs font-black text-slate-700">OS: <span className="text-orange-600">{slitLamp.dilation.OS}</span></p>}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
