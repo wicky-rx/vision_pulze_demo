@@ -23,7 +23,7 @@ import { DoctorSchedulesPanel } from "@/components/DoctorSchedulesPanel";
 import { format, addDays, subDays, startOfToday } from "date-fns";
 import { formatToAMPM } from "@/lib/dateUtils";
 
-const BarcodeGenerator = ({ value }: { value: string }) => {
+const BarcodeGenerator = ({ value, height = 30, barWidth = 1 }: { value: string, height?: number, barWidth?: number }) => {
   const barcodeRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -34,8 +34,8 @@ const BarcodeGenerator = ({ value }: { value: string }) => {
           displayValue: true,
           text: value,
           fontSize: 14,
-          height: 30,
-          width: 1,
+          height: height,
+          width: barWidth,
           margin: 0,
         });
       } catch (error) {
@@ -1318,7 +1318,23 @@ export function ReceptionStation() {
                 Detailed patient information and registration card for printing.
               </DialogDescription>
             </DialogHeader>
-            <div id="print-section" className="border-4 border-orange-600/20 rounded-none p-8 bg-orange-50/50 space-y-6 print:bg-white print:text-black print:border-0 print:p-0">
+            <style>
+              {`
+                @media print {
+                  @page {
+                    size: 60mm 40mm;
+                    margin: 0;
+                  }
+                  html, body {
+                    width: 60mm;
+                    height: 40mm;
+                  }
+                }
+              `}
+            </style>
+            
+            {/* Screen Preview (Hidden in Print) */}
+            <div className="border-4 border-orange-600/20 rounded-none p-8 bg-orange-50/50 space-y-6 print:hidden">
               <div className="text-center border-b border-border pb-3 flex flex-col items-center">
                 <img
                   src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
@@ -1331,11 +1347,6 @@ export function ReceptionStation() {
                 <div>
                   <span className="text-muted-foreground">MR Number</span>
                   <p className="font-semibold font-mono text-foreground">{patientData?.mrNumber != null ? patientData.mrNumber.toString() : "—"}</p>
-                </div>
-                <div className="flex justify-end md:justify-start">
-                  {patientData?.mrNumber != null && (
-                    <BarcodeGenerator value={patientData.mrNumber.toString()} />
-                  )}
                 </div>
                 <div>
                   <span className="text-muted-foreground">Patient Name</span>
@@ -1362,8 +1373,7 @@ export function ReceptionStation() {
                 <div>
                   <span className="text-muted-foreground">Address</span>
                   <p className="font-semibold text-foreground">
-                    {patientData?.address || (
-                      [
+                    {([
                         patientData?.doorNo,
                         patientData?.street,
                         patientData?.area,
@@ -1371,8 +1381,8 @@ export function ReceptionStation() {
                         patientData?.district,
                         patientData?.state,
                         patientData?.pincode
-                      ].filter(Boolean).join(", ") || "—"
-                    )}
+                      ].filter(Boolean).join(", ")
+                    ) || patientData?.address || "—"}
                   </p>
                 </div>
                 {patientData?.co && (
@@ -1387,6 +1397,68 @@ export function ReceptionStation() {
                     <p className="font-semibold text-foreground">{patientData.secondaryContact}</p>
                   </div>
                 )}
+                <div className="flex justify-start md:col-span-2 lg:col-span-3 pt-2">
+                  {patientData?.mrNumber != null && (
+                    <BarcodeGenerator value={patientData.mrNumber.toString()} />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Print Version (Hidden on Screen, Tag Size 60x40mm) */}
+            <div id="print-section" className="hidden print:flex print:flex-col print:justify-start print:bg-white print:text-black print:p-1 print:w-[60mm] print:h-[40mm] print:font-sans print:box-border overflow-hidden">
+              <div className="text-center border-b-2 border-black pb-0.5 mb-1 flex flex-col items-center shrink-0 w-full">
+                <h2 className="font-black text-[9px] m-0 p-0 leading-tight uppercase tracking-tighter text-center w-full">VPN Eye Hospital</h2>
+              </div>
+              
+              <div className="flex flex-row w-full flex-1 gap-1">
+                <div className="flex flex-col gap-0.5 text-[7px] leading-tight flex-1">
+                  <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">MRN:</span>
+                    <span className="font-mono text-[7px]">{patientData?.mrNumber != null ? patientData.mrNumber.toString() : "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">Name:</span>
+                    <span className="truncate max-w-[20mm] text-right">{patientData?.name || "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">Date:</span>
+                    <span>{new Date().toLocaleDateString("en-IN")}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">Mobile:</span>
+                    <span>{patientData?.contactNumber || "—"}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">Age/Sex:</span>
+                    <span>
+                      {getPatientAgeString(patientData)} / {patientData?.gender?.charAt(0) || "—"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col pb-[1px]">
+                    <span className="font-bold uppercase text-[6px]">Address:</span>
+                    <span className="mt-[1px] line-clamp-2 leading-[1.1] text-[5px]">
+                      {([
+                          patientData?.doorNo,
+                          patientData?.street,
+                          patientData?.area,
+                          patientData?.city,
+                          patientData?.district,
+                          patientData?.state,
+                          patientData?.pincode
+                        ].filter(Boolean).join(", ")
+                      ) || patientData?.address || "—"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-[15mm] shrink-0 relative flex items-center justify-center">
+                  {patientData?.mrNumber != null && (
+                    <div className="absolute -rotate-90 flex items-center justify-center">
+                      <BarcodeGenerator value={patientData.mrNumber.toString()} height={50} barWidth={1} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <DialogFooter>

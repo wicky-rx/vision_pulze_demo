@@ -1,17 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { type Patient } from "@/data/mockData";
-import { Printer, CheckCircle2, Loader2, Pill, ClipboardList, User, Activity, AlertCircle, Clock, Eye, Trash2, Send } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Pill, ClipboardList, User, Activity, AlertCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { getPatientAgeString, getPatientAgeNumber, calculateSessionSlot, cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/config";
-import { sanitizeOptometryInput } from "@/lib/validation";
 
 export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient | null, doctors?: any[] }) {
     const { toast } = useToast();
