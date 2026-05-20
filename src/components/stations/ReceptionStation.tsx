@@ -889,17 +889,17 @@ export function ReceptionStation() {
                       <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white">
                         <SelectValue placeholder="Identify Consultant..." />
                       </SelectTrigger>
-                      <SelectContent className="rounded-none">
+                      <SelectContent className="rounded-none border-slate-200 shadow-xl">
                         {doctors.map(doc => (
-                          <SelectItem key={doc.id} value={doc.id} className="group">
-                            <div className="flex flex-col py-0.5">
+                          <SelectItem key={doc.id} value={doc.id} className="group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
+                            <div className="flex items-center justify-between w-full py-1.5 gap-4">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tight text-sm transition-colors">{doc.name}</span>
+                                <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
                                 {doc.schedules?.some((s: any) => s.dayOfWeek === new Date().getDay()) && (
-                                  <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 font-black tracking-widest text-white">ON DUTY</Badge>
+                                  <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
                                 )}
                               </div>
-                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
+                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General Specialist"}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1475,16 +1475,16 @@ export function ReceptionStation() {
 
         {/* Doctor Selection Dialog for Returning Patient */}
         <Dialog open={isDoctorSelectOpen} onOpenChange={setIsDoctorSelectOpen}>
-          <DialogContent className="max-w-md p-0 overflow-hidden border-orange-200">
-            <div className="bg-orange-50/80 border-b border-orange-100 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-orange-200/50 flex items-center justify-center shrink-0">
+          <DialogContent className="max-w-md p-0 overflow-hidden border-slate-200 rounded-none shadow-2xl">
+            <div className="bg-white border-b border-slate-100 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
                 <ClipboardList className="w-6 h-6 text-orange-600" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-black uppercase tracking-tighter text-orange-600">
+                <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
                   Start Patient Visit
                 </DialogTitle>
-                <DialogDescription className="text-xs text-orange-600/80 font-medium mt-1">
+                <DialogDescription className="text-xs text-slate-500 font-medium mt-1">
                   Assign a consulting physician and initiate the clinical workflow.
                 </DialogDescription>
               </div>
@@ -1494,10 +1494,10 @@ export function ReceptionStation() {
               <div className="space-y-2.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Consulting Physician</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                  <SelectTrigger className="h-12 border-orange-200 focus:ring-orange-500/30 hover:border-orange-300 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-400">
+                  <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none">
                     <SelectValue placeholder="Select an on-duty doctor..." />
                   </SelectTrigger>
-                  <SelectContent className="border-orange-200 shadow-xl">
+                  <SelectContent className="border-slate-200 shadow-xl rounded-none">
                     {(() => {
                       const today = new Date().getDay();
                       const now = new Date();
@@ -1515,15 +1515,17 @@ export function ReceptionStation() {
                       });
 
                       if (activeDoctors.length === 0) {
-                        return <div className="py-6 px-4 text-xs text-orange-600/80 italic text-center font-bold tracking-widest uppercase">No doctors currently available in their active session</div>;
+                        return <div className="py-6 px-4 text-xs text-slate-400 italic text-center font-bold tracking-widest uppercase">No doctors currently available in their active session</div>;
                       }
 
                       return activeDoctors.map(doc => (
-                        <SelectItem key={doc.id} value={doc.id} className="text-xs group focus:bg-orange-50">
-                          <div className="flex items-center flex-wrap gap-2 py-1">
-                            <span className="font-bold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tighter text-sm transition-colors">{doc.name}</span>
-                            <Badge className="h-4 px-1.5 text-[9px] bg-emerald-500/10 text-emerald-600 border-0 font-black shrink-0 tracking-widest uppercase">On Duty</Badge>
-                            <span className="text-[10px] font-semibold text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-widest transition-colors sm:ml-auto">{doc.specialization?.name || "General"}</span>
+                        <SelectItem key={doc.id} value={doc.id} className="text-xs group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
+                          <div className="flex items-center justify-between w-full py-1.5 gap-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
+                              <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
+                            </div>
+                            <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
                       ));
@@ -1534,11 +1536,11 @@ export function ReceptionStation() {
             </div>
             
             <div className="bg-slate-50/50 border-t border-slate-100 p-4 px-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-600 font-bold uppercase tracking-widest text-xs h-10">Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold uppercase tracking-widest text-xs h-10 rounded-none">Cancel</Button>
               <Button
                 onClick={confirmStartNewVisit}
                 disabled={!selectedDoctorId || !!startingVisitMrn}
-                className="gap-2 bg-orange-600 hover:bg-orange-600 text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all"
+                className="gap-2 bg-orange-600 hover:bg-black text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all rounded-none"
               >
                 {startingVisitMrn ? (
                   <>
