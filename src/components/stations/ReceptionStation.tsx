@@ -1234,7 +1234,7 @@ export function ReceptionStation() {
                                 setFormData({
                                   name: p.name,
                                   co: p.co || "",
-                                  age: p.age || "",
+                                  age: String(p.age),
                                   gender: p.gender || "",
                                   doorNo: p.doorNo || "",
                                   street: p.street || "",
@@ -1242,12 +1242,12 @@ export function ReceptionStation() {
                                   city: p.city || "",
                                   district: p.district || "",
                                   state: p.state || "Tamil Nadu",
-                                  pincode: p.pincode || "",
-                                  contactNumber: p.contactNumber || "",
-                                  secondaryContact: p.secondaryContact || "",
+                                  pincode: p.pincode != null ? String(p.pincode) : "",
+                                  contactNumber: String(p.contactNumber),
+                                  secondaryContact: p.secondaryContact != null ? String(p.secondaryContact) : "",
                                   relationship: p.relationshipType || "",
                                   dob: p.dob || "",
-                                  mrNumber: p.mrNumber || ""
+                                  mrNumber: String(p.mrNumber)
                                 });
                                 // We are on returning tab, but we want to show the Form
                                 document.querySelector('[data-value="new"]')?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
