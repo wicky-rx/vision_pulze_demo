@@ -182,38 +182,58 @@
     overflow: visible !important;
   }
 
-  body * {
-    visibility: hidden;
+  /* Hide all portals except the one containing the printable report */
+  [data-radix-portal]:not(:has(#print-section)) {
+    display: none !important;
+  }
+
+  /* Hide the overlay and close button completely during print */
+  [data-radix-portal] > div[class*="bg-black"],
+  div[class*="bg-black/80"],
+  button[class*="DialogClose"],
+  button[class*="absolute right-4"] {
+    display: none !important;
   }
 
   #root {
     display: none !important;
   }
 
-  /* Override fixed/absolute positioning of modal wrappers that repeats on multiple pages */
-  div[role="dialog"],
-  div[data-state="open"] {
-    position: absolute !important;
-    transform: none !important;
-    top: 0 !important;
-    left: 0 !important;
+  /* Override positioning of modal wrappers and portal containers to enable multi-page pagination */
+  [data-radix-portal],
+  div[data-state="open"],
+  div[role="dialog"] {
+    position: static !important;
+    height: auto !important;
     min-height: 0 !important;
-  }
-
-  #print-section,
-  #print-section * {
-    visibility: visible;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    width: 100% !important;
   }
 
   #print-section {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    display: block !important;
+    position: static !important;
     width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
     margin: 0 !important;
-    padding: 20px !important;
+    padding: 10px !important;
     box-shadow: none !important;
     border: none !important;
+  }
+
+  [data-radix-scroll-area-viewport] {
+    overflow: visible !important;
+    height: auto !important;
+    position: static !important;
+    display: block !important;
   }
 
   .no-print {

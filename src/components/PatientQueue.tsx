@@ -217,6 +217,12 @@ export function PatientQueue({
       });
 
       setPatients(mappedPatients);
+      if (selectedPatientId && onSelectPatient) {
+        const updated = mappedPatients.find(p => p.id === selectedPatientId);
+        if (updated) {
+          onSelectPatient(updated);
+        }
+      }
     } catch (error) {
       console.error("Error fetching patients:", error);
     } finally {
@@ -319,7 +325,7 @@ export function PatientQueue({
       doctorId: (patient as any).consultingDoctorId || "",
       doctorName: (patient as any).consultingDoctorName || "",
       specializationId: "", // will be set if doctor is pre-assigned and found
-      timeSlot: patient.appointment?.timeSlot || "",
+      timeSlot: (patient as any).appointment?.timeSlot || "",
     } as any);
   };
 

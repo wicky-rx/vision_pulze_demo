@@ -646,6 +646,7 @@ export function ReceptionStation() {
         pincode: "",
         contactNumber: "",
         secondaryContact: "",
+        relationship: "",
         dob: "",
         mrNumber: "",
       });
@@ -1133,6 +1134,7 @@ export function ReceptionStation() {
                           secondaryContact: "",
                           relationship: "",
                           dob: "",
+                          mrNumber: "",
                         });
                         setParentMrn("");
                         setSelectedDoctorId("");
@@ -1535,7 +1537,7 @@ export function ReceptionStation() {
               <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-600 font-bold uppercase tracking-widest text-xs h-10">Cancel</Button>
               <Button
                 onClick={confirmStartNewVisit}
-                disabled={!selectedDoctorId || startingVisitMrn}
+                disabled={!selectedDoctorId || !!startingVisitMrn}
                 className="gap-2 bg-orange-600 hover:bg-orange-600 text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all"
               >
                 {startingVisitMrn ? (

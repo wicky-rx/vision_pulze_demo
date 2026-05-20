@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { FileText, Download, ExternalLink, Loader2, Image as ImageIcon, X, Upload, Trash2, Check, Plus, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Download, ExternalLink, Loader2, Image as ImageIcon, X, Upload, Trash2, Check, Plus, Zap, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -275,18 +275,24 @@ export function ScanReportGallery({
                   <Check className="w-3 h-3 text-orange-400" />
               </div>
               
-              {documents.length === 0 ? (
+               {documents.length === 0 ? (
                   <p className="text-[10px] text-orange-400 italic py-6 text-center">No reports uploaded yet.</p>
               ) : (
                   <div className="grid grid-cols-1 gap-1.5 max-h-[110px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent pr-1.5">
                      {documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between group py-0.5 border-b border-orange-100/50 last:border-0">
+                      <div key={doc.id} className="flex items-center justify-between group py-1 border-b border-orange-100/50 last:border-0 hover:bg-orange-50/50 px-1 transition-colors">
                           <div 
                             className="flex items-center gap-2 cursor-pointer hover:text-orange-700 transition-colors flex-1 min-w-0"
                             onClick={() => setSelectedDoc(doc)}
                           >
-                              <span className="font-semibold text-orange-800 uppercase text-[9px] truncate">{doc.category}</span>
-                              <Check className="w-2.5 h-2.5 text-orange-500 shrink-0" />
+                              <div className="flex flex-col min-w-0 flex-1">
+                                  <span className="font-semibold text-orange-850 uppercase text-[9px] truncate">{doc.category}</span>
+                                  <span className="text-[8px] text-slate-400 font-bold">{new Date(doc.uploadedAt).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: '2-digit'})}</span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0 px-1">
+                                  <Eye className="w-3.5 h-3.5 text-orange-400 group-hover:text-orange-650 transition-colors" />
+                                  <Check className="w-2.5 h-2.5 text-orange-500 shrink-0" />
+                              </div>
                           </div>
                           
                           <button 

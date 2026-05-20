@@ -297,10 +297,10 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
             {/* Print Modal */}
             <Dialog open={showPrint} onOpenChange={setShowPrint}>
                 <DialogContent className="max-w-xl p-0 border-0 rounded-none overflow-hidden shadow-2xl">
-                    <div className="bg-orange-600 p-6 text-center">
+                    <div className="bg-orange-600 p-6 text-center no-print">
                         <h2 className="text-white font-black uppercase tracking-[0.4em] text-xs">Pharmacy Bill Preview</h2>
                     </div>
-                    <div className="bg-white p-10 space-y-8">
+                    <div id="print-section" className="bg-white p-10 space-y-8">
                         <div className="text-center flex flex-col items-center">
                             <img src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" alt="Logo" className="h-14 w-auto mb-4" />
                             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">VPN Eye Hospital</h3>
@@ -347,7 +347,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                             </div>
                         </div>
                     </div>
-                    <DialogFooter className="p-6 bg-slate-50 border-t flex flex-row items-center justify-center gap-4">
+                    <DialogFooter className="p-6 bg-slate-50 border-t flex flex-row items-center justify-center gap-4 no-print">
                         <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel</Button>
                         <Button className="rounded-none bg-orange-600 hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3" onClick={() => window.print()}>
                             <Printer className="w-4 h-4" /> Print Document

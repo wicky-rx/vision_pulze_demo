@@ -108,7 +108,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
   if (!patient) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-        Select a patient to view optical prescription
+        Select a patient to view optical RX
       </div>
     );
   }
@@ -201,7 +201,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
 
       {!consultation ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 relative z-10">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No Active Prescription Found</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No Active RX Found</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 items-start relative z-10">
@@ -242,7 +242,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-3">Correction Details</p>
                 {!glassRx ? (
                   <div className="p-8 border-2 border-dashed border-slate-100 text-center">
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No active prescription found</p>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No active RX found</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -491,10 +491,10 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
       {/* Print Preview Modal */}
       <Dialog open={showPrint} onOpenChange={setShowPrint}>
         <DialogContent className="max-w-2xl p-0 border-0 rounded-none overflow-hidden shadow-2xl">
-          <DialogHeader className="p-8 bg-orange-600 border-0 rounded-none flex flex-row items-center justify-between space-y-0">
+          <DialogHeader className="p-8 bg-orange-600 border-0 rounded-none flex flex-row items-center justify-between space-y-0 no-print">
             <DialogTitle className="text-white font-black uppercase tracking-[0.3em] text-[10px]">Optical Order Specification</DialogTitle>
           </DialogHeader>
-          <div className="bg-white p-12 space-y-10">
+          <div id="print-section" className="bg-white p-12 space-y-10">
             {/* Header with Hospital Info */}
             <div className="text-center border-b border-slate-100 pb-8 flex flex-col items-center">
               <img 
@@ -502,7 +502,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                 alt="VPN Eye Hospital" 
                 className="h-16 w-auto object-contain mb-4"
               />
-              <h4 className="text-lg font-black text-[orange-600] uppercase tracking-tighter">Optical Prescription Order</h4>
+              <h4 className="text-lg font-black text-[orange-600] uppercase tracking-tighter">Optical RX Order</h4>
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Nagapattinam • Primary Care Center • ISO Certified Optics</p>
             </div>
 
@@ -636,7 +636,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                </div>
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 border-t items-center sm:justify-center">
+          <DialogFooter className="p-8 bg-slate-50 border-t items-center sm:justify-center no-print">
             <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel & Edit</Button>
             <Button className="rounded-none bg-[orange-600] hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3 ml-4" onClick={() => window.print()}>
               <Printer className="w-4 h-4" />

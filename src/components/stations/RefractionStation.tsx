@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from "react";
 import {
-  Activity, AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, ChevronDown,
+  Activity, AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
   ChevronRight, ClipboardList, Clock, Crosshair, Eye, History, Save, Scan,
   Search, ShieldCheck, Stethoscope, User, X, Send, CloudUpload, Droplets, Check
 } from "lucide-react";
@@ -37,7 +37,97 @@ const SYSTEMIC_SUB_OPTIONS: Record<string, string[]> = {
   "Kidney Disease": ["Dialysis", "Chronic"],
   "Neurological": ["Epilepsy", "Stroke"]
 };
-const complaints = ["Blurred Vision", "Headache", "Irritation", "Photophobia", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Other"];
+const complaints = ["Blurred Vision", "Headache", "Irritation", "Photophobia", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters"];
+
+const formatComplaintToStatement = (c: { complaint: string, eye: string, duration: string, unit: string } | string) => {
+  if (typeof c === 'string') return c;
+  const label = c.complaint;
+  let eyeDesc = "";
+  const isOcular = !["headache"].includes(label.toLowerCase());
+  if (isOcular) {
+    if (c.eye === "OD") {
+      eyeDesc = " in the right eye";
+    } else if (c.eye === "OS") {
+      eyeDesc = " in the left eye";
+    } else if (c.eye === "OU") {
+      eyeDesc = " in both eyes";
+    }
+  }
+
+  let durationDesc = "";
+  if (c.duration) {
+    let unitLabel = c.unit || "days";
+    if (c.duration === "1" && unitLabel.endsWith("s")) {
+      unitLabel = unitLabel.slice(0, -1);
+    }
+    durationDesc = ` for the past ${c.duration} ${unitLabel}`;
+  }
+
+  const rawStatement = `${label}${eyeDesc}${durationDesc}.`;
+  return rawStatement.charAt(0).toUpperCase() + rawStatement.slice(1);
+};
+
+const parseComplaintString = (part: string) => {
+  const trimmed = part.trim().replace(/\.$/, ""); // remove trailing period if any
+  
+  // 1. Try matching sentence format: e.g. "Eye pain in the right eye for the past 3 days"
+  let match = trimmed.match(/^(.+?)\s+in\s+the\s+(right\s+eye|left\s+eye|both\s+eyes)?(?:\s+for\s+the\s+past\s+(\d+)\s+(day|days|month|months|year|years))?$/i);
+  if (match) {
+    const label = match[1].trim();
+    let eye = "OU";
+    if (match[2]) {
+      const eyeStr = match[2].toLowerCase();
+      if (eyeStr.includes("right")) eye = "OD";
+      else if (eyeStr.includes("left")) eye = "OS";
+      else if (eyeStr.includes("both")) eye = "OU";
+    }
+    const duration = match[3] || "";
+    let unit = (match[4] || "days").toLowerCase();
+    if (!unit.endsWith("s")) unit += "s";
+
+    return { complaint: label, eye, duration, unit };
+  }
+
+  // 1b. Try matching sentence format without eye (e.g. Headache for the past 5 days)
+  match = trimmed.match(/^(.+?)\s+for\s+the\s+past\s+(\d+)\s+(day|days|month|months|year|years)$/i);
+  if (match) {
+    const label = match[1].trim();
+    const duration = match[2];
+    let unit = (match[3] || "days").toLowerCase();
+    if (!unit.endsWith("s")) unit += "s";
+
+    return { complaint: label, eye: "OU", duration, unit };
+  }
+
+  // 2. Fallback to older parenthesized format: e.g. "Blurred Vision (OD, 3 days)"
+  match = trimmed.match(/^(.+?)\s*\((OD|OS|OU)(?:,\s*(\d+)\s*(days|months|years))?\)$/i);
+  if (match) {
+    return {
+      complaint: match[1].trim(),
+      eye: (match[2] || "OU").toUpperCase(),
+      duration: match[3] || "",
+      unit: (match[4] || "days").toLowerCase()
+    };
+  }
+
+  // 3. Fallback to older non-ocular parenthesized format: e.g. "Headache (5 days)"
+  match = trimmed.match(/^(.+?)\s*\((\d+)\s*(days|months|years)\)$/i);
+  if (match) {
+    return {
+      complaint: match[1].trim(),
+      eye: "OU",
+      duration: match[2],
+      unit: (match[3] || "days").toLowerCase()
+    };
+  }
+
+  return {
+    complaint: trimmed,
+    eye: "OU",
+    duration: "",
+    unit: "days"
+  };
+};
 const DIST_VISION_OPTIONS = ["6/6", "6/6(P)", "6/7.5", "6/7.5(P)", "6/9", "6/9(P)", "6/12", "6/12(P)", "6/18", "6/18(P)", "6/24", "6/24(P)", "6/36", "6/36(P)", "6/60", "6/60(P)", "5/60", "4/60", "3/60", "2/60", "1/60", "CF at 50", "HM(+)", "CFCC", "PLPR accurate", "PLPR inaccurate"] as const;
 const NEAR_VISION_OPTIONS = ["<N36", "N36", "N24", "N18", "N12", "N10", "N8", "N6"] as const;
 const SCHIRMER_OPTIONS = [
@@ -73,7 +163,7 @@ const TagInput = React.memo(({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-blue-100 bg-white min-h-[44px] flex-1">
+    <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-blue-100 bg-white min-h-[44px] flex-1 min-w-0">
       {(Array.isArray(values) ? values : (typeof values === 'string' && (values as string).trim() ? [(values as string).trim()] : [])).map((v, i) => (
         <span key={i} className="group flex items-center gap-1 bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border border-blue-200 uppercase tracking-tighter transition-all">
           {v}
@@ -365,7 +455,7 @@ const TonometrySection = React.memo(({
                         )}>{eye}</span>
                         <span className="text-[9px] font-black uppercase text-blue-500 tracking-widest bg-blue-50 px-2 py-0.5">MEAN</span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 w-full min-w-0">
                         <TagInput 
                           placeholder="Value"
                           values={(formData.tonometryDetails?.nct as any)?.[eye]?.mean || []}
@@ -397,7 +487,7 @@ const TonometrySection = React.memo(({
                         )}>{eye}</span>
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-blue-50 px-2 py-0.5">GAT (Goldmann)</span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 w-full min-w-0">
                         <TagInput 
                           placeholder="Value"
                           values={(formData.tonometryDetails?.gat as any)?.[eye]?.reading || []}
@@ -430,8 +520,8 @@ const TonometrySection = React.memo(({
                         )}>{eye}</span>
                       <span className="text-[9px] font-black uppercase text-blue-500 tracking-widest bg-blue-50 px-2 py-0.5">Schiotz</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Input className="h-11 flex-1 bg-white border-blue-100 text-orange-600 text-center text-base font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.reading || ""} onChange={(e) => {
+                    <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full min-w-0">
+                      <Input className="h-11 flex-1 min-w-[70px] bg-white border-blue-100 text-orange-600 text-center text-base font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.reading || ""} onChange={(e) => {
                         const val = sanitizeOptometryInput(e.target.value, 'iop');
                         setFormData((p: any) => {
                           const currentDetails = p.tonometryDetails || {};
@@ -448,19 +538,21 @@ const TonometrySection = React.memo(({
                           return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, weight: val } } } };
                         });
                       }}>
-                        <SelectTrigger className="h-11 w-[70px] bg-white border-blue-100 text-orange-600 text-[10px] font-black transition-none focus:border-blue-400"><SelectValue placeholder="W" /></SelectTrigger>
+                        <SelectTrigger className="h-11 w-[70px] shrink-0 bg-white border-blue-100 text-orange-600 text-[10px] font-black transition-none focus:border-blue-400"><SelectValue placeholder="W" /></SelectTrigger>
                         <SelectContent className="font-bold"><SelectItem value="5.5">5.5g</SelectItem><SelectItem value="7.5">7.5g</SelectItem><SelectItem value="10">10g</SelectItem></SelectContent>
                       </Select>
-                      <Input className="h-11 w-16 bg-white border-blue-100 text-orange-600 text-center text-[13px] font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.iop || ""} onChange={(e) => {
-                        const val = sanitizeOptometryInput(e.target.value, 'iop');
-                        setFormData((p: any) => {
-                          const currentDetails = p.tonometryDetails || {};
-                          const currentSchiotz = currentDetails.schiotz || {};
-                          const currentEye = (currentSchiotz as any)[eye] || {};
-                          return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, iop: val } } } };
-                        });
-                      }} />
-                      <span className="text-[11px] font-bold text-slate-400 shrink-0">mmHg</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Input className="h-11 w-16 bg-white border-blue-100 text-orange-600 text-center text-[13px] font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.iop || ""} onChange={(e) => {
+                          const val = sanitizeOptometryInput(e.target.value, 'iop');
+                          setFormData((p: any) => {
+                            const currentDetails = p.tonometryDetails || {};
+                            const currentSchiotz = currentDetails.schiotz || {};
+                            const currentEye = (currentSchiotz as any)[eye] || {};
+                            return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, iop: val } } } };
+                          });
+                        }} />
+                        <span className="text-[11px] font-bold text-slate-400">mmHg</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -844,7 +936,21 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             });
             // Map ocularComplaint string back to complaints array
             if (serverData?.ocularComplaint && !draftData?.data?.complaints) {
-              final.complaints = serverData.ocularComplaint.split(',').map((s: string) => s.trim()).filter(Boolean);
+              final.complaints = serverData.ocularComplaint.split(',').map((s: string) => {
+                return parseComplaintString(s);
+              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+            }
+
+            if (final.complaints) {
+              final.complaints = final.complaints.map((c: any) => {
+                if (typeof c === 'string') {
+                  return parseComplaintString(c);
+                }
+                return c;
+              }).filter((c: any) => {
+                const name = typeof c === 'string' ? c : c?.complaint;
+                return name && name.toLowerCase() !== "other";
+              });
             }
 
             return final;
@@ -1138,9 +1244,25 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const toggleComplaint = useCallback((c: string) => {
     setFormData(prev => {
       const current = Array.isArray(prev.complaints) ? prev.complaints : [];
-      const next = current.includes(c)
-        ? current.filter(x => x !== c)
-        : [...current, c];
+      const exists = current.some((x: any) => (typeof x === 'string' ? x : x.complaint) === c);
+      const next = exists
+        ? current.filter((x: any) => (typeof x === 'string' ? x : x.complaint) !== c)
+        : [...current, { complaint: c, eye: "OU", duration: "1", unit: "days" }];
+      return { ...prev, complaints: next };
+    });
+  }, [setFormData]);
+
+  const updateComplaintDetail = useCallback((complaintName: string, field: "eye" | "duration" | "unit", value: string) => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.complaints) ? prev.complaints : [];
+      const next = current.map((c: any) => {
+        const cName = typeof c === 'string' ? c : c.complaint;
+        if (cName === complaintName) {
+          const obj = typeof c === 'string' ? { complaint: c, eye: "OU" as const, duration: "", unit: "days" as const } : c;
+          return { ...obj, [field]: value };
+        }
+        return c;
+      });
       return { ...prev, complaints: next };
     });
   }, [setFormData]);
@@ -1311,20 +1433,51 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-rose-50">
                     {selectedChips.map((item) => (
                       <div key={item.condition} className="bg-white border border-rose-100 p-3 space-y-3 shadow-sm hover:border-rose-400 transition-all flex flex-col">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-2">
                           <div className="py-0.5 whitespace-nowrap">
                             <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
                               {item.condition}
                             </span>
                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Active Diagnosis</span>
                           </div>
-                          <div className="w-24 shrink-0">
-                            <Input
-                              placeholder="Duration..."
-                              value={item.duration}
-                              onChange={(e) => updateChipDuration(item.condition, e.target.value)}
-                              className="h-8 text-[10px] font-black rounded-none border-0 bg-rose-50/50 hover:bg-rose-50 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-rose-500 transition-all px-2 text-slate-900"
-                            />
+
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <div className="flex flex-wrap gap-1 flex-1">
+                              {[
+                                { label: "1 yr", value: "1 year" },
+                                { label: "3 yrs", value: "3 years" },
+                                { label: "5 yrs", value: "5 years" },
+                                { label: "10 yrs", value: "10 years" }
+                              ].map((opt) => {
+                                const normalizedDur = (item.duration || "").toLowerCase().replace(/\s+/g, "");
+                                const normalizedVal = opt.value.toLowerCase().replace(/\s+/g, "");
+                                const normalizedLbl = opt.label.toLowerCase().replace(/\s+/g, "");
+                                const isPresetSelected = normalizedDur === normalizedVal || normalizedDur === normalizedLbl;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => updateChipDuration(item.condition, opt.value)}
+                                    className={cn(
+                                      "px-2 py-0.5 text-[8px] font-black uppercase tracking-wider transition-all border rounded-none",
+                                      isPresetSelected
+                                        ? "bg-rose-600 text-white border-rose-700 shadow-sm"
+                                        : "bg-rose-50/30 text-rose-700 border-rose-100 hover:bg-rose-50 hover:border-rose-300"
+                                    )}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="w-24 shrink-0">
+                              <Input
+                                placeholder="Duration..."
+                                value={item.duration}
+                                onChange={(e) => updateChipDuration(item.condition, e.target.value)}
+                                className="h-8 text-[10px] font-black rounded-none border-0 bg-rose-50/50 hover:bg-rose-50 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-rose-500 transition-all px-2 text-slate-900"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -1378,21 +1531,119 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                   <div className="md:col-span-8 space-y-4">
                         <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Chief Complaints (Multi-Select)</label>
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {complaints.map((c) => (
-                            <div 
-                              key={c} 
-                              className={cn(
-                                "px-4 py-2 border transition-all cursor-pointer select-none text-[9px] font-black uppercase tracking-widest",
-                                formData.complaints?.includes(c)
-                                  ? "bg-amber-600 text-white border-amber-600 shadow-md translate-y-[-1px]"
-                                  : "bg-white text-slate-600 border-amber-100 hover:border-amber-300 hover:text-slate-800"
-                              )}
-                              onClick={() => toggleComplaint(c)}
-                            >
-                              {c}
-                            </div>
-                          ))}
+                          {complaints.map((c) => {
+                            const isSelected = formData.complaints?.some((x: any) => (typeof x === 'string' ? x : x.complaint) === c);
+                            return (
+                              <div 
+                                key={c} 
+                                className={cn(
+                                  "px-4 py-2 border transition-all cursor-pointer select-none text-[9px] font-black uppercase tracking-widest",
+                                  isSelected
+                                    ? "bg-amber-600 text-white border-amber-600 shadow-md translate-y-[-1px]"
+                                    : "bg-white text-slate-600 border-amber-100 hover:border-amber-300 hover:text-slate-800"
+                                )}
+                                onClick={() => toggleComplaint(c)}
+                              >
+                                {c}
+                              </div>
+                            );
+                          })}
                         </div>
+
+                        {/* Detailed inputs for selected complaints */}
+                        {formData.complaints && formData.complaints.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-amber-100">
+                            {formData.complaints.map((item: any) => {
+                              const name = typeof item === 'string' ? item : item.complaint;
+                              const eye = typeof item === 'string' ? 'OU' : item.eye || 'OU';
+                              const duration = typeof item === 'string' ? '' : item.duration || '';
+                              const unit = typeof item === 'string' ? 'days' : item.unit || 'days';
+                              const isOcular = !["headache"].includes(name.toLowerCase());
+
+                              return (
+                                <div key={name} className="bg-amber-50/25 border border-amber-200/50 p-3 space-y-3 shadow-sm hover:border-amber-300 transition-all flex flex-col">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
+                                      {name}
+                                    </span>
+                                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Complaint Specifics</span>
+                                  </div>
+
+                                  <div className={cn("grid gap-2", isOcular ? "grid-cols-2" : "grid-cols-1")}>
+                                    {isOcular && (
+                                      <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Which Eye</label>
+                                        <div className="flex gap-0.5">
+                                          {["OD", "OS", "OU"].map((eyeOpt) => (
+                                            <button
+                                              key={eyeOpt}
+                                              type="button"
+                                              onClick={() => updateComplaintDetail(name, "eye", eyeOpt)}
+                                              className={cn(
+                                                "flex-1 py-1 text-[8px] font-black uppercase tracking-wider transition-all border",
+                                                eye === eyeOpt
+                                                  ? "bg-amber-600 text-white border-amber-700 shadow-sm"
+                                                  : "bg-white text-slate-400 border-slate-100 hover:border-amber-200 hover:text-amber-600"
+                                              )}
+                                            >
+                                              {eyeOpt}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="space-y-1">
+                                      <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Duration</label>
+                                      <div className="flex gap-1 items-center">
+                                        <div className="flex items-center border border-slate-200 bg-white h-7 select-none">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parseInt(duration) || 1;
+                                              if (currentVal > 1) {
+                                                updateComplaintDetail(name, "duration", (currentVal - 1).toString());
+                                              }
+                                            }}
+                                            className="px-1.5 h-full text-slate-500 hover:text-amber-600 transition-all border-r border-slate-200 hover:bg-slate-50 flex items-center justify-center"
+                                          >
+                                            <ChevronDown className="w-3 h-3" />
+                                          </button>
+                                          <span className="w-8 text-center text-[10px] font-black text-slate-800">
+                                            {duration || "1"}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const currentVal = parseInt(duration) || 1;
+                                              updateComplaintDetail(name, "duration", (currentVal + 1).toString());
+                                            }}
+                                            className="px-1.5 h-full text-slate-500 hover:text-amber-600 transition-all border-l border-slate-200 hover:bg-slate-50 flex items-center justify-center"
+                                          >
+                                            <ChevronUp className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                        <Select
+                                          value={unit}
+                                          onValueChange={(val) => updateComplaintDetail(name, "unit", val)}
+                                        >
+                                          <SelectTrigger className="h-7 text-[10px] font-black rounded-none border border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 w-20 px-2 bg-white">
+                                            <SelectValue placeholder="Unit" />
+                                          </SelectTrigger>
+                                          <SelectContent className="rounded-none font-bold text-[10px]">
+                                            <SelectItem value="days">Days</SelectItem>
+                                            <SelectItem value="months">Months</SelectItem>
+                                            <SelectItem value="years">Years</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       <div className="md:col-span-4 space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Detailed Symptomology</label>
@@ -1939,75 +2190,75 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
               badge={formData.objectiveRefraction?.type === "DilRR" ? "Dilated" : "Cycloplegic"}
             >
               <div className="space-y-6">
-                <div className="flex justify-end pb-4 border-b border-teal-100">
-                   <div className="flex items-center gap-4 bg-emerald-50 px-3 py-1.5 border border-emerald-100 shadow-sm">
-                    <span className="text-[10px] font-black uppercase text-emerald-900 tracking-widest pl-2">Modality:</span>
-                    <div className="flex gap-2">
-                      {[
-                        { label: "Dilated (Dil RR)", value: "DilRR" },
-                        { label: "Cycloplegic (Cyclo RR)", value: "cycloRR" }
-                      ].map((opt) => {
-                        const isSelected = (formData.objectiveRefraction?.type || "cycloRR") === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setFormData(p => ({ ...p, objectiveRefraction: { ...p.objectiveRefraction, type: opt.value } as any }))}
-                            className={cn(
-                              "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none min-w-[140px]",
-                              isSelected
-                                ? "bg-teal-600 text-white border-teal-700 shadow-md"
-                                : "bg-white text-slate-400 border-slate-100 hover:border-teal-200 hover:text-teal-600"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <div className="space-y-8">
-                    {["OD", "OS"].map((eye) => (
-                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          {/* Dry RR */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-emerald-100 pb-2">
-                              <span className={cn(
-                                "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                              )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">Dry RR</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", e.target.value)} placeholder="0" /></div>
-                            </div>
+                <div className="space-y-8">
+                  {["OD", "OS"].map((eye) => (
+                    <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Dry RR */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 border-b border-emerald-100 pb-2 min-h-[44px]">
+                            <span className={cn(
+                              "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                              eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                            )}>{eye}</span>
+                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">Dry RR</span>
                           </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", e.target.value)} placeholder="0.00" /></div>
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", e.target.value)} placeholder="0" /></div>
+                          </div>
+                        </div>
 
-                          {/* Modality RR */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-emerald-100 pb-2">
+                        {/* Modality RR */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-emerald-100 pb-2 min-h-[44px]">
+                            <div className="flex items-center gap-3">
                               <span className={cn(
                                 "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
                                 eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
                               )}>{eye}</span>
                               <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">{formData.objectiveRefraction?.type === "DilRR" ? "Dil RR" : "Cyclo RR"}</span>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", e.target.value)} placeholder="0" /></div>
-                            </div>
+
+                            {eye === "OD" && (
+                              <div className="flex items-center gap-2 bg-emerald-50 px-2 py-0.5 border border-emerald-100 shadow-sm">
+                                <span className="text-[9px] font-black uppercase text-emerald-950 tracking-wider pl-1">Modality:</span>
+                                <div className="flex gap-1.5">
+                                  {[
+                                    { label: "Dilated (Dil RR)", value: "DilRR" },
+                                    { label: "Cycloplegic (Cyclo RR)", value: "cycloRR" }
+                                  ].map((opt) => {
+                                    const isSelected = (formData.objectiveRefraction?.type || "DilRR") === opt.value;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => setFormData(p => ({ ...p, objectiveRefraction: { ...p.objectiveRefraction, type: opt.value } as any }))}
+                                        className={cn(
+                                          "px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none",
+                                          isSelected
+                                            ? "bg-teal-600 text-white border-teal-700 shadow-md"
+                                            : "bg-white text-slate-400 border-slate-100 hover:border-teal-200 hover:text-teal-600"
+                                        )}
+                                      >
+                                        {opt.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", e.target.value)} placeholder="0.00" /></div>
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", e.target.value)} placeholder="0.00" /></div>
+                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", e.target.value)} placeholder="0" /></div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </DiagnosticCard>
@@ -2452,7 +2703,9 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ 
                               ...finalFormData, 
-                              complaint: Array.isArray(finalFormData.complaints) ? finalFormData.complaints.join(", ") : "",
+                              complaint: Array.isArray(finalFormData.complaints)
+                                ? finalFormData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
+                                : "",
                               systemicHistory: selectedChips,
                               refractionistName: userName 
                             })

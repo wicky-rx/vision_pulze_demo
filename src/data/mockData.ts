@@ -28,6 +28,13 @@ export interface Patient {
   lastVisitStatus?: string;
   appointmentId?: string;
   consultingDoctorName?: string;
+  appointment?: any;
+  consultation?: any;
+  optical?: any;
+  refraction?: any;
+  mobile?: string;
+  parentMrNumber?: string;
+  relationshipType?: string;
 }
 
 export const mockPatients: Patient[] = [
