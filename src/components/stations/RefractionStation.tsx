@@ -71,7 +71,7 @@ const parseComplaintString = (part: string) => {
   const trimmed = part.trim().replace(/\.$/, ""); // remove trailing period if any
   
   // 1. Try matching sentence format: e.g. "Eye pain in the right eye for the past 3 days"
-  let match = trimmed.match(/^(.+?)\s+in\s+the\s+(right\s+eye|left\s+eye|both\s+eyes)?(?:\s+for\s+the\s+past\s+(\d+)\s+(day|days|month|months|year|years))?$/i);
+  let match = trimmed.match(/^(.+?)\s+in\s+(?:the\s+)?(right\s+eye|left\s+eye|both\s+eyes)?(?:\s+for\s+the\s+past\s+(\d+)\s+(day|days|month|months|year|years))?$/i);
   if (match) {
     const label = match[1].trim();
     let eye = "OU";
