@@ -1309,7 +1309,7 @@ export function ReceptionStation() {
           }
         }}>
           <DialogContent className="max-w-md">
-            <DialogHeader>
+            <DialogHeader className="print:hidden no-print">
               <DialogTitle className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
                   <Printer className="w-4 h-4 text-orange-600" />
@@ -1328,8 +1328,48 @@ export function ReceptionStation() {
                     margin: 0;
                   }
                   html, body {
-                    width: 60mm;
-                    height: 40mm;
+                    width: 60mm !important;
+                    height: 40mm !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                  }
+                  div[role="dialog"], 
+                  div[data-state="open"] {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 60mm !important;
+                    height: 40mm !important;
+                    min-width: 0 !important;
+                    max-width: none !important;
+                    min-height: 0 !important;
+                    max-height: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    transform: none !important;
+                    background: transparent !important;
+                  }
+                  button, 
+                  [class*="DialogClose"],
+                  [class*="absolute right-4"] {
+                    display: none !important;
+                  }
+                  body #print-section {
+                    display: flex !important;
+                    width: 60mm !important;
+                    height: 40mm !important;
+                    padding: 2.5mm !important;
+                    margin: 0 !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    background: white !important;
+                    color: black !important;
                   }
                 }
               `}
@@ -1463,7 +1503,7 @@ export function ReceptionStation() {
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="print:hidden no-print">
               <Button variant="outline" onClick={() => setShowOPCard(false)}>Close</Button>
               <Button onClick={() => window.print()} className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 font-bold transition-all shadow-md">
                 <Printer className="w-4 h-4" />
