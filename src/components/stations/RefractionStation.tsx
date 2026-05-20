@@ -581,16 +581,8 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
   // Determine if the form should be locked (not editable)
   const statusUpper = localStatus?.toUpperCase();
-  const isSigned = statusUpper === "CONSULTED" || 
-    statusUpper === "WITH_DOCTOR" || 
-    statusUpper === "AT_OPTICAL" || 
-    statusUpper === "COMPLETED" || 
-    statusUpper === "REFRACTION_DONE";
-  const isLocked = !localStatus || 
-    statusUpper === "AT_RECEPTION" || 
-    isSigned;
-
   const isCurrentlyInRefraction = statusUpper === "IN_REFRACTION" || statusUpper === "OPTOMETRIST";
+  const isLocked = !isCurrentlyInRefraction;
 
   const handleAdvanceToRefraction = async () => {
     if (!patient?.id) return;
