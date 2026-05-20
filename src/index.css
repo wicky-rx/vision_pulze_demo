@@ -1,0 +1,246 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 99%;
+    --foreground: 213 39% 24%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 39% 24%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 39% 24%;
+
+    --primary: 213 55% 24%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 213 55% 24%;
+
+    --muted: 210 33% 97%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 25 95% 94%;
+    --accent-foreground: 213 39% 24%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 25 95% 85%;
+    --ring: 25 95% 53%;
+
+    --radius: 0px; /* Sharp clinical look per request */
+
+    --sidebar-background: 213 55% 24%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 50% 30%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 45% 32%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Clinic-specific tokens */
+    --clinic-navy: 213 55% 24%;
+    --clinic-sky: 217 91% 60%;
+    --clinic-gray: 210 33% 97%;
+    --clinic-surface: 210 20% 99%;
+
+    /* Status colour tokens — per agreed spec:
+     *   reception   (AT_RECEPTION)  = 🔵 Blue
+     *   optometrist (IN_REFRACTION) = 🟠 Orange
+     *   doctor      (WITH_DOCTOR)   = 🟣 Purple
+     *   consulted   (CONSULTED)     = 🟡 Amber
+     *   optical     (AT_OPTICAL)    = 🔵 Teal/Cyan
+     *   pharmacy    (future)        = 🩵 Light-blue
+     *   completed   (COMPLETED)     = 🟢 Green
+     */
+    --status-reception:   217 91% 60%;   /* Blue   */
+    --status-optometrist: 25 95% 53%;    /* Orange */
+    --status-doctor:      271 76% 53%;   /* Purple */
+    --status-consulted:   45 93% 47%;    /* Amber  */
+    --status-optical:     181 80% 42%;   /* Teal   */
+    --status-pharmacy:    199 89% 48%;   /* Cyan   */
+    --status-refraction-done: 245 58% 51%; /* Indigo */
+    --status-completed:   142 71% 45%;   /* Green  */
+  }
+
+  .dark {
+    --background: 213 55% 8%;
+    --foreground: 210 40% 98%;
+    --card: 213 55% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 213 55% 12%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 213 50% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 213 50% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 213 50% 20%;
+    --input: 213 50% 20%;
+    --ring: 217 91% 60%;
+    --sidebar-background: 213 55% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 50% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 50% 16%;
+    --sidebar-ring: 217 91% 60%;
+    --clinic-navy: 213 55% 24%;
+    --clinic-sky: 217 91% 60%;
+    --clinic-gray: 213 50% 14%;
+    --clinic-surface: 213 55% 8%;
+    --status-reception:   217 91% 60%;   /* Blue   */
+    --status-optometrist: 25 95% 53%;    /* Orange */
+    --status-doctor:      271 76% 53%;   /* Purple */
+    --status-consulted:   45 93% 47%;    /* Amber  */
+    --status-optical:     181 80% 42%;   /* Teal   */
+    --status-pharmacy:    199 89% 48%;   /* Cyan   */
+    --status-refraction-done: 245 58% 60%; /* Indigo */
+    --status-completed:   142 71% 45%;   /* Green  */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .clinic-gradient {
+    background: linear-gradient(135deg, hsl(213 55% 24%), hsl(213 55% 18%));
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--accent) / 0.2);
+    border-radius: 10px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--accent) / 0.4);
+  }
+
+  /* Spacious Clinical Layout System */
+  .clinical-card {
+    @apply border-0 shadow-lg bg-white overflow-hidden;
+  }
+  
+  .clinical-section {
+    @apply p-8 space-y-10;
+  }
+  
+  .clinical-group {
+    @apply p-6 bg-slate-50 border border-slate-100 space-y-6 transition-all;
+  }
+  
+  .clinical-label {
+    @apply text-xs font-bold uppercase tracking-widest text-[#1a365d] mb-2 block;
+  }
+
+  .bg-sprinkles {
+    background-image: url("data:image/svg+xml,%3Csvg width='160' height='160' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23f97316' transform='translate(20, 20) rotate(15 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23ea580c' transform='translate(100, 30) rotate(-45 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23fb923c' transform='translate(50, 100) rotate(115 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23fb923c' transform='translate(130, 10) rotate(150 6 10)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23ea580c' stroke-width='3' stroke-linecap='round' transform='translate(60, 20) rotate(30 6 6)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23f97316' stroke-width='4' stroke-linecap='round' transform='translate(120, 90) rotate(-15 6 6)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23fb923c' stroke-width='3.5' stroke-linecap='round' transform='translate(20, 70) rotate(45 6 6)' /%3E%3Ccircle cx='6' cy='6' r='5' fill='none' stroke='%23f97316' stroke-width='3' transform='translate(80, 120)' /%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='%23ea580c' stroke-width='4' transform='translate(10, 120)' /%3E%3Cpolygon points='5,0 10,5 5,10 0,5' fill='%23f97316' transform='translate(70, 70) rotate(15 5 5)' /%3E%3Cpolygon points='6,0 12,6 6,12 0,6' fill='%23fb923c' transform='translate(130, 130) rotate(30 6 6)' /%3E%3Cpolygon points='5,0 10,5 5,10 0,5' fill='%23ea580c' transform='translate(110, 50) rotate(-20 5 5)' /%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    opacity: 0.3;
+  }
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 5mm;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide all portals except the one containing the printable report */
+  [data-radix-portal]:not(:has(#print-section)) {
+    display: none !important;
+  }
+
+  /* Hide the overlay and close button completely during print */
+  [data-radix-portal] > div[class*="bg-black"],
+  div[class*="bg-black/80"],
+  button[class*="DialogClose"],
+  button[class*="absolute right-4"] {
+    display: none !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  /* Override positioning of modal wrappers and portal containers to enable multi-page pagination */
+  [data-radix-portal],
+  div[data-state="open"],
+  div[role="dialog"] {
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    width: 100% !important;
+  }
+
+  #print-section {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  [data-radix-scroll-area-viewport] {
+    overflow: visible !important;
+    height: auto !important;
+    position: static !important;
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}

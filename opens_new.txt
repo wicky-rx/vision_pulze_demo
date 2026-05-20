@@ -1,0 +1,219 @@
+57:    <div className="clinical-group">
+59:      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+61:          <div key={eye} className="space-y-6">
+62:            <div className="flex items-center gap-3 border-b-2 border-slate-200 pb-3">
+67:              <div className="flex flex-col min-w-0">
+72:            <div className="grid gap-6">
+74:                <div key={f} className="space-y-1">
+160:    <div className="border-2 border-indigo-100 bg-indigo-50/10 rounded-none overflow-hidden shadow-sm">
+161:      <div 
+165:        <div className="flex items-center gap-3 relative">
+169:        <div className="flex items-center gap-4">
+175:      <div className={cn(
+179:        <div className="p-2 sm:p-5 space-y-4 sm:space-y-6">
+181:          <div key={eye} className="space-y-3 sm:space-y-4">
+182:            <div className="flex items-center gap-4 border-b border-indigo-100 pb-2">
+183:              <div className={cn(
+190:            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+192:              <div className="space-y-3">
+193:                <div className="flex items-center justify-between">
+196:                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+197:                  <div className="space-y-1">
+201:                  <div className="space-y-1">
+205:                  <div className="space-y-1">
+209:                  <div className="space-y-1">
+220:              <div className="space-y-3">
+221:                <div className="flex items-center justify-between">
+224:                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+225:                  <div className="space-y-1">
+229:                  <div className="space-y-1">
+233:                  <div className="space-y-1">
+237:                  <div className="space-y-1">
+248:            <div className="pt-2">
+718:      <div className="flex-1 p-6 h-full flex flex-col items-center justify-center text-center">
+719:        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+757:    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
+759:      <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-1.5 md:py-2 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-20 gap-2 md:gap-6 text-slate-900 min-h-[56px] sm:min-h-0">
+760:        <div className="flex items-center gap-3 md:gap-6 w-full sm:w-auto">
+761:          <div className="bg-slate-50 text-[#1a365d] p-2 md:p-3 shrink-0 ring-1 ring-slate-100 hidden xs:block">
+764:          <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+766:            <div className="flex items-center gap-2 shrink-0">
+781:            <div className="hidden xs:block h-3.5 w-px bg-slate-200" />
+788:        <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
+789:          <div className="flex items-center gap-1 bg-slate-50 p-1 mr-2 border border-slate-100">
+798:            <div className="w-px h-3 bg-slate-200" />
+819:          <div className="text-right border-l border-slate-100 pl-3 md:pl-5 shrink-0">
+826:      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300 transition-all bg-slate-50/50">
+827:        <div className="max-w-7xl mx-auto px-2 md:px-4 py-4">
+835:              <div 
+839:                <div className="flex items-center gap-3">
+845:              <div className={cn(
+850:                <div className="bg-slate-50 p-3 md:p-4 border-2 border-dashed border-slate-200">
+859:              <div 
+863:                <div className="flex items-center gap-3">
+869:              <div className={cn(
+874:                <div className="clinical-group !bg-transparent !border-none !p-0">
+875:                  <div className="border-2 border-slate-100 bg-white/50 p-3 md:border-0 md:bg-transparent md:p-0 space-y-6">
+876:                    <div className="flex flex-wrap gap-1.5 md:gap-2">
+896:                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 pt-6 border-t md:border-t-0 border-rose-100">
+898:                          <div key={item.condition} className="group bg-white border border-rose-100 p-2 pl-4 flex items-center gap-4 shadow-sm hover:border-rose-400 transition-all">
+899:                            <div className="flex-1 min-w-0 py-1">
+905:                            <div className="w-32 sm:w-40 shrink-0">
+925:              <div 
+929:                <div className="flex items-center gap-3">
+935:              <div className={cn(
+940:                <div className="clinical-group !bg-transparent !border-none !p-0">
+941:                  <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0 space-y-6">
+942:                    <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+943:                      <div className="w-full md:w-80 space-y-2">
+952:                      <div className="flex-1 space-y-2">
+970:              <div 
+974:                <div className="flex items-center gap-3">
+980:              <div className={cn(
+985:                <div className="clinical-group !bg-transparent !border-none !p-0">
+988:                  <div className="grid grid-cols-1 gap-4 md:hidden pt-3">
+990:                      <div key={eye} className="border-2 border-slate-100 bg-white p-3 space-y-3">
+991:                        <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+999:                        <div className="space-y-4">
+1001:                          <div className="space-y-2">
+1003:                            <div className="grid grid-cols-2 gap-2">
+1016:                          <div className="space-y-2">
+1018:                            <div className="grid grid-cols-2 gap-2">
+1031:                          <div className="space-y-2">
+1033:                            <div className="grid grid-cols-2 gap-2">
+1046:                          <div className="space-y-2">
+1059:                  <div className="hidden md:block overflow-x-auto pt-3">
+1060:                    <div className="min-w-[800px] xl:min-w-0">
+1067:                              <div className="flex justify-around text-[8px] font-black text-blue-400"><span>DV</span><span>NV</span></div>
+1071:                              <div className="flex justify-around text-[8px] font-black text-emerald-400"><span>DV</span><span>NV</span></div>
+1075:                              <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
+1079:                              <div className="text-[8px] font-black text-amber-400">DV ONLY</div>
+1087:                                <div className={cn(
+1093:                                <div className="grid grid-cols-2 gap-2 h-14">
+1105:                                <div className="grid grid-cols-2 gap-2 h-14">
+1117:                                <div className="grid grid-cols-2 gap-2 h-14">
+1129:                                <div className="h-14">
+1149:              <div 
+1153:                <div className="flex items-center gap-3">
+1159:              <div className={cn(
+1164:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1165:                  <div className="flex flex-wrap gap-6 pt-4">
+1179:                      <div className="flex items-center space-x-3 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4 border border-slate-100">
+1183:                      <div className="flex items-center space-x-3 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4 border border-slate-100">
+1190:                      <div className="space-y-3 min-w-[200px]">
+1204:                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+1206:                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-3 md:border-0 md:bg-transparent md:p-0 space-y-4">
+1207:                        <div className="flex items-center gap-3 border-b border-indigo-100 pb-2">
+1214:                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+1218:                              <div key={f} className="space-y-1">
+1242:              <div 
+1246:                <div className="flex items-center gap-3">
+1252:              <div className={cn(
+1257:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1258:                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+1260:                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4">
+1261:                        <div className="flex items-center gap-3 border-b border-cyan-100 pb-2">
+1268:                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+1270:                            <div key={f} className="space-y-1">
+1292:              <div 
+1296:                <div className="flex items-center gap-3">
+1300:                <div className="flex items-center gap-4">
+1301:                  <div className="hidden sm:flex items-center gap-4 bg-emerald-200/50 px-3 py-1 border border-emerald-300" onClick={(e) => e.stopPropagation()}>
+1314:              <div className={cn(
+1319:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1321:                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+1322:                    <div className="xl:col-span-8 space-y-6">
+1324:                        <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
+1325:                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+1327:                            <div className="space-y-4">
+1328:                              <div className="flex items-center gap-3 border-b border-emerald-100 pb-2">
+1335:                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+1336:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", e.target.value)} placeholder="0.00" /></div>
+1337:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
+1338:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", e.target.value)} placeholder="0" /></div>
+1343:                            <div className="space-y-4">
+1344:                              <div className="flex items-center gap-3 border-b border-emerald-100 pb-2">
+1351:                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+1352:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", e.target.value)} placeholder="0.00" /></div>
+1353:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", e.target.value)} placeholder="0.00" /></div>
+1354:                                <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", e.target.value)} placeholder="0" /></div>
+1362:                    <div className="xl:col-span-4 border-l-0 xl:border-l-2 border-emerald-100 pl-0 xl:pl-10 flex flex-col items-center">
+1370:                            <div className="flex flex-col items-center gap-1">
+1379:                        <div className="mt-12 w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+1380:                          <div className="relative p-2 bg-white border-2 border-slate-200 shadow-xl group overflow-hidden">
+1387:                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+1392:                          <div className="space-y-3">
+1403:                            <div className="flex items-center justify-center gap-2">
+1436:              <div 
+1440:                <div className="flex items-center gap-3">
+1446:              <div className={cn(
+1451:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1452:                  <div className="space-y-4 pt-2">
+1454:                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
+1455:                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+1457:                          <div className="space-y-4">
+1458:                            <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
+1465:                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+1466:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "sphere", e.target.value)} placeholder="0.00" /></div>
+1467:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
+1468:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.axis || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "axis", e.target.value)} placeholder="0" /></div>
+1469:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.bcva || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "bcva", e.target.value)} placeholder="6/6" /></div>
+1474:                          <div className="space-y-4">
+1475:                            <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
+1482:                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+1483:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearDsph || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearDsph", e.target.value)} placeholder="0.00" /></div>
+1484:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearAdd || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearAdd", e.target.value)} placeholder="0.00" /></div>
+1485:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearBcva || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearBcva", e.target.value)} placeholder="N6" /></div>
+1486:                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearCm || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearCm", e.target.value)} placeholder="33cm" /></div>
+1499:              <div 
+1503:                <div className="flex items-center gap-3 relative">
+1509:              <div className={cn(
+1514:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1515:                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-3">
+1516:                    <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
+1517:                      <div className="space-y-6 bg-slate-50 p-6">
+1521:                        <div className="space-y-4">
+1541:                    <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
+1542:                      <div className="space-y-6 bg-slate-50 p-6">
+1546:                        <div className="grid grid-cols-2 gap-6">
+1548:                            <div key={eye} className="space-y-2">
+1572:              <div 
+1576:                <div className="flex items-center gap-3 relative">
+1582:              <div className={cn(
+1587:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1588:                  <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
+1589:                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-3">
+1590:                      <div className="space-y-3">
+1594:                      <div className="space-y-3">
+1598:                      <div className="space-y-3">
+1602:                      <div className="space-y-3">
+1604:                        <div className="grid grid-cols-2 gap-2">
+1626:              <div 
+1630:                <div className="flex items-center gap-3 relative">
+1634:                <div className="flex items-center gap-4">
+1635:                  <div className="bg-blue-200/50 px-3 py-1 hidden xl:block border border-blue-300" onClick={(e) => e.stopPropagation()}>
+1641:              <div className={cn(
+1646:                <div className="clinical-group !bg-transparent !border-none !p-0">
+1647:                  <div className="space-y-8">
+1649:                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 md:mb-0 mb-6 last:mb-0">
+1650:                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start border-b border-blue-100/50 pb-8 last:border-0 last:pb-0">
+1652:                          <div className="xl:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+1654:                            <div className="space-y-4">
+1655:                              <div className="flex items-center gap-3">
+1662:                              <div className="grid grid-cols-2 gap-2">
+1679:                             <div className="space-y-4">
+1680:                              <div className="flex items-center gap-3">
+1696:                          <div className="xl:col-span-4 space-y-4 xl:border-l xl:border-blue-100 xl:pl-8 self-stretch">
+1697:                            <div className="flex items-center gap-3">
+1704:                            <div className="grid grid-cols-3 gap-2">
+1724:              <div 
+1728:                <div className="flex items-center gap-3 relative">
+1734:              <div className={cn(
+1739:                <div className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0">
+1740:                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+1741:                    <div className="space-y-4 md:space-y-6">
+1753:                    <div className="space-y-6">
+1771:                <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-transparent">
+1772:                  <div className="space-y-4 text-center md:text-left">
+1777:                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+1778:                    <div
