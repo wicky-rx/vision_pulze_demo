@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -37,7 +38,7 @@ const SYSTEMIC_SUB_OPTIONS: Record<string, string[]> = {
   "Kidney Disease": ["Dialysis", "Chronic"],
   "Neurological": ["Epilepsy", "Stroke"]
 };
-const complaints = ["Blurred Vision", "Headache", "Irritation", "Photophobia", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters"];
+const complaints = ["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"];
 
 const formatComplaintToStatement = (c: { complaint: string, eye: string, duration: string, unit: string } | string) => {
   if (typeof c === 'string') return c;
@@ -145,45 +146,151 @@ const TagInput = React.memo(({
   values, 
   onAdd, 
   onRemove, 
-  placeholder 
+  placeholder,
+  disabled
 }: { 
   values: string[]; 
   onAdd: (val: string) => void; 
   onRemove: (index: number) => void;
   placeholder: string;
+  disabled?: boolean;
 }) => {
   const [inputValue, setInputValue] = useState("");
-  
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
       onAdd(inputValue.trim());
       setInputValue("");
+      setOpen(false);
     }
   };
 
+  const handleSelect = (val: string) => {
+    onAdd(val);
+    setOpen(false);
+  };
+
+  const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let num = parseFloat(inputValue) || 15;
+    if (direction === "up") {
+      num += 1;
+    } else {
+      num -= 1;
+    }
+    if (num < 0) num = 0;
+    setInputValue(String(num));
+    setOpen(true);
+  };
+
+  const iopValues = [
+    "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
+    "22", "23", "24", "25", "26", "28", "30", "32", "35", "40"
+  ];
+
   return (
-    <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-blue-100 bg-white min-h-[44px] flex-1 min-w-0">
-      {(Array.isArray(values) ? values : (typeof values === 'string' && (values as string).trim() ? [(values as string).trim()] : [])).map((v, i) => (
-        <span key={i} className="group flex items-center gap-1 bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border border-blue-200 uppercase tracking-tighter transition-all">
-          {v}
-          <X className="w-2.5 h-2.5 cursor-pointer hover:text-red-600 transition-all opacity-0 group-hover:opacity-100" onClick={() => onRemove(i)} />
-        </span>
-      ))}
-      <input
-        className="flex-1 outline-none text-base font-black placeholder:text-slate-300 min-w-[50px] bg-transparent text-center"
-        placeholder={values.length === 0 ? placeholder : ""}
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => {
-          if (inputValue.trim()) {
-            onAdd(inputValue.trim());
-            setInputValue("");
-          }
-        }}
-      />
-    </div>
+    <Popover open={open && !disabled} onOpenChange={setOpen}>
+      <div className="relative flex items-center w-full group min-w-0">
+        <PopoverAnchor asChild>
+          <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-blue-100 bg-white min-h-[44px] flex-1 min-w-0 pr-8">
+            {(Array.isArray(values) ? values : (typeof values === 'string' && (values as string).trim() ? [(values as string).trim()] : [])).map((v, i) => (
+              <span key={i} className="group flex items-center gap-1 bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border border-blue-200 uppercase tracking-tighter transition-all">
+                {v}
+                {!disabled && (
+                  <X className="w-2.5 h-2.5 cursor-pointer hover:text-red-600 transition-all opacity-0 group-hover:opacity-100" onClick={() => onRemove(i)} />
+                )}
+              </span>
+            ))}
+            <input
+              ref={inputRef}
+              className="flex-1 outline-none text-base font-black placeholder:text-slate-300 min-w-[50px] bg-transparent text-center"
+              placeholder={values.length === 0 ? placeholder : ""}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                if (!disabled && !open) {
+                  setOpen(true);
+                }
+              }}
+              onClick={() => {
+                if (!disabled && !open) {
+                  setOpen(true);
+                }
+              }}
+              onBlur={() => {
+                setTimeout(() => {
+                  if (inputValue.trim() && !disabled) {
+                    onAdd(inputValue.trim());
+                    setInputValue("");
+                  }
+                }, 150);
+              }}
+              disabled={disabled}
+            />
+          </div>
+        </PopoverAnchor>
+        {!disabled && (
+          <div className="absolute right-1 flex flex-col items-center justify-center h-full py-0.5 z-10">
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => handleStep("up", e)}
+              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              title="Increment"
+            >
+              <ChevronUp className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => handleStep("down", e)}
+              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              title="Decrement"
+            >
+              <ChevronDown className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <PopoverContent className="w-80 p-4 border border-slate-200 bg-white shadow-xl rounded-xl z-[100]" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">IOP Predefined Values (mmHg)</span>
+            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5">Normal: 10-21</span>
+          </div>
+          <div className="grid grid-cols-6 gap-1.5">
+            {iopValues.map((val) => {
+              const numVal = parseInt(val);
+              const isNormal = numVal >= 10 && numVal <= 21;
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(val)}
+                  className={cn(
+                    "h-9 text-xs font-black transition-all border rounded flex items-center justify-center",
+                    isNormal 
+                      ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50" 
+                      : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
+                  )}
+                >
+                  {val}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 });
 
@@ -258,7 +365,8 @@ const DualEyePrescriptionBlock = React.memo(({
   syncTitle,
   isOpen,
   onToggle,
-  headerClassName
+  headerClassName,
+  disabled
 }: {
   title: string;
   stateKey: any;
@@ -270,6 +378,7 @@ const DualEyePrescriptionBlock = React.memo(({
   isOpen?: boolean;
   onToggle?: () => void;
   headerClassName?: string;
+  disabled?: boolean;
 }) => {
   const update = (field: "distance" | "near", eye: "OD" | "OS", key: string, val: string) => {
     const sanitizedVal = sanitizeOptometryInput(val, getFieldTypeFromName(key));
@@ -349,22 +458,51 @@ const DualEyePrescriptionBlock = React.memo(({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">SPH</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.distance?.[eye]?.sphere || ""} onChange={(e) => update("distance", eye as any, "sphere", e.target.value)} placeholder="0.00" />
+                      <PowerPaletteInput
+                        type="sph"
+                        label={`${title} ${eye} - SPH`}
+                        value={(data as any)?.distance?.[eye]?.sphere || ""}
+                        onChange={(val) => update("distance", eye as any, "sphere", val)}
+                        placeholder="0.00"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">CYL</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.distance?.[eye]?.cylinder || ""} onChange={(e) => update("distance", eye as any, "cylinder", e.target.value)} placeholder="0.00" />
+                      <PowerPaletteInput
+                        type="cyl"
+                        label={`${title} ${eye} - CYL`}
+                        value={(data as any)?.distance?.[eye]?.cylinder || ""}
+                        onChange={(val) => update("distance", eye as any, "cylinder", val)}
+                        placeholder="0.00"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">AXIS</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.distance?.[eye]?.axis || ""} onChange={(e) => update("distance", eye as any, "axis", e.target.value)} placeholder="0" />
+                      <PowerPaletteInput
+                        type="axis"
+                        label={`${title} ${eye} - AXIS`}
+                        value={(data as any)?.distance?.[eye]?.axis || ""}
+                        onChange={(val) => update("distance", eye as any, "axis", val)}
+                        placeholder="0"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">BCVA</span>
-                      <Select value={(data as any)?.distance?.[eye]?.vn || ""} onValueChange={(val) => update("distance", eye as any, "vn", val)}>
-                        <SelectTrigger className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950"><SelectValue placeholder="-" /></SelectTrigger>
-                        <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase">{DIST_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <PowerPaletteInput
+                        type="dv"
+                        label={`${title} ${eye} - BCVA (DV)`}
+                        value={(data as any)?.distance?.[eye]?.vn || ""}
+                        onChange={(val) => update("distance", eye as any, "vn", val)}
+                        placeholder="-"
+                        className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                   </div>
                 </div>
@@ -376,22 +514,51 @@ const DualEyePrescriptionBlock = React.memo(({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">SPH</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.near?.[eye]?.sphere || ""} onChange={(e) => update("near", eye as any, "sphere", e.target.value)} placeholder="0.00" />
+                      <PowerPaletteInput
+                        type="sph"
+                        label={`${title} Near ${eye} - SPH`}
+                        value={(data as any)?.near?.[eye]?.sphere || ""}
+                        onChange={(val) => update("near", eye as any, "sphere", val)}
+                        placeholder="0.00"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">CYL</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.near?.[eye]?.cylinder || ""} onChange={(e) => update("near", eye as any, "cylinder", e.target.value)} placeholder="0.00" />
+                      <PowerPaletteInput
+                        type="cyl"
+                        label={`${title} Near ${eye} - CYL`}
+                        value={(data as any)?.near?.[eye]?.cylinder || ""}
+                        onChange={(val) => update("near", eye as any, "cylinder", val)}
+                        placeholder="0.00"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">AXIS</span>
-                      <Input className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400" value={(data as any)?.near?.[eye]?.axis || ""} onChange={(e) => update("near", eye as any, "axis", e.target.value)} placeholder="0" />
+                      <PowerPaletteInput
+                        type="axis"
+                        label={`${title} Near ${eye} - AXIS`}
+                        value={(data as any)?.near?.[eye]?.axis || ""}
+                        onChange={(val) => update("near", eye as any, "axis", val)}
+                        placeholder="0"
+                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                     <div className="space-y-1">
                       <span className="text-[8px] font-black uppercase text-slate-500 text-center block">BCVA</span>
-                      <Select value={(data as any)?.near?.[eye]?.vn || ""} onValueChange={(val) => update("near", eye as any, "vn", val)}>
-                        <SelectTrigger className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950"><SelectValue placeholder="-" /></SelectTrigger>
-                        <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase">{NEAR_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                      </Select>
+                      <PowerPaletteInput
+                        type="nv"
+                        label={`${title} Near ${eye} - BCVA (NV)`}
+                        value={(data as any)?.near?.[eye]?.vn || ""}
+                        onChange={(val) => update("near", eye as any, "vn", val)}
+                        placeholder="-"
+                        className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        disabled={disabled}
+                      />
                     </div>
                   </div>
                 </div>
@@ -417,12 +584,14 @@ const TonometrySection = React.memo(({
   formData, 
   setFormData, 
   openSections, 
-  toggleSection 
+  toggleSection,
+  disabled
 }: { 
   formData: any; 
   setFormData: any; 
   openSections: any; 
   toggleSection: (id: string) => void;
+  disabled?: boolean;
 }) => {
   return (
     <DiagnosticCard
@@ -473,6 +642,7 @@ const TonometrySection = React.memo(({
                             newMean.splice(idx, 1);
                             return { ...p, tonometryDetails: { ...p.tonometryDetails, nct: { ...currentNct, [eye]: { ...currentEye, mean: newMean } } } };
                           })}
+                          disabled={disabled}
                         />
                         <span className="text-[11px] font-bold text-slate-400 shrink-0">mmHg</span>
                       </div>
@@ -505,6 +675,7 @@ const TonometrySection = React.memo(({
                             newReadings.splice(idx, 1);
                             return { ...p, tonometryDetails: { ...p.tonometryDetails, gat: { ...currentGat, [eye]: { ...currentEye, reading: newReadings } } } };
                           })}
+                          disabled={disabled}
                         />
                         <span className="text-[11px] font-bold text-slate-400 shrink-0">mmHg</span>
                       </div>
@@ -521,16 +692,23 @@ const TonometrySection = React.memo(({
                       <span className="text-[9px] font-black uppercase text-blue-500 tracking-widest bg-blue-50 px-2 py-0.5">Schiotz</span>
                     </div>
                     <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full min-w-0">
-                      <Input className="h-11 flex-1 min-w-[70px] bg-white border-blue-100 text-orange-600 text-center text-base font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.reading || ""} onChange={(e) => {
-                        const val = sanitizeOptometryInput(e.target.value, 'iop');
-                        setFormData((p: any) => {
-                          const currentDetails = p.tonometryDetails || {};
-                          const currentSchiotz = currentDetails.schiotz || {};
-                          const currentEye = (currentSchiotz as any)[eye] || {};
-                          return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, reading: val } } } };
-                        });
-                      }} />
-                      <Select value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.weight || ""} onValueChange={(val) => {
+                      <PowerPaletteInput
+                        type="schiotz_scale"
+                        label={`Schiotz Scale Reading ${eye}`}
+                        value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.reading || ""}
+                        onChange={(val) => {
+                          setFormData((p: any) => {
+                            const currentDetails = p.tonometryDetails || {};
+                            const currentSchiotz = currentDetails.schiotz || {};
+                            const currentEye = (currentSchiotz as any)[eye] || {};
+                            return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, reading: val } } } };
+                          });
+                        }}
+                        placeholder="Value"
+                        className="h-11 flex-1 min-w-[70px] bg-white border-blue-100 text-orange-600 text-center text-base font-black focus:border-blue-400"
+                        disabled={disabled}
+                      />
+                      <Select disabled={disabled} value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.weight || ""} onValueChange={(val) => {
                         setFormData((p: any) => {
                           const currentDetails = p.tonometryDetails || {};
                           const currentSchiotz = currentDetails.schiotz || {};
@@ -542,15 +720,22 @@ const TonometrySection = React.memo(({
                         <SelectContent className="font-bold"><SelectItem value="5.5">5.5g</SelectItem><SelectItem value="7.5">7.5g</SelectItem><SelectItem value="10">10g</SelectItem></SelectContent>
                       </Select>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <Input className="h-11 w-16 bg-white border-blue-100 text-orange-600 text-center text-[13px] font-black focus:border-blue-400" placeholder="Value" value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.iop || ""} onChange={(e) => {
-                          const val = sanitizeOptometryInput(e.target.value, 'iop');
-                          setFormData((p: any) => {
-                            const currentDetails = p.tonometryDetails || {};
-                            const currentSchiotz = currentDetails.schiotz || {};
-                            const currentEye = (currentSchiotz as any)[eye] || {};
-                            return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, iop: val } } } };
-                          });
-                        }} />
+                        <PowerPaletteInput
+                          type="iop"
+                          label={`Schiotz IOP ${eye}`}
+                          value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.iop || ""}
+                          onChange={(val) => {
+                            setFormData((p: any) => {
+                              const currentDetails = p.tonometryDetails || {};
+                              const currentSchiotz = currentDetails.schiotz || {};
+                              const currentEye = (currentSchiotz as any)[eye] || {};
+                              return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, iop: val } } } };
+                            });
+                          }}
+                          placeholder="Value"
+                          className="h-11 w-16 bg-white border-blue-100 text-orange-600 text-center text-[13px] font-black focus:border-blue-400"
+                          disabled={disabled}
+                        />
                         <span className="text-[11px] font-bold text-slate-400">mmHg</span>
                       </div>
                     </div>
@@ -562,6 +747,409 @@ const TonometrySection = React.memo(({
         </div>
       </div>
     </DiagnosticCard>
+  );
+});
+
+interface PowerPaletteInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+  label: string;
+  type: "sph" | "cyl" | "axis" | "add" | "dv" | "nv" | "iop" | "schiotz_scale";
+  disabled?: boolean;
+}
+
+const PowerPaletteInput = React.memo(({
+  value = "",
+  onChange,
+  placeholder = "0.00",
+  className,
+  label,
+  type,
+  disabled
+}: PowerPaletteInputProps) => {
+  const [open, setOpen] = useState(false);
+  const [sign, setSign] = useState<"+" | "-">(() => {
+    const valStr = String(value || "");
+    if (valStr.startsWith("-")) return "-";
+    return "+";
+  });
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sync sign with value when value changes externally
+  useEffect(() => {
+    const valStr = String(value || "");
+    if (valStr.startsWith("-")) {
+      setSign("-");
+    } else if (valStr.startsWith("+")) {
+      setSign("+");
+    }
+  }, [value]);
+
+  const powerValues = [
+    "0.00", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00",
+    "2.25", "2.50", "2.75", "3.00", "3.25", "3.50", "3.75", "4.00", "4.25",
+    "4.50", "4.75", "5.00"
+  ];
+
+  const axisValues = [
+    "90", "180", "45", "135", "30", "150", "60", "120", "0", "10", "20", "170", "160", "110", "100", "80", "70", "50"
+  ];
+
+  const iopValues = [
+    "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
+    "22", "23", "24", "25", "26", "28", "30", "32", "35", "40"
+  ];
+
+  const schiotzScaleValues = [
+    "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0", "9.5", "10.0", "11.0", "12.0"
+  ];
+
+  const focusNext = () => {
+    const inputs = Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[];
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx !== -1 && idx < inputs.length - 1) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }, 50);
+    }
+  };
+
+  const focusPrev = () => {
+    const inputs = Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[];
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx > 0) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx - 1].focus();
+        inputs[idx - 1].select();
+      }, 50);
+    }
+  };
+
+  const handleSelect = (val: string) => {
+    let finalVal = val;
+    if (type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && val !== "0.00") {
+      finalVal = sign + val;
+    }
+    onChange(finalVal);
+    setOpen(false);
+  };
+
+  const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (type === "dv" || type === "nv") {
+      const arr = (type === "dv" ? DIST_VISION_OPTIONS : NEAR_VISION_OPTIONS) as readonly string[];
+      let idx = arr.indexOf(value);
+      if (idx === -1) {
+        idx = 0;
+      }
+      if (direction === "up") {
+        idx = (idx - 1 + arr.length) % arr.length;
+      } else {
+        idx = (idx + 1) % arr.length;
+      }
+      onChange(arr[idx]);
+      return;
+    }
+
+    if (type === "iop") {
+      let num = parseInt(value) || 15;
+      if (direction === "up") num += 1;
+      else num -= 1;
+      if (num < 0) num = 0;
+      onChange(String(num));
+      return;
+    }
+
+    if (type === "schiotz_scale") {
+      let num = parseFloat(value) || 5.5;
+      if (direction === "up") num += 0.5;
+      else num -= 0.5;
+      if (num < 0) num = 0;
+      onChange(num.toFixed(1));
+      return;
+    }
+
+    let num = parseFloat(value) || 0;
+    
+    if (type === "axis") {
+      const step = 5;
+      if (direction === "up") {
+        num = num + step;
+        if (num > 180) num = 0;
+      } else {
+        num = num - step;
+        if (num < 0) num = 180;
+      }
+      onChange(String(num));
+    } else {
+      const step = 0.25;
+      if (direction === "up") {
+        num = num + step;
+      } else {
+        num = num - step;
+      }
+      
+      let signPrefix = "";
+      if (num > 0) {
+        signPrefix = "+";
+      } else if (num < 0) {
+        signPrefix = "-";
+      }
+      const absoluteVal = Math.abs(num).toFixed(2);
+      onChange(absoluteVal === "0.00" ? "0.00" : signPrefix + absoluteVal);
+    }
+  };
+
+  return (
+    <Popover open={open && !disabled} onOpenChange={setOpen}>
+      <div className="relative flex items-center w-full group">
+        <PopoverAnchor asChild>
+          <Input
+            ref={inputRef}
+            className={cn("palette-input pr-7", className)}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => {
+              if (!disabled && !open) {
+                setOpen(true);
+                setTimeout(() => {
+                  inputRef.current?.select();
+                }, 50);
+              }
+            }}
+            onClick={() => {
+              if (!disabled && !open) {
+                setOpen(true);
+              }
+            }}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+        </PopoverAnchor>
+        {!disabled && (
+          <div className="absolute right-1 flex flex-col items-center justify-center h-full py-0.5 z-10">
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => handleStep("up", e)}
+              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              title="Increment"
+            >
+              <ChevronUp className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => handleStep("down", e)}
+              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              title="Decrement"
+            >
+              <ChevronDown className="w-3.5 h-3.5 stroke-[3]" />
+            </button>
+          </div>
+        )}
+      </div>
+      <PopoverContent 
+        className="w-[340px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {/* Custom Circular Close button absolute-positioned at top center */}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="absolute left-1/2 -translate-x-1/2 -top-4 w-7 h-7 flex items-center justify-center bg-[#4f6f96] hover:bg-slate-700 text-white rounded-full border-2 border-white shadow-md transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="space-y-4 pt-2">
+          {/* Header navigation bar */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <button
+              type="button"
+              onClick={focusPrev}
+              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+            >
+              <ChevronUp className="-rotate-90 w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest text-center truncate px-2 flex-1">
+              {label}
+            </span>
+            <button
+              type="button"
+              onClick={focusNext}
+              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Plus/Minus Sign toggle for power fields */}
+          {type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && (
+            <div className="flex justify-center bg-slate-50 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setSign("+")}
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
+                  sign === "+"
+                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                + Plus
+              </button>
+              <button
+                type="button"
+                onClick={() => setSign("-")}
+                className={cn(
+                  "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
+                  sign === "-"
+                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                - Minus
+              </button>
+            </div>
+          )}
+
+          {/* Grid panel */}
+          <div className={cn(
+            "grid gap-1.5 max-h-[220px] overflow-y-auto pr-1",
+            type === "dv" ? "grid-cols-3" : type === "nv" ? "grid-cols-4" : type === "schiotz_scale" ? "grid-cols-4" : "grid-cols-5"
+          )}>
+            {type === "dv"
+              ? DIST_VISION_OPTIONS.map((val) => {
+                  const isSelected = value === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[10px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })
+              : type === "nv"
+              ? NEAR_VISION_OPTIONS.map((val) => {
+                  const isSelected = value === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })
+              : type === "axis"
+              ? axisValues.map((val) => {
+                  const isSelected = value === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })
+              : type === "schiotz_scale"
+              ? schiotzScaleValues.map((val) => {
+                  const isSelected = value === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })
+              : type === "iop"
+              ? iopValues.map((val) => {
+                  const isSelected = value === val;
+                  const numVal = parseInt(val);
+                  const isNormal = numVal >= 10 && numVal <= 21;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[11px] font-black border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : isNormal
+                          ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50"
+                          : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
+                      )}
+                    >
+                      {val}
+                    </button>
+                  );
+                })
+              : powerValues.map((val) => {
+                  const displayVal = val === "0.00" ? "0.00" : sign + val;
+                  const isSelected = value === displayVal || (val === "0.00" && value === "0.00");
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => handleSelect(val)}
+                      className={cn(
+                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      )}
+                    >
+                      {displayVal}
+                    </button>
+                  );
+                })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 });
 
@@ -581,7 +1169,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
   // Determine if the form should be locked (not editable)
   const statusUpper = localStatus?.toUpperCase();
-  const isCurrentlyInRefraction = statusUpper === "IN_REFRACTION" || statusUpper === "OPTOMETRIST";
+  const isCurrentlyInRefraction = 
+    statusUpper === "IN_REFRACTION" || 
+    statusUpper === "OPTOMETRIST" || 
+    statusUpper === "WITH_DOCTOR" || 
+    statusUpper === "DOCTOR" || 
+    statusUpper === "REFRACTION_DONE";
   const isLocked = !isCurrentlyInRefraction;
 
   const handleAdvanceToRefraction = async () => {
@@ -935,6 +1528,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
               final.complaints = serverData.ocularComplaint.split(',').map((s: string) => {
                 return parseComplaintString(s);
               }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+            } else if (!serverData?.ocularComplaint && !draftData?.data?.complaints && patient?.complaint) {
+              final.complaints = patient.complaint.split(',').map((s: string) => {
+                return parseComplaintString(s.trim());
+              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
             }
 
             if (final.complaints) {
@@ -965,7 +1562,13 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             setSelectedChips(sanitizedChips);
           }
         } else {
-          _setFormData(() => ({ ...initialFormData }));
+          const initialData = { ...initialFormData };
+          if (patient?.complaint) {
+            initialData.complaints = patient.complaint.split(',').map((s: string) => {
+              return parseComplaintString(s.trim());
+            }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+          }
+          _setFormData(() => initialData);
           setSelectedChips([]);
           setIsVerified(false);
         }
@@ -1682,14 +2285,24 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-blue-600 tracking-widest bg-blue-50 px-2 py-0.5">Unaided Vision (DV/NV)</label>
                             <div className="grid grid-cols-2 gap-2">
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.unaided || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="DV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="NV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <PowerPaletteInput
+                                type="dv"
+                                label={`Visual Acuity Unaided ${eye} - DV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
+                                placeholder="DV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
+                              <PowerPaletteInput
+                                type="nv"
+                                label={`Visual Acuity Unaided ${eye} - NV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
+                                placeholder="NV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
                             </div>
                           </div>
 
@@ -1697,14 +2310,24 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-emerald-600 tracking-widest bg-emerald-50 px-2 py-0.5">Aided Vision (DV/NV)</label>
                             <div className="grid grid-cols-2 gap-2">
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.aided || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="DV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="NV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <PowerPaletteInput
+                                type="dv"
+                                label={`Visual Acuity Aided ${eye} - DV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
+                                placeholder="DV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
+                              <PowerPaletteInput
+                                type="nv"
+                                label={`Visual Acuity Aided ${eye} - NV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
+                                placeholder="NV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
                             </div>
                           </div>
 
@@ -1712,24 +2335,39 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-slate-100 px-2 py-0.5">Contact Lens (DV/NV)</label>
                             <div className="grid grid-cols-2 gap-2">
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="DV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
-                              <Select value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}>
-                                <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="NV" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                              </Select>
+                              <PowerPaletteInput
+                                type="dv"
+                                label={`Visual Acuity Contact Lens ${eye} - DV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
+                                placeholder="DV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
+                              <PowerPaletteInput
+                                type="nv"
+                                label={`Visual Acuity Contact Lens ${eye} - NV`}
+                                value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
+                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
+                                placeholder="NV"
+                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                disabled={isLocked}
+                              />
                             </div>
                           </div>
 
                           {/* Pinhole */}
                           <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase text-amber-600 tracking-widest bg-amber-50 px-2 py-0.5">Pinhole (DV ONLY)</label>
-                            <Select value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}>
-                              <SelectTrigger className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="DV" /></SelectTrigger>
-                              <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                            </Select>
+                            <PowerPaletteInput
+                              type="dv"
+                              label={`Visual Acuity Pinhole ${eye} - DV`}
+                              value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
+                              onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
+                              placeholder="DV"
+                              className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                              disabled={isLocked}
+                            />
                           </div>
                         </div>
                       </div>
@@ -1772,46 +2410,81 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               </TableCell>
                               <TableCell className="bg-blue-50/20 px-2 py-4">
                                 <div className="grid grid-cols-2 gap-2 h-14">
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.unaided || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <PowerPaletteInput
+                                    type="dv"
+                                    label={`Visual Acuity Unaided ${eye} - DV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
+                                  <PowerPaletteInput
+                                    type="nv"
+                                    label={`Visual Acuity Unaided ${eye} - NV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
                                 </div>
                               </TableCell>
                               <TableCell className="bg-emerald-50/20 px-2 py-4">
                                 <div className="grid grid-cols-2 gap-2 h-14">
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.aided || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <PowerPaletteInput
+                                    type="dv"
+                                    label={`Visual Acuity Aided ${eye} - DV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
+                                  <PowerPaletteInput
+                                    type="nv"
+                                    label={`Visual Acuity Aided ${eye} - NV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
                                 </div>
                               </TableCell>
                               <TableCell className="bg-slate-100/20 px-2 py-4">
                                 <div className="grid grid-cols-2 gap-2 h-14">
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{NEAR_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <PowerPaletteInput
+                                    type="dv"
+                                    label={`Visual Acuity Contact Lens ${eye} - DV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
+                                  <PowerPaletteInput
+                                    type="nv"
+                                    label={`Visual Acuity Contact Lens ${eye} - NV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
                                 </div>
                               </TableCell>
                               <TableCell className="bg-amber-50/20 px-2 py-4">
                                 <div className="h-14">
-                                  <Select value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""} onValueChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}>
-                                    <SelectTrigger className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white shadow-none transition-none min-w-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[300px] overflow-y-auto uppercase">{DIST_VISION_OPTIONS.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <PowerPaletteInput
+                                    type="dv"
+                                    label={`Visual Acuity Pinhole ${eye} - DV`}
+                                    value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
+                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
+                                    placeholder="-"
+                                    className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    disabled={isLocked}
+                                  />
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -1948,12 +2621,25 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               <div key={f} className="space-y-1">
                                 <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{labels[f]}</label>
                                 {f.startsWith("vn") ? (
-                                  <Select value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""} onValueChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}>
-                                    <SelectTrigger className="h-11 text-center text-xs font-black rounded-none border-orange-100 bg-white text-slate-900 focus:border-orange-400"><SelectValue placeholder="-" /></SelectTrigger>
-                                    <SelectContent className="max-h-[250px] overflow-y-auto uppercase">{f === "vnNear1" ? NEAR_VISION_OPTIONS.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>) : DIST_VISION_OPTIONS.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
-                                  </Select>
+                                  <PowerPaletteInput
+                                    type={f === "vnNear1" ? "nv" : "dv"}
+                                    label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
+                                    value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
+                                    onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
+                                    placeholder="-"
+                                    className="h-11 text-center text-sm font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                    disabled={isLocked}
+                                  />
                                 ) : (
-                                  <Input className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400" value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""} onChange={(e) => updateEyeGrid("pgPower", eye, f, e.target.value, formData.pgPower.activeTab)} placeholder="0.00" />
+                                  <PowerPaletteInput
+                                    type={f === "sphere1" ? "sph" : f === "cylinder1" ? "cyl" : f === "axis1" ? "axis" : "add"}
+                                    label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
+                                    value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
+                                    onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
+                                    placeholder={f === "axis1" ? "0" : "0.00"}
+                                    className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                    disabled={isLocked}
+                                  />
                                 )}
                               </div>
                             );
@@ -1970,6 +2656,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
               setFormData={setFormData}
               openSections={openSections}
               toggleSection={toggleSection}
+              disabled={isLocked}
             />
 
             {/* 9. Secondary Clinical Assessments */}
@@ -2107,11 +2794,14 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                         {["sphere1", "cylinder1", "axis1"].map((f) => (
                           <div key={f} className="space-y-1">
                             <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{f.replace("1", "").toUpperCase()}</label>
-                            <Input
-                              className="h-11 text-center text-base font-black bg-white border-purple-100 rounded-none focus:border-purple-400 text-slate-900"
-                              defaultValue={(formData.autoRef as any)[eye]?.[f] || ""}
-                              onBlur={(e) => updateEyeGrid("autoRef", eye, f, e.target.value)}
+                            <PowerPaletteInput
+                              type={f.startsWith("sphere") ? "sph" : f.startsWith("cylinder") ? "cyl" : "axis"}
+                              label={`Auto Ref ${eye} - ${f.replace("1", "").toUpperCase()}`}
+                              value={(formData.autoRef as any)[eye]?.[f] || ""}
+                              onChange={(val) => updateEyeGrid("autoRef", eye, f, val)}
                               placeholder="—"
+                              className="h-11 text-center text-base font-black bg-white border-purple-100 rounded-none focus:border-purple-400 text-slate-900"
+                              disabled={isLocked}
                             />
                           </div>
                         ))}
@@ -2200,9 +2890,42 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">Dry RR</span>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", e.target.value)} placeholder="0.00" /></div>
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", e.target.value)} placeholder="0" /></div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                              <PowerPaletteInput
+                                type="sph"
+                                label={`Objective Refraction Dry ${eye} - SPH`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", val)}
+                                placeholder="0.00"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                              <PowerPaletteInput
+                                type="cyl"
+                                label={`Objective Refraction Dry ${eye} - CYL`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", val)}
+                                placeholder="0.00"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                              <PowerPaletteInput
+                                type="axis"
+                                label={`Objective Refraction Dry ${eye} - AXIS`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", val)}
+                                placeholder="0"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -2247,9 +2970,42 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             )}
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", e.target.value)} placeholder="0.00" /></div>
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", e.target.value)} placeholder="0.00" /></div>
-                            <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400" value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""} onChange={(e) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", e.target.value)} placeholder="0" /></div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                              <PowerPaletteInput
+                                type="sph"
+                                label={`Objective Refraction Modality ${eye} - SPH`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", val)}
+                                placeholder="0.00"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                              <PowerPaletteInput
+                                type="cyl"
+                                label={`Objective Refraction Modality ${eye} - CYL`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", val)}
+                                placeholder="0.00"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                              <PowerPaletteInput
+                                type="axis"
+                                label={`Objective Refraction Modality ${eye} - AXIS`}
+                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""}
+                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", val)}
+                                placeholder="0"
+                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                disabled={isLocked}
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2266,7 +3022,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                 stateKey="acceptance" 
                 data={formData.acceptance} 
                 setFormData={setFormData}
-                
+                disabled={isLocked}
                 onSync={syncObjectiveToAcceptance}
                 syncTitle="Sync from Obj"
                 isOpen={!!openSections['acceptance']}
@@ -2394,14 +3150,52 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Distance</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "sphere", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.axis || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "axis", e.target.value)} placeholder="0" /></div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                <PowerPaletteInput
+                                  type="sph"
+                                  label={`Glasses Rx Distance ${eye} - SPH`}
+                                  value={formData.glassPrescription[eye]?.sphere || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "sphere", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                <PowerPaletteInput
+                                  type="cyl"
+                                  label={`Glasses Rx Distance ${eye} - CYL`}
+                                  value={formData.glassPrescription[eye]?.cylinder || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "cylinder", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                <PowerPaletteInput
+                                  type="axis"
+                                  label={`Glasses Rx Distance ${eye} - AXIS`}
+                                  value={formData.glassPrescription[eye]?.axis || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "axis", val)}
+                                  placeholder="0"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
                               <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <Select value={formData.glassPrescription[eye]?.bcva || ""} onValueChange={(val) => updateEyeGrid("glassPrescription", eye, "bcva", val)}>
-                                  <SelectTrigger className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                  <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase text-sm font-black">{DIST_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                                </Select>
+                                <PowerPaletteInput
+                                  type="dv"
+                                  label={`Glasses Rx Distance ${eye} - BCVA`}
+                                  value={formData.glassPrescription[eye]?.bcva || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "bcva", val)}
+                                  placeholder="-"
+                                  className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
+                                  disabled={isLocked}
+                                />
                               </div>
                             </div>
                           </div>
@@ -2415,15 +3209,64 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Near Vision Correction</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearDsph || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearDsph", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearCylinder || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearCylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearAxis || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearAxis", e.target.value)} placeholder="0" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearAdd || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearAdd", e.target.value)} placeholder="0.00" /></div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
+                                <PowerPaletteInput
+                                  type="sph"
+                                  label={`Glasses Rx Near ${eye} - DSPH`}
+                                  value={formData.glassPrescription[eye]?.nearDsph || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearDsph", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                <PowerPaletteInput
+                                  type="cyl"
+                                  label={`Glasses Rx Near ${eye} - CYL`}
+                                  value={formData.glassPrescription[eye]?.nearCylinder || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearCylinder", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                <PowerPaletteInput
+                                  type="axis"
+                                  label={`Glasses Rx Near ${eye} - AXIS`}
+                                  value={formData.glassPrescription[eye]?.nearAxis || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAxis", val)}
+                                  placeholder="0"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
+                                <PowerPaletteInput
+                                  type="add"
+                                  label={`Glasses Rx Near ${eye} - ADD`}
+                                  value={formData.glassPrescription[eye]?.nearAdd || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAdd", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
                               <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <Select value={formData.glassPrescription[eye]?.nearBcva || ""} onValueChange={(val) => updateEyeGrid("glassPrescription", eye, "nearBcva", val)}>
-                                  <SelectTrigger className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                  <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase text-sm font-black">{NEAR_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                                </Select>
+                                <PowerPaletteInput
+                                  type="nv"
+                                  label={`Glasses Rx Near ${eye} - BCVA`}
+                                  value={formData.glassPrescription[eye]?.nearBcva || ""}
+                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearBcva", val)}
+                                  placeholder="-"
+                                  className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
+                                  disabled={isLocked}
+                                />
                               </div>
                               <div className="space-y-1 sm:col-span-1 xl:col-span-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearCm || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearCm", e.target.value)} placeholder="33cm" /></div>
                             </div>
@@ -2525,14 +3368,52 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Distance</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.sphere || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "sphere", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.cylinder || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "cylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.axis || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "axis", e.target.value)} placeholder="0" /></div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                <PowerPaletteInput
+                                  type="sph"
+                                  label={`Contact Lens Distance ${eye} - SPH`}
+                                  value={formData.contactLensPrescription[eye]?.sphere || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "sphere", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                <PowerPaletteInput
+                                  type="cyl"
+                                  label={`Contact Lens Distance ${eye} - CYL`}
+                                  value={formData.contactLensPrescription[eye]?.cylinder || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "cylinder", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                <PowerPaletteInput
+                                  type="axis"
+                                  label={`Contact Lens Distance ${eye} - AXIS`}
+                                  value={formData.contactLensPrescription[eye]?.axis || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "axis", val)}
+                                  placeholder="0"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
                               <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <Select value={formData.contactLensPrescription[eye]?.bcva || ""} onValueChange={(val) => updateEyeGrid("contactLensPrescription", eye, "bcva", val)}>
-                                  <SelectTrigger className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                  <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase text-sm font-black">{DIST_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                                </Select>
+                                <PowerPaletteInput
+                                  type="dv"
+                                  label={`Contact Lens Distance ${eye} - BCVA`}
+                                  value={formData.contactLensPrescription[eye]?.bcva || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "bcva", val)}
+                                  placeholder="-"
+                                  className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
+                                  disabled={isLocked}
+                                />
                               </div>
                             </div>
                           </div>
@@ -2546,15 +3427,64 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Near Vision Correction</span>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
-                                  <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearDsph || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearDsph", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearCylinder || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearCylinder", e.target.value)} placeholder="0.00" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearAxis || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearAxis", e.target.value)} placeholder="0" /></div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearAdd || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearAdd", e.target.value)} placeholder="0.00" /></div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
+                                <PowerPaletteInput
+                                  type="sph"
+                                  label={`Contact Lens Near ${eye} - DSPH`}
+                                  value={formData.contactLensPrescription[eye]?.nearDsph || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearDsph", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                <PowerPaletteInput
+                                  type="cyl"
+                                  label={`Contact Lens Near ${eye} - CYL`}
+                                  value={formData.contactLensPrescription[eye]?.nearCylinder || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearCylinder", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                <PowerPaletteInput
+                                  type="axis"
+                                  label={`Contact Lens Near ${eye} - AXIS`}
+                                  value={formData.contactLensPrescription[eye]?.nearAxis || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAxis", val)}
+                                  placeholder="0"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
+                                <PowerPaletteInput
+                                  type="add"
+                                  label={`Contact Lens Near ${eye} - ADD`}
+                                  value={formData.contactLensPrescription[eye]?.nearAdd || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAdd", val)}
+                                  placeholder="0.00"
+                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                  disabled={isLocked}
+                                />
+                              </div>
                               <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <Select value={formData.contactLensPrescription[eye]?.nearBcva || ""} onValueChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearBcva", val)}>
-                                  <SelectTrigger className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                  <SelectContent className="max-h-[250px] overflow-y-auto font-mono uppercase text-sm font-black">{NEAR_VISION_OPTIONS.map((nv) => <SelectItem key={nv} value={nv}>{nv}</SelectItem>)}</SelectContent>
-                                </Select>
+                                <PowerPaletteInput
+                                  type="nv"
+                                  label={`Contact Lens Near ${eye} - BCVA`}
+                                  value={formData.contactLensPrescription[eye]?.nearBcva || ""}
+                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearBcva", val)}
+                                  placeholder="-"
+                                  className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
+                                  disabled={isLocked}
+                                />
                               </div>
                                   <div className="space-y-1 sm:col-span-1 xl:col-span-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearCm || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearCm", e.target.value)} placeholder="33cm" /></div>
                             </div>

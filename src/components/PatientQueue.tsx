@@ -98,6 +98,7 @@ interface EditFormData {
   specializationId?: string;
   address?: string;
   timeSlot?: string;
+  complaint?: string;
 }
 
 export function PatientQueue({
@@ -143,6 +144,7 @@ export function PatientQueue({
     doctorName: "",
     specializationId: "",
     address: "",
+    complaint: "",
   });
   
   const [internalDoctors, setInternalDoctors] = useState<any[]>([]);
@@ -207,6 +209,7 @@ export function PatientQueue({
           contactNumber: p.patient?.contactNumber || p.mobile || p.contactNumber || "—",
           secondaryContact: p.patient?.secondaryContact || p.secondaryContact || "",
           co: p.patient?.co || p.co || "",
+          complaint: p.complaint || "",
           registeredAt: p.visitedAt ? new Date(p.visitedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
           opId: p.opId || (p.mrNumber ? `OP-${p.mrNumber.toString().slice(-4)}` : "—"),
           appointmentId: p.consultation?.appointmentId || p.appointmentId || "",
@@ -326,6 +329,7 @@ export function PatientQueue({
       doctorName: (patient as any).consultingDoctorName || "",
       specializationId: "", // will be set if doctor is pre-assigned and found
       timeSlot: (patient as any).appointment?.timeSlot || "",
+      complaint: (patient as any).complaint || "",
     } as any);
   };
 
@@ -476,6 +480,7 @@ export function PatientQueue({
           doctorId: editFormData.doctorId || undefined,
           doctorName: editFormData.doctorName || undefined,
           timeSlot: editFormData.timeSlot || undefined,
+          complaint: editFormData.complaint || undefined,
         }),
       });
 
@@ -508,6 +513,7 @@ export function PatientQueue({
                 co: editFormData.co as any,
                 consultingDoctorId: editFormData.doctorId as any,
                 consultingDoctorName: editFormData.doctorName as any,
+                complaint: editFormData.complaint || "",
               }
             : p
         )
@@ -1019,67 +1025,108 @@ export function PatientQueue({
                 </Select>
               </div>
 
-              {/* Time Slot & Scans */}
-              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                {editFormData.doctorId && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Time Slot</Label>
-                    <Select
-                      value={editFormData.timeSlot}
-                      onValueChange={(val) => handleEditField("timeSlot", val)}
-                      disabled={editLoading}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select Slot" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                          const doc = doctors.find(d => d.id === editFormData.doctorId);
-                          const daySlots = (doc?.schedules || [])
-                            .filter((s: any) => s.dayOfWeek === new Date().getDay())
-                            .sort((a, b) => a.startTime.localeCompare(b.startTime));
-                          
-                          const now = new Date();
-                          const currentTimeNum = now.getHours() * 60 + now.getMinutes();
-
-                          if (daySlots.length === 0) {
-                            return <div className="py-2 px-3 text-[10px] text-muted-foreground italic text-center">No slots configured for today</div>;
-                          }
-
-                          return daySlots.map((s, idx) => {
-                            const val = `${s.startTime}-${s.endTime}`;
-                            const [eh, em] = s.endTime.split(":").map(Number);
-                            const isEnded = (eh * 60 + em) <= currentTimeNum;
-                            
-                            return (
-                              <SelectItem key={s.id} value={val} className="text-xs group focus:bg-orange-600 focus:text-white">
-                                <div className="flex items-center gap-2">
-                                  <span className={cn(
-                                    "px-1 py-0.5 text-[9px] font-black rounded-sm border",
-                                    isEnded ? "border-slate-200 text-slate-400 bg-slate-50" : "bg-orange-100 text-orange-700 border-orange-200 group-focus:bg-white group-focus:text-orange-600"
-                                  )}>S{idx + 1}</span>
-                                  <span className={cn(isEnded && "text-muted-foreground line-through opacity-50")}>
-                                    {formatToAMPM(s.startTime)} - {formatToAMPM(s.endTime)}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            );
-                          });
-                        })()}
-                      </SelectContent>
-                    </Select>
+              {/* Bottom Layout Grid: Ocular Complaints left, Time Slot and Scans right */}
+              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                {/* Left Column: Ocular Complaint(s) */}
+                <div className="space-y-2 p-4 border border-blue-50 bg-blue-50/10 rounded-sm flex flex-col justify-start min-h-[220px]">
+                  <Label className="text-xs font-medium text-slate-700">Ocular Complaint(s)</Label>
+                  <div className="flex flex-wrap gap-1.5 overflow-y-auto max-h-[190px] pr-1">
+                    {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
+                      const currentVals = editFormData.complaint ? editFormData.complaint.split(", ").map(s => s.trim()) : [];
+                      const isSelected = currentVals.includes(comp);
+                      return (
+                        <button
+                          key={comp}
+                          type="button"
+                          onClick={() => {
+                            let nextVals;
+                            if (isSelected) {
+                              nextVals = currentVals.filter(v => v !== comp);
+                            } else {
+                              nextVals = [...currentVals, comp];
+                            }
+                            setEditFormData(prev => ({ ...prev, complaint: nextVals.join(", ") }));
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 text-[9px] font-black tracking-wider uppercase border transition-all active:scale-95 rounded-none",
+                            isSelected
+                              ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                              : "bg-white border-slate-200 text-slate-600 hover:border-orange-600/55 hover:text-orange-600"
+                          )}
+                        >
+                          {comp}
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium opacity-0 sm:block hidden">Scan Gallery</Label>
-                  <ScanReportGallery 
-                    mrNumber={editingPatient?.mrNumber} 
-                    visitId={editingPatient?.id}
-                    variant="compact"
-                    showButton={false}
-                    allowUpload={true} 
-                  />
+                {/* Right Column: Time Slot & Scans */}
+                <div className="space-y-4 flex flex-col justify-between">
+                  {editFormData.doctorId ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-slate-700">Time Slot</Label>
+                      <Select
+                        value={editFormData.timeSlot}
+                        onValueChange={(val) => handleEditField("timeSlot", val)}
+                        disabled={editLoading}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select Slot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(() => {
+                            const doc = doctors.find(d => d.id === editFormData.doctorId);
+                            const daySlots = (doc?.schedules || [])
+                              .filter((s: any) => s.dayOfWeek === new Date().getDay())
+                              .sort((a, b) => a.startTime.localeCompare(b.startTime));
+                            
+                            const now = new Date();
+                            const currentTimeNum = now.getHours() * 60 + now.getMinutes();
+
+                            if (daySlots.length === 0) {
+                              return <div className="py-2 px-3 text-[10px] text-muted-foreground italic text-center">No slots configured for today</div>;
+                            }
+
+                            return daySlots.map((s, idx) => {
+                              const val = `${s.startTime}-${s.endTime}`;
+                              const [eh, em] = s.endTime.split(":").map(Number);
+                              const isEnded = (eh * 60 + em) <= currentTimeNum;
+                              
+                              return (
+                                <SelectItem key={s.id} value={val} className="text-xs group focus:bg-orange-600 focus:text-white">
+                                  <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                      "px-1 py-0.5 text-[9px] font-black rounded-sm border",
+                                      isEnded ? "border-slate-200 text-slate-400 bg-slate-50" : "bg-orange-100 text-orange-700 border-orange-200 group-focus:bg-white group-focus:text-orange-600"
+                                    )}>S{idx + 1}</span>
+                                    <span className={cn(isEnded && "text-muted-foreground line-through opacity-50")}>
+                                      {formatToAMPM(s.startTime)} - {formatToAMPM(s.endTime)}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              );
+                            });
+                          })()}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground italic bg-slate-50 p-2.5 rounded-sm border border-dashed text-center">
+                      Select a Consulting Doctor to view available time slots.
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5 flex-1 flex flex-col justify-end">
+                    <Label className="text-xs font-medium text-slate-700">Uploaded Scans</Label>
+                    <ScanReportGallery 
+                      mrNumber={editingPatient?.mrNumber} 
+                      visitId={editingPatient?.id}
+                      variant="compact"
+                      showButton={false}
+                      allowUpload={true} 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
