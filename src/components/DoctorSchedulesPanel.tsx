@@ -536,7 +536,7 @@ export function DoctorSchedulesPanel() {
                      </div>
                   </div>
 
-                  <Button className="w-full h-8 gap-2 text-xs" onClick={handleAddSlot} disabled={isSubmitting}>
+                  <Button className="w-full h-8 gap-2 text-xs bg-orange-600 hover:bg-black text-white rounded-none border border-transparent shadow-sm hover:shadow transition-colors" onClick={handleAddSlot} disabled={isSubmitting}>
                     <Plus className="w-3 h-3" />
                     {isSubmitting ? "Adding..." : "Add Slot"}
                   </Button>
