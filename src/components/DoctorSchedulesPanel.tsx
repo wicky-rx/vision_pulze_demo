@@ -284,9 +284,9 @@ export function DoctorSchedulesPanel() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
             {viewMode === 'DAILY' ? (
-               <><CalendarIcon className="w-4 h-4 text-primary" /> Appointments Panel</>
+               <><CalendarIcon className="w-4 h-4 text-orange-600" /> Appointments Panel</>
             ) : (
-               <><Settings className="w-4 h-4 text-primary" /> Manage Slots</>
+               <><Settings className="w-4 h-4 text-orange-600" /> Manage Slots</>
             )}
           </h3>
           <Button 
@@ -305,7 +305,7 @@ export function DoctorSchedulesPanel() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+              className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
               onClick={() => setDate(d => subDays(d, 1))}
               title="Previous Day"
             >
@@ -314,8 +314,8 @@ export function DoctorSchedulesPanel() {
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex-1 justify-start text-xs h-9 font-bold bg-white border-slate-200 text-slate-700 hover:bg-[#1a365d] hover:text-white hover:border-[#1a365d] transition-all duration-300 rounded-none shadow-sm group">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-900 transition-colors" />
+                <Button variant="outline" className="flex-1 justify-start text-xs h-9 font-bold bg-white border-slate-200 text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600 data-[state=open]:border-orange-200 transition-all duration-300 rounded-none shadow-sm group">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-600 group-data-[state=open]:text-orange-600 transition-colors" />
                   {format(date, "MMMM do, yyyy")}
                 </Button>
               </PopoverTrigger>
@@ -332,7 +332,7 @@ export function DoctorSchedulesPanel() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+              className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
               onClick={() => setDate(d => addDays(d, 1))}
               title="Next Day"
             >
@@ -418,7 +418,7 @@ export function DoctorSchedulesPanel() {
                           <p className="text-[9px] text-slate-300 italic px-1">No bookings yet</p>
                         ) : (
                           doc.todayAppointments.map((app: any) => (
-                             <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-blue-50/40 border border-blue-100/50 hover:bg-blue-100/40 transition-all">
+                             <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-orange-50/30 border border-orange-100/30 hover:bg-orange-100/20 transition-all">
                                 <div className="min-w-0 flex-1 mr-2">
                                    <div className="flex items-center justify-between gap-3">
                                       <p className="text-[13px] font-bold text-slate-900 truncate tracking-tight">{app.patient?.name}</p>
@@ -426,11 +426,11 @@ export function DoctorSchedulesPanel() {
                                    </div>
                                    <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
                                       {app.appointmentId && (
-                                        <p className="text-[10px] text-primary/60 font-bold shrink-0">ID: {app.appointmentId}</p>
+                                        <p className="text-[10px] text-orange-600/70 font-bold shrink-0">ID: {app.appointmentId}</p>
                                       )}
                                       {app.timeSlot && (
-                                        <div className="text-[10px] text-primary/80 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
-                                           {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-[#1a365d]/10 text-[#1a365d] px-1 py-0.5 text-[8px] font-black rounded-sm leading-none min-w-[14px] text-center border border-[#1a365d]/20 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
+                                        <div className="text-[10px] text-orange-600/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
+                                           {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-orange-50 text-orange-600 px-1 py-0.5 text-[8px] font-black rounded-sm leading-none min-w-[14px] text-center border border-orange-200/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
                                         </div>
                                       )}
                                       {app.notes && (
@@ -438,7 +438,7 @@ export function DoctorSchedulesPanel() {
                                           <TooltipProvider delayDuration={0}>
                                             <Tooltip>
                                               <TooltipTrigger asChild>
-                                                <div className="cursor-help transition-colors hover:text-primary">
+                                                <div className="cursor-help transition-colors hover:text-orange-600">
                                                   <Info className="w-3 h-3 text-slate-400" />
                                                 </div>
                                               </TooltipTrigger>
@@ -459,7 +459,7 @@ export function DoctorSchedulesPanel() {
                                         <Button 
                                           size="icon" 
                                           variant="ghost" 
-                                          className="h-7 w-7 rounded-full bg-primary/5 hover:bg-primary/20 hover:text-primary transition-colors shrink-0"
+                                          className="h-7 w-7 rounded-full bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-600 border border-orange-200/50 transition-colors shrink-0"
                                           onClick={() => handleCreateVisit(app.id)}
                                           title="Add to Visit Queue"
                                         >
@@ -578,19 +578,19 @@ export function DoctorSchedulesPanel() {
                               return (
                                 <div key={day} className="space-y-2">
                                   <div className="flex items-center gap-2 px-1">
-                                    <p className="text-[10px] font-black text-[#1a365d] uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
                                     <div className="h-px flex-1 bg-slate-100" />
                                   </div>
                                   <div className="space-y-1.5">
                                     {daySlots.map((s: any, idx: number) => (
-                                      <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-blue-200 hover:shadow-sm transition-all">
+                                      <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-orange-200 hover:shadow-sm transition-all">
                                         <div className="flex items-center gap-3">
                                           <div className="w-7 h-7 rounded-none bg-slate-50 flex items-center justify-center text-[9px] font-black text-slate-400 border border-slate-100">
                                             S{idx + 1}
                                           </div>
                                           <div>
                                             <p className="text-[10px] font-black text-slate-700 flex items-center gap-1.5">
-                                              <Clock className="w-3 h-3 text-blue-500" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
+                                              <Clock className="w-3 h-3 text-orange-500" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
                                             </p>
                                           </div>
                                         </div>
