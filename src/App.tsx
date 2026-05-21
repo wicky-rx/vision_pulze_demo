@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
+import UserDetails from "./pages/UserDetails";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import { toast } from "sonner";
@@ -74,7 +75,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<UserDetails />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Index />} />
             <Route path="/admin" element={<Admin />} />
