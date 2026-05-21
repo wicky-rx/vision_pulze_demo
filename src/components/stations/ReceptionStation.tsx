@@ -708,7 +708,7 @@ export function ReceptionStation() {
 
       <div className="flex-1 p-3 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-y-auto lg:overflow-y-hidden bg-orange-50/30 relative overflow-x-hidden">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
-        <Tabs defaultValue="new" className="flex-1 flex flex-col min-h-0 lg:overflow-y-auto px-1 relative z-10
+        <Tabs defaultValue="new" className="w-full lg:flex-1 flex flex-col lg:min-h-0 lg:overflow-y-auto px-1 relative z-10
           lg:[&::-webkit-scrollbar]:w-1 
           lg:[&::-webkit-scrollbar-track]:bg-transparent 
           lg:[&::-webkit-scrollbar-thumb]:bg-slate-200/50 
