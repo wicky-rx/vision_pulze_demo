@@ -14,6 +14,27 @@ const stations = [
 const Home = () => {
     const navigate = useNavigate();
 
+    // Demo gate — validate that a proper visitor record exists (not just any localStorage key)
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem("demo_visitor");
+            if (!raw) throw new Error("missing");
+
+            const visitor = JSON.parse(raw);
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const valid =
+                visitor &&
+                typeof visitor.name === "string" && visitor.name.trim().length >= 2 &&
+                typeof visitor.email === "string" && emailRegex.test(visitor.email);
+
+            if (!valid) throw new Error("invalid");
+        } catch {
+            // Missing, malformed, or fake entry — boot back to the form
+            localStorage.removeItem("demo_visitor");
+            navigate("/", { replace: true });
+        }
+    }, [navigate]);
+
     // If a valid session already exists, skip station selection and go straight to the dashboard
     useEffect(() => {
         const existingSession = localStorage.getItem("user_session");

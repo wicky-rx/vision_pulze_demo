@@ -10,22 +10,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { getPatientAgeString, getPatientAgeNumber, calculateAgeFromDob, calculateWaitTime, parseDDMMYYYY, truncateFileName, formatFileSize } from "@/lib/utils";
 import { statusLabels, statusColors, type PatientStatus, type Patient } from "@/data/mockData";
-import { API_BASE_URL } from "@/config";
+import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
-import { io } from "socket.io-client";
 import { TN_PLACES } from "@/data/tnPlaces";
 import { formatToAMPM } from "@/lib/dateUtils";
 
@@ -60,20 +59,20 @@ const TN_DISTRICTS = [
 // Maps backend VisitStatus enum values → frontend PatientStatus keys
 const backendStatusMap: Record<string, PatientStatus> = {
   // Supports both lowercased and original backend enum names
-  at_reception:  "reception",
-  AT_RECEPTION:   "reception",
+  at_reception: "reception",
+  AT_RECEPTION: "reception",
   in_refraction: "optometrist",
-  IN_REFRACTION:  "optometrist",
+  IN_REFRACTION: "optometrist",
   refraction_done: "refraction_done",
   REFRACTION_DONE: "refraction_done",
-  with_doctor:   "doctor",
-  WITH_DOCTOR:    "doctor",
-  consulted:     "consulted",
-  CONSULTED:      "consulted",
-  at_optical:    "optical",
-  AT_OPTICAL:     "optical",
-  completed:     "completed",
-  COMPLETED:      "completed",
+  with_doctor: "doctor",
+  WITH_DOCTOR: "doctor",
+  consulted: "consulted",
+  CONSULTED: "consulted",
+  at_optical: "optical",
+  AT_OPTICAL: "optical",
+  completed: "completed",
+  COMPLETED: "completed",
 };
 
 interface EditFormData {
@@ -146,11 +145,11 @@ export function PatientQueue({
     address: "",
     complaint: "",
   });
-  
+
   const [internalDoctors, setInternalDoctors] = useState<any[]>([]);
   const doctors = externalDoctors || internalDoctors;
   const setDoctors = setExternalDoctors || setInternalDoctors;
-  
+
   const [editLoading, setEditLoading] = useState(false);
   const [districtPopoverOpen, setDistrictPopoverOpen] = useState(false);
   const [cityPopoverOpen, setCityPopoverOpen] = useState(false);
@@ -165,14 +164,7 @@ export function PatientQueue({
 
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/patients/queue`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error("Failed to fetch patients");
-      const data = await response.json();
+      const data = await api.getQueue();
       if (!Array.isArray(data)) throw new Error("Invalid patients data format");
 
       const today = new Date().toDateString();
@@ -182,7 +174,7 @@ export function PatientQueue({
         return new Date(dateString).toDateString() === today;
       });
 
-      const mappedPatients = todayPatients.map((p: any) => {
+      const mappedPatients = todayPatients.map((p: any, index: number) => {
         // Normalise backend VisitStatus (e.g. "AT_RECEPTION") -> frontend key (e.g. "reception")
         const rawStatus = (p.status ?? "").toLowerCase();
         const normalizedStatus: PatientStatus =
@@ -192,6 +184,7 @@ export function PatientQueue({
           ...p,
           id: p.id || p._id,
           status: normalizedStatus,
+          tokenNumber: p.tokenNumber || (index + 1),
           waitTime: calculateWaitTime(p.visitedAt),
           name: p.patient?.name || "Unknown Patient",
           mrNumber: p.mrNumber != null ? p.mrNumber.toString() : (p.patientId != null ? p.patientId.toString() : "—"),
@@ -249,14 +242,6 @@ export function PatientQueue({
 
     fetchPatients();
 
-    // 1. Establish connection to your backend
-    const socket = io(API_BASE_URL);
-
-    // 2. Listen for the 'queue_updated' event from backend
-    socket.on('queue_updated', () => {
-      fetchPatients();
-    });
-
     const handlePatientUpdate = () => {
       fetchPatients();
       fetchDocs();
@@ -265,27 +250,20 @@ export function PatientQueue({
 
     window.addEventListener("patientQueueUpdated", handlePatientUpdate);
     window.addEventListener("doctorSchedulesUpdated", handlePatientUpdate);
-    
+
     const fetchDocs = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(`${API_BASE_URL}/api/admin/doctors`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setDoctors(data);
-        }
+        const data = await api.getDoctors();
+        setDoctors(data);
       } catch (e) { console.error("Error fetching doctors", e); }
     };
-    
+
     if (currentRole === "RECEPTIONIST" || currentRole === "ADMIN") {
       fetchDocs();
     }
 
     return () => {
       window.removeEventListener("patientQueueUpdated", handlePatientUpdate);
-      socket.disconnect();
     };
   }, []);
 
@@ -304,7 +282,7 @@ export function PatientQueue({
           dobTxt = `${d}/${m}/${y}`;
           dobPck = patient.dob;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     setEditFormData({
@@ -335,7 +313,7 @@ export function PatientQueue({
 
   const handleEditField = (field: keyof EditFormData, value: string) => {
     let filteredValue = value;
-    
+
     if (field === "name" || field === "co") {
       // Name and Care Of should not accept numbers
       filteredValue = value.replace(/[0-9]/g, "");
@@ -359,16 +337,16 @@ export function PatientQueue({
     const today = new Date();
     const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dobNorm = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
-    
+
     if (dobNorm > todayNorm) return;
 
     const ageStr = calculateAgeFromDob(dob);
     const dobIso = `${dob.getFullYear()}-${String(dob.getMonth() + 1).padStart(2, "0")}-${String(dob.getDate()).padStart(2, "0")}`;
-    
+
     setEditFormData((prev) => {
       let txt = prev.dobTextValue;
       let pck = prev.dobPickerValue;
-      
+
       if (source === "picker") {
         const dd = String(dob.getDate()).padStart(2, "0");
         const mm = String(dob.getMonth() + 1).padStart(2, "0");
@@ -389,7 +367,7 @@ export function PatientQueue({
     let val = e.target.value.replace(/[^\d/]/g, "");
     if (val.length === 2 && !val.includes("/")) val += "/";
     else if (val.length === 5 && val.split("/").length === 2) val += "/";
-    
+
     setEditFormData(prev => ({ ...prev, dobTextValue: val }));
 
     if (val.length === 10) {
@@ -455,66 +433,52 @@ export function PatientQueue({
 
     try {
       setEditLoading(true);
-      const token = localStorage.getItem("token");
 
-      const response = await fetch(`${API_BASE_URL}/api/patients/${editingPatient.mrNumber}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: editFormData.name,
-          dob: editFormData.dob,
-          gender: editFormData.gender,
-          doorNo: editFormData.doorNo,
-          street: editFormData.street,
-          area: editFormData.area,
-          city: editFormData.city,
-          district: editFormData.district,
-          state: editFormData.state,
-          pincode: editFormData.pincode,
-          contactNumber: editFormData.contactNumber,
-          secondaryContact: editFormData.secondaryContact,
-          co: editFormData.co,
-          doctorId: editFormData.doctorId || undefined,
-          doctorName: editFormData.doctorName || undefined,
-          timeSlot: editFormData.timeSlot || undefined,
-          complaint: editFormData.complaint || undefined,
-        }),
+      const data = await api.updatePatient(editingPatient.mrNumber, {
+        name: editFormData.name,
+        dob: editFormData.dob,
+        gender: editFormData.gender,
+        doorNo: editFormData.doorNo,
+        street: editFormData.street,
+        area: editFormData.area,
+        city: editFormData.city,
+        district: editFormData.district,
+        state: editFormData.state,
+        pincode: editFormData.pincode,
+        contactNumber: editFormData.contactNumber,
+        secondaryContact: editFormData.secondaryContact,
+        co: editFormData.co,
+        doctorId: editFormData.doctorId || undefined,
+        doctorName: editFormData.doctorName || undefined,
+        timeSlot: editFormData.timeSlot || undefined,
+        complaint: editFormData.complaint || undefined,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || "Failed to update patient");
-      }
 
       // Update local patient state immediately
       setPatients((prev) =>
         prev.map((p) =>
           p.id === editingPatient.id
             ? {
-                ...p,
-                name: editFormData.name,
-                age: editFormData.age as any,
-                dob: editFormData.dob as any,
-                gender: editFormData.gender as any,
-                doorNo: editFormData.doorNo as any,
-                street: editFormData.street as any,
-                area: editFormData.area as any,
-                city: editFormData.city as any,
-                district: editFormData.district as any,
-                state: editFormData.state as any,
-                pincode: editFormData.pincode as any,
-                address: editFormData.city || editFormData.address || "", // legacy fallback
-                contactNumber: editFormData.contactNumber as any,
-                secondaryContact: editFormData.secondaryContact as any,
-                co: editFormData.co as any,
-                consultingDoctorId: editFormData.doctorId as any,
-                consultingDoctorName: editFormData.doctorName as any,
-                complaint: editFormData.complaint || "",
-              }
+              ...p,
+              name: editFormData.name,
+              age: editFormData.age as any,
+              dob: editFormData.dob as any,
+              gender: editFormData.gender as any,
+              doorNo: editFormData.doorNo as any,
+              street: editFormData.street as any,
+              area: editFormData.area as any,
+              city: editFormData.city as any,
+              district: editFormData.district as any,
+              state: editFormData.state as any,
+              pincode: editFormData.pincode as any,
+              address: editFormData.city || editFormData.address || "", // legacy fallback
+              contactNumber: editFormData.contactNumber as any,
+              secondaryContact: editFormData.secondaryContact as any,
+              co: editFormData.co as any,
+              consultingDoctorId: editFormData.doctorId as any,
+              consultingDoctorName: editFormData.doctorName as any,
+              complaint: editFormData.complaint || "",
+            }
             : p
         )
       );
@@ -543,22 +507,16 @@ export function PatientQueue({
 
   const confirmDeleteVisit = async () => {
     if (!editingPatient?.id) return;
-    
+
     try {
       setEditLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/patients/visits/${editingPatient.id}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error("Failed to remove patient from queue");
+      await api.deleteVisit(editingPatient.id);
 
       toast({
         title: "Removed from Queue",
         description: "Patient has been successfully removed from today's visit list."
       });
-      
+
       setEditingPatient(null);
       fetchPatients(); // Local refresh
       window.dispatchEvent(new CustomEvent("appointmentUpdated")); // Refresh side panels
@@ -584,7 +542,7 @@ export function PatientQueue({
     if (!patient.appointment?.timeSlot || !patient.consultingDoctorId) return null;
     const doc = doctors.find(d => d.id === patient.consultingDoctorId);
     if (!doc?.schedules) return null;
-    
+
     const now = new Date();
     const today = now.getDay();
     const todaySlots = doc.schedules
@@ -594,7 +552,7 @@ export function PatientQueue({
         const [bh, bm] = b.startTime.split(":").map(Number);
         return (ah * 60 + am) - (bh * 60 + bm);
       });
-      
+
     const index = todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === patient.appointment.timeSlot);
     if (index === -1) return null;
     return `S${index + 1}`;
@@ -622,7 +580,7 @@ export function PatientQueue({
                 {patients.length} patients
               </Badge>
             </div>
-            
+
             <Button
               variant="ghost"
               size="icon"
@@ -805,9 +763,9 @@ export function PatientQueue({
                   </div>
                   <Popover modal={true}>
                     <PopoverTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="absolute right-0 top-0 h-9 px-3 py-2 hover:bg-transparent"
                         type="button"
                         disabled={editLoading}
@@ -1080,7 +1038,7 @@ export function PatientQueue({
                             const daySlots = (doc?.schedules || [])
                               .filter((s: any) => s.dayOfWeek === new Date().getDay())
                               .sort((a, b) => a.startTime.localeCompare(b.startTime));
-                            
+
                             const now = new Date();
                             const currentTimeNum = now.getHours() * 60 + now.getMinutes();
 
@@ -1092,7 +1050,7 @@ export function PatientQueue({
                               const val = `${s.startTime}-${s.endTime}`;
                               const [eh, em] = s.endTime.split(":").map(Number);
                               const isEnded = (eh * 60 + em) <= currentTimeNum;
-                              
+
                               return (
                                 <SelectItem key={s.id} value={val} className="text-xs group focus:bg-orange-600 focus:text-white">
                                   <div className="flex items-center gap-2">
@@ -1119,12 +1077,12 @@ export function PatientQueue({
 
                   <div className="space-y-1.5 flex-1 flex flex-col justify-end">
                     <Label className="text-xs font-medium text-slate-700">Uploaded Scans</Label>
-                    <ScanReportGallery 
-                      mrNumber={editingPatient?.mrNumber} 
+                    <ScanReportGallery
+                      mrNumber={editingPatient?.mrNumber}
                       visitId={editingPatient?.id}
                       variant="compact"
                       showButton={false}
-                      allowUpload={true} 
+                      allowUpload={true}
                     />
                   </div>
                 </div>
@@ -1134,12 +1092,12 @@ export function PatientQueue({
 
           <DialogFooter className="p-6 border-t border-border bg-orange-50/30 flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <ScanReportGallery 
-                 mrNumber={editingPatient?.mrNumber} 
-                 visitId={editingPatient?.id}
-                 variant="compact"
-                 showStatus={false}
-                 allowUpload={true}
+              <ScanReportGallery
+                mrNumber={editingPatient?.mrNumber}
+                visitId={editingPatient?.id}
+                variant="compact"
+                showStatus={false}
+                allowUpload={true}
               />
               {canEdit && (
                 <Button
@@ -1191,7 +1149,7 @@ export function PatientQueue({
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
             <AlertDialogCancel className="hover:bg-slate-100 border-none h-11 px-6">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault();
                 confirmDeleteVisit();

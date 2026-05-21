@@ -66,18 +66,18 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
             {new Date().toLocaleDateString("en-IN", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
           </div>
         </div>
-        
+
         <div className="hidden 2xl:flex flex-col justify-center border-l border-slate-200 pl-10">
           <span className="text-xs font-black tracking-tight text-slate-900 leading-none mb-1">VPN EYE HOSPITAL</span>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">25, Neela West Street, Nagapattinam - 611001</span>
         </div>
       </div>
 
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center">
+      {/* <div className="hidden lg:flex flex-1 flex-col items-center justify-center">
         <div className="bg-orange-50/50 border border-orange-100 px-4 py-1.5 rounded-full shadow-sm">
           <span className="text-[10px] font-black uppercase tracking-[0.1em] text-orange-900/40 italic">Supported by Ragavarshini Traders</span>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex items-center gap-3 md:gap-6">
         {/* User Dropdown */}

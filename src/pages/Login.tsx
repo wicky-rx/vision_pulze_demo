@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/config";
+import { cn } from "@/lib/utils";
 
 const stationLabels: Record<string, string> = {
     reception: "Reception",
@@ -42,6 +43,18 @@ const Login = () => {
         }
         return null;
     });
+
+    // Pre-fill credentials if it is the reception station demo
+    useEffect(() => {
+        if (stationId === "reception") {
+            setUsername("reception");
+            setPassword("demo123");
+            setLockoutTime(null);
+        } else {
+            setUsername("");
+            setPassword("");
+        }
+    }, [stationId]);
 
     // Lockout countdown timer
     useEffect(() => {
@@ -144,6 +157,38 @@ const Login = () => {
             return;
         }
 
+        // Demo login bypass for reception station
+        if (stationId === "reception") {
+            if (username !== "reception" || password !== "demo123") {
+                toast({
+                    variant: "destructive",
+                    title: "Login Failed",
+                    description: "Invalid demo credentials.",
+                });
+                return;
+            }
+
+            setIsLoading(true);
+            setTimeout(() => {
+                localStorage.setItem("token", "demo_reception_token");
+                localStorage.setItem("user_session", JSON.stringify({
+                    username: "reception",
+                    role: "RECEPTIONIST",
+                    name: "Demo Receptionist",
+                    stationId: "reception",
+                    loginTime: new Date().toISOString()
+                }));
+
+                toast({
+                    title: "Login Successful",
+                    description: "Welcome to the Reception demo workspace",
+                });
+                setIsLoading(false);
+                navigate("/dashboard");
+            }, 800);
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -237,7 +282,7 @@ const Login = () => {
             <Button
                 variant="ghost"
                 className="absolute top-8 left-8 gap-2 text-slate-500"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/home")}
             >
                 <ArrowLeft className="w-4 h-4" />
                 Back to stations
@@ -268,6 +313,18 @@ const Login = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-6">
+                        {stationId === "reception" && (
+                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 text-xs text-blue-800">
+                                <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="font-bold text-slate-950">Demo Workspace Access</p>
+                                    <p className="text-blue-600/90 leading-relaxed">
+                                        Click <strong>Login</strong> below to proceed - credentials have been prefilled for you.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-4">
                             <Label htmlFor="username" className="text-[10px] font-black uppercase tracking-widest text-[#1a365d] flex items-center gap-2">
                                 Username
@@ -277,10 +334,14 @@ const Login = () => {
                                 <Input
                                     id="username"
                                     placeholder="Enter your name"
-                                    className="pl-10 h-11 border-slate-200 rounded-xl"
+                                    className={cn(
+                                        "pl-10 h-11 border-slate-200 rounded-xl",
+                                        stationId === "reception" && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                    )}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     disabled={isLoading}
+                                    readOnly={stationId === "reception"}
                                 />
                             </div>
                         </div>
@@ -294,10 +355,14 @@ const Login = () => {
                                     id="password"
                                     type="password"
                                     placeholder="••••••••"
-                                    className="pl-10 h-11 border-slate-200 rounded-xl"
+                                    className={cn(
+                                        "pl-10 h-11 border-slate-200 rounded-xl",
+                                        stationId === "reception" && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                    )}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     disabled={isLoading}
+                                    readOnly={stationId === "reception"}
                                 />
                             </div>
                         </div>

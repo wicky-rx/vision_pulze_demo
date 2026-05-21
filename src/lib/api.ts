@@ -1,0 +1,80 @@
+import { demoDb } from "./demoDb";
+
+// Centralized API client wrapper.
+// Since this is a pure client-side offline demo, this file directly forwards all requests to our localStorage-backed demoDb.
+export const api = {
+  // Doctor Operations
+  async getDoctors() {
+    // Return doctor details, with dynamic duty slot injected
+    return demoDb.getDoctors();
+  },
+
+  async getDoctorSlots() {
+    return demoDb.getDoctors();
+  },
+
+  async getDoctorSchedules(doctorId: string) {
+    return demoDb.getDoctorSchedules(doctorId);
+  },
+
+  async addDoctorSchedule(doctorId: string, slot: any) {
+    return demoDb.addDoctorSchedule(doctorId, slot);
+  },
+
+  async deleteDoctorSchedule(scheduleId: string) {
+    return demoDb.deleteDoctorSchedule(scheduleId);
+  },
+
+  // Patient Operations
+  async checkMobile(mobile: string) {
+    return demoDb.checkMobile(mobile);
+  },
+
+  async searchPatients(query: string) {
+    return demoDb.searchPatients(query);
+  },
+
+  async getPatientDetails(mrNumber: string) {
+    const details = demoDb.getPatientByMrn(mrNumber);
+    if (!details) throw new Error("Patient not found");
+    return details;
+  },
+
+  async registerPatient(formData: any) {
+    return demoDb.registerPatient(formData);
+  },
+
+  async updatePatient(mrNumber: string, data: any) {
+    return demoDb.updatePatient(mrNumber, data);
+  },
+
+  // Queue / Visit Operations
+  async getQueue() {
+    return demoDb.getQueue();
+  },
+
+  async startVisit(mrNumber: string, visitData: any) {
+    return demoDb.startVisit(mrNumber, visitData);
+  },
+
+  async deleteVisit(visitId: string) {
+    return demoDb.deleteVisit(visitId);
+  },
+
+  // Appointment Operations
+  async createAppointment(appointmentData: any) {
+    return demoDb.createAppointment(appointmentData);
+  },
+
+  async getDailyAppointments(dateStr: string) {
+    return demoDb.getDailyAppointments(dateStr);
+  },
+
+  async deleteAppointment(appointmentId: string) {
+    return demoDb.deleteAppointment(appointmentId);
+  },
+
+  async convertAppointmentToVisit(appointmentId: string) {
+    return demoDb.convertAppointmentToVisit(appointmentId);
+  },
+};

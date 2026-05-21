@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import JsBarcode from "jsbarcode";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { API_BASE_URL } from "@/config";
+import { api } from "@/lib/api";
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { toTitleCase, calculateAgeFromDob, parseDDMMYYYY, getPatientAgeString, getPatientAgeNumber } from "@/lib/utils";
@@ -166,11 +166,8 @@ export function ReceptionStation() {
   useEffect(() => {
     const fetchDocs = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/appointments/doctors/slots`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (res.ok) setDoctors(await res.json());
+        const data = await api.getDoctorSlots();
+        setDoctors(data);
       } catch (e) { console.error("Error fetching doctors", e); }
     };
     fetchDocs();
@@ -269,31 +266,21 @@ export function ReceptionStation() {
         return;
       }
       try {
-        const token = localStorage.getItem("token");
-        console.log("mob fetch req");
-        const response = await fetch(`${API_BASE_URL}/api/patients/check-mobile?mobile=${encodeURIComponent(mobile)}`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIsMobileExisting(!!data.exists);
-          if (data.exists && data.patients && data.patients.length > 0) {
-            const p = data.patients[0];
-            setParentMrn(p.mrNumber.toString());
-            setExistingPatientName(p.name);
-          } else {
-            setParentMrn("");
-            setExistingPatientName("");
-          }
+        const data = await api.checkMobile(mobile);
+        setIsMobileExisting(!!data.exists);
+        if (data.exists && data.patients && data.patients.length > 0) {
+          const p = data.patients[0];
+          setParentMrn(p.mrNumber.toString());
+          setExistingPatientName(p.name);
         } else {
-          setIsMobileExisting(false);
           setParentMrn("");
           setExistingPatientName("");
         }
       } catch (error) {
         console.error("Error checking mobile:", error);
         setIsMobileExisting(false);
+        setParentMrn("");
+        setExistingPatientName("");
       }
     };
 
@@ -309,47 +296,39 @@ export function ReceptionStation() {
       }
       setLoadingReturning(true);
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(`${API_BASE_URL}/api/patients/search?query=${encodeURIComponent(searchQuery)}`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (!Array.isArray(data)) {
-            setReturningPatients([]);
-            return;
-          }
-
-          const availablePatients = data.filter((p: any) => {
-            if (!p.visits || p.visits.length === 0) return true;
-            return p.visits;
-          });
-
-          const mapped = availablePatients.map((p: any) => {
-            const hasActiveVisitToday = p.visits?.some((v: any) => {
-              if (v.status === 'COMPLETED') return false;
-              const visitDate = new Date(v.visitedAt || v.updatedAt || v.createdAt);
-              const today = new Date();
-              return visitDate.toDateString() === today.toDateString();
-            });
-
-            return {
-              ...p,
-              id: p.mrNumber,
-              name: p.name || "",
-              mrNumber: p.mrNumber || "",
-              lastVisit: p.visits && p.visits.length > 0
-                ? new Date(p.visits[0].visitedAt || p.visits[0].updatedAt).toLocaleDateString()
-                : "No Visits",
-              lastVisitStatus: p.visits && p.visits.length > 0 ? p.visits[0].status : null,
-              mobile: p.contactNumber || p.mobile || "",
-              hasActiveVisitToday: !!hasActiveVisitToday
-            };
-          });
-          setReturningPatients(mapped);
-        } else {
+        const data = await api.searchPatients(searchQuery);
+        if (!Array.isArray(data)) {
           setReturningPatients([]);
+          return;
         }
+
+        const availablePatients = data.filter((p: any) => {
+          if (!p.visits || p.visits.length === 0) return true;
+          return p.visits;
+        });
+
+        const mapped = availablePatients.map((p: any) => {
+          const hasActiveVisitToday = p.visits?.some((v: any) => {
+            if (v.status === 'COMPLETED') return false;
+            const visitDate = new Date(v.visitedAt || v.updatedAt || v.createdAt);
+            const today = new Date();
+            return visitDate.toDateString() === today.toDateString();
+          });
+
+          return {
+            ...p,
+            id: p.mrNumber,
+            name: p.name || "",
+            mrNumber: p.mrNumber || "",
+            lastVisit: p.visits && p.visits.length > 0
+              ? new Date(p.visits[0].visitedAt || p.visits[0].updatedAt).toLocaleDateString()
+              : "No Visits",
+            lastVisitStatus: p.visits && p.visits.length > 0 ? p.visits[0].status : null,
+            mobile: p.contactNumber || p.mobile || "",
+            hasActiveVisitToday: !!hasActiveVisitToday
+          };
+        });
+        setReturningPatients(mapped);
       } catch (error) {
         console.error("Error searching patients:", error);
         setReturningPatients([]);
@@ -395,26 +374,12 @@ export function ReceptionStation() {
 
     try {
       setStartingVisitMrn(mrNumber);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/patients/${mrNumber}/visits`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          doctorId: selectedDoctorId || undefined,
-          doctorName: doctor ? doctor.name : undefined,
-          timeSlot: selectedTimeSlot || undefined,
-          complaint: returningComplaint || undefined
-        })
+      await api.startVisit(mrNumber, {
+        doctorId: selectedDoctorId || undefined,
+        doctorName: doctor ? doctor.name : undefined,
+        timeSlot: selectedTimeSlot || undefined,
+        complaint: returningComplaint || undefined
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to start new visit");
-      }
 
       toast({
         title: "New visit created successfully."
@@ -475,24 +440,13 @@ export function ReceptionStation() {
     // For Returning Patient:
     setSettingAppointment(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/appointments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          patientMrNumber: appointmentPatientMrn,
-          doctorId: selectedDoctorId,
-          appointmentDate: selectedAppointmentDate,
-          notes: appointmentNote,
-          timeSlot: selectedTimeSlot
-        })
+      const data = await api.createAppointment({
+        patientMrNumber: appointmentPatientMrn,
+        doctorId: selectedDoctorId,
+        appointmentDate: selectedAppointmentDate,
+        notes: appointmentNote,
+        timeSlot: selectedTimeSlot
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || "Failed to set appointment");
 
       toast({
         title: data.type === 'VISIT_CREATED' ? "Visit created for today" : "Appointment scheduled",
@@ -528,14 +482,7 @@ export function ReceptionStation() {
     if (printingOPCardMrn) return;
     try {
       setPrintingOPCardMrn(mrNumber);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/patients/search?query=${mrNumber}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!response.ok) throw new Error("Failed to fetch patient data");
-      const data = await response.json();
-      // API returns an array; pick the first match
-      const p = Array.isArray(data) ? data[0] : data.patient ?? data;
+      const p = await api.getPatientDetails(mrNumber);
       setPatientData({
         mrNumber: p.mrNumber ?? mrNumber,
         name: p.name,
@@ -620,7 +567,6 @@ export function ReceptionStation() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
 
       const formattedName = toTitleCase(formData.name.trim());
       const doctor = doctors.find(d => d.id === selectedDoctorId);
@@ -643,20 +589,7 @@ export function ReceptionStation() {
         delete submissionData.relationship; // clean up payload
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/patients/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(submissionData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to register patient");
-      }
+      const data = await api.registerPatient(submissionData);
 
       setPatientData({ ...data.patient, visit: data.visit });
       setShowOPCard(true);

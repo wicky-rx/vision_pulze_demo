@@ -8,6 +8,7 @@ import { DoctorStation } from "@/components/stations/DoctorStation";
 import { OpticalStation } from "@/components/stations/OpticalStation";
 import { PharmacyStation } from "@/components/stations/PharmacyStation";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { api } from "@/lib/api";
 
 type Station = "reception" | "refraction" | "doctor" | "consultation" | "clinical" | "optical" | "pharmacy" | "inventory" | "admin";
 
@@ -77,16 +78,8 @@ const Index = () => {
       // Fetch common data: Doctors (for session slot identification across stations)
       const fetchDoctors = async () => {
         try {
-          const token = localStorage.getItem("token");
-          if (!token) return;
-          const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
-          const res = await fetch(`${apiBaseUrl}/api/admin/doctors`, {
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setDoctors(data);
-          }
+          const data = await api.getDoctors();
+          setDoctors(data);
         } catch (e) {
           console.error("Error fetching common data:", e);
         }

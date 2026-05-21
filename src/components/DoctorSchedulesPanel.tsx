@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar as CalendarIcon, MapPin, Clock, User, UserCheck, Settings, ArrowLeft, Plus, Trash2, X, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
-import { API_BASE_URL } from "@/config";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { formatToAMPM } from "@/lib/dateUtils";
@@ -85,22 +85,13 @@ export function DoctorSchedulesPanel() {
   const fetchDailyData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const dateStr = format(date, "yyyy-MM-dd");
       
-      const resDocs = await fetch(`${API_BASE_URL}/api/appointments/doctors/slots`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!resDocs.ok) throw new Error("Failed to fetch doctors");
-      const doctors = await resDocs.json();
+      const doctors = await api.getDoctorSlots();
       if (!Array.isArray(doctors)) throw new Error("Invalid doctors data format");
       setAllDoctors(doctors);
 
-      const resApps = await fetch(`${API_BASE_URL}/api/appointments/daily?date=${dateStr}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!resApps.ok) throw new Error("Failed to fetch appointments");
-      const apps = await resApps.json();
+      const apps = await api.getDailyAppointments(dateStr);
       if (!Array.isArray(apps)) throw new Error("Invalid appointments data format");
 
       const dayOfWeek = date.getDay();
@@ -140,18 +131,11 @@ export function DoctorSchedulesPanel() {
   const fetchManageSchedules = async (doctorId: string) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/appointments/doctors/${doctorId}/schedules`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setManageSchedules(Array.isArray(data) ? data : []);
-      } else {
-        setManageSchedules([]);
-      }
+      const data = await api.getDoctorSchedules(doctorId);
+      setManageSchedules(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Error fetching schedules", e);
+      setManageSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -161,25 +145,13 @@ export function DoctorSchedulesPanel() {
     if (!selectedManageDoctorId) return;
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/appointments/doctors/${selectedManageDoctorId}/schedules`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(newSlot)
-      });
-      if (res.ok) {
-        toast({ title: "Slot added successfully" });
-        fetchManageSchedules(selectedManageDoctorId);
-        window.dispatchEvent(new CustomEvent("patientQueueUpdated"));
-      } else {
-        const err = await res.json();
-        toast({ variant: "destructive", title: "Please check, slot time mismatched", description: err.error || err.message });
-      }
-    } catch (e) {
+      await api.addDoctorSchedule(selectedManageDoctorId, newSlot);
+      toast({ title: "Slot added successfully" });
+      fetchManageSchedules(selectedManageDoctorId);
+      window.dispatchEvent(new CustomEvent("patientQueueUpdated"));
+    } catch (e: any) {
       console.error("Error adding slot", e);
+      toast({ variant: "destructive", title: "Please check, slot time mismatched", description: e.message || "Could not add slot" });
     } finally {
       setIsSubmitting(false);
     }
@@ -191,16 +163,10 @@ export function DoctorSchedulesPanel() {
       description: "Are you sure you want to remove this availability slot?",
       action: async () => {
         try {
-          const token = localStorage.getItem("token");
-          const res = await fetch(`${API_BASE_URL}/api/appointments/schedules/${id}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (res.ok) {
-            toast({ title: "Slot removed successfully" });
-            fetchManageSchedules(selectedManageDoctorId);
-            window.dispatchEvent(new CustomEvent("patientQueueUpdated"));
-          }
+          await api.deleteDoctorSchedule(id);
+          toast({ title: "Slot removed successfully" });
+          fetchManageSchedules(selectedManageDoctorId);
+          window.dispatchEvent(new CustomEvent("patientQueueUpdated"));
         } catch (e) {
           console.error("Error deleting slot", e);
         }
@@ -215,15 +181,9 @@ export function DoctorSchedulesPanel() {
       description: `Are you sure you want to delete the appointment for ${patientName}? This action cannot be undone.`,
       action: async () => {
         try {
-          const token = localStorage.getItem("token");
-          const res = await fetch(`${API_BASE_URL}/api/appointments/${id}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (res.ok) {
-            toast({ title: "Appointment deleted successfully" });
-            fetchDailyData();
-          }
+          await api.deleteAppointment(id);
+          toast({ title: "Appointment deleted successfully" });
+          fetchDailyData();
         } catch (e) {
           console.error("Error deleting appointment", e);
         }
@@ -234,15 +194,8 @@ export function DoctorSchedulesPanel() {
 
   const handleCreateVisit = async (appointmentId: string) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}/visit`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
+      const data = await api.convertAppointmentToVisit(appointmentId);
+      if (data && data.success) {
         toast({ title: "Patient added to today's visit queue" });
         fetchDailyData();
         window.dispatchEvent(new CustomEvent("patientQueueUpdated"));
@@ -250,15 +203,15 @@ export function DoctorSchedulesPanel() {
         toast({ 
           variant: "destructive", 
           title: "Visit Creation Failed", 
-          description: data.message || data.error || "Could not convert appointment to visit" 
+          description: "Could not convert appointment to visit" 
         });
       }
     } catch (e: any) {
       console.error("Error converting appointment to visit", e);
       toast({ 
         variant: "destructive", 
-        title: "Network Error", 
-        description: e.message || "Failed to connect to the server" 
+        title: "Error", 
+        description: e.message || "Failed to create visit" 
       });
     }
   };
