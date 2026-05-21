@@ -133,6 +133,31 @@ export function ReceptionStation() {
 
   const { toast } = useToast();
 
+  // Helper to determine if a doctor is currently active (on-duty within their schedule session)
+  const isDoctorActiveNow = (doc: any) => {
+    const today = new Date().getDay();
+    const now = new Date();
+    const currentTimeNum = now.getHours() * 60 + now.getMinutes();
+    return doc.schedules?.some((s: any) => {
+      if (s.dayOfWeek !== today) return false;
+      const [sh, sm] = s.startTime.split(":").map(Number);
+      const [eh, em] = s.endTime.split(":").map(Number);
+      const startNum = sh * 60 + sm;
+      const endNum = eh * 60 + em;
+      // Active if within schedule window (with 45 mins buffer)
+      return (currentTimeNum >= startNum - 45 && currentTimeNum <= endNum + 45);
+    });
+  };
+
+  // Sort doctors: on-duty (active now) first, then alphabetical
+  const sortedDoctors = [...doctors].sort((a, b) => {
+    const aActive = isDoctorActiveNow(a);
+    const bActive = isDoctorActiveNow(b);
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
   useEffect(() => {
     if (dobPopoverOpen && formData.dob) {
       setCalendarMonth(new Date(formData.dob));
@@ -895,23 +920,45 @@ export function ReceptionStation() {
                       setSelectedDoctorId(val);
                       setSelectedTimeSlot("");
                     }}>
-                      <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white">
-                        <SelectValue placeholder="Identify Consultant..." />
+                      <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white w-full">
+                        {selectedDoctorId ? (
+                          (() => {
+                            const doc = doctors.find(d => d.id === selectedDoctorId);
+                            if (!doc) return <SelectValue placeholder="Identify Consultant..." />;
+                            const isActive = isDoctorActiveNow(doc);
+                            return (
+                              <div className="flex items-center justify-between w-full pr-2 text-left">
+                                <span className="font-bold text-slate-900 uppercase tracking-tight text-xs truncate mr-2">{doc.name}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isActive && (
+                                    <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">ON DUTY</Badge>
+                                  )}
+                                  <span className="text-[9px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <SelectValue placeholder="Identify Consultant..." />
+                        )}
                       </SelectTrigger>
                       <SelectContent className="rounded-none border-slate-200 shadow-xl">
-                        {doctors.map(doc => (
-                          <SelectItem key={doc.id} value={doc.id} className="group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
-                            <div className="flex items-center justify-between w-full py-1.5 gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
-                                {doc.schedules?.some((s: any) => s.dayOfWeek === new Date().getDay()) && (
-                                  <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
-                                )}
+                        {sortedDoctors.map(doc => {
+                          const isActive = isDoctorActiveNow(doc);
+                          return (
+                            <SelectItem key={doc.id} value={doc.id} className="group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
+                              <div className="flex items-center justify-between w-full py-1.5 gap-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
+                                  {isActive && (
+                                    <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                               </div>
-                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General Specialist"}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1614,42 +1661,45 @@ export function ReceptionStation() {
               <div className="space-y-2.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Consulting Physician</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                  <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none">
-                    <SelectValue placeholder="Select an on-duty doctor..." />
+                  <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none w-full">
+                    {selectedDoctorId ? (
+                      (() => {
+                        const doc = doctors.find(d => d.id === selectedDoctorId);
+                        if (!doc) return <SelectValue placeholder="Select a consulting doctor..." />;
+                        const isActive = isDoctorActiveNow(doc);
+                        return (
+                          <div className="flex items-center justify-between w-full pr-2 text-left">
+                            <span className="font-bold text-slate-900 uppercase tracking-tight text-xs sm:text-sm truncate mr-2">{doc.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isActive && (
+                                <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">On Duty</Badge>
+                              )}
+                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <SelectValue placeholder="Select a consulting doctor..." />
+                    )}
                   </SelectTrigger>
                   <SelectContent className="border-slate-200 shadow-xl rounded-none">
-                    {(() => {
-                      const today = new Date().getDay();
-                      const now = new Date();
-                      const currentTimeNum = now.getHours() * 60 + now.getMinutes();
-
-                      const activeDoctors = doctors.filter(doc => {
-                        return doc.schedules?.some((s: any) => {
-                          if (s.dayOfWeek !== today) return false;
-                          const [sh, sm] = s.startTime.split(":").map(Number);
-                          const [eh, em] = s.endTime.split(":").map(Number);
-                          const startNum = sh * 60 + sm;
-                          const endNum = eh * 60 + em;
-                          return (currentTimeNum >= startNum - 45 && currentTimeNum <= endNum + 45);
-                        });
-                      });
-
-                      if (activeDoctors.length === 0) {
-                        return <div className="py-6 px-4 text-xs text-slate-400 italic text-center font-bold tracking-widest uppercase">No doctors currently available in their active session</div>;
-                      }
-
-                      return activeDoctors.map(doc => (
+                    {sortedDoctors.map(doc => {
+                      const isActive = isDoctorActiveNow(doc);
+                      return (
                         <SelectItem key={doc.id} value={doc.id} className="text-xs group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
                           <div className="flex items-center justify-between w-full py-1.5 gap-4">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
-                              <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
+                              {isActive && (
+                                <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
+                              )}
                             </div>
                             <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
-                      ));
-                    })()}
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -1817,8 +1867,24 @@ export function ReceptionStation() {
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Consulting Doctor</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Doctor" />
+                  <SelectTrigger className="w-full">
+                    {selectedDoctorId ? (
+                      (() => {
+                        const doc = doctors.find(d => d.id === selectedDoctorId);
+                        if (!doc) return <SelectValue placeholder="Select Doctor" />;
+                        return (
+                          <div className="flex items-center justify-between w-full pr-2 text-left">
+                            <span className="font-bold text-slate-900 uppercase tracking-tight text-xs truncate mr-2">{doc.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge className="h-4 px-1 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">Available</Badge>
+                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <SelectValue placeholder="Select Doctor" />
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     {doctors
