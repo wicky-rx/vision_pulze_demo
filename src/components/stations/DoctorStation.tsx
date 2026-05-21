@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer } from "lucide-react";
-=======
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer } from "lucide-react";
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,10 +20,7 @@ import { sanitizeOptometryInput, getFieldTypeFromName } from "@/lib/validation";
 import { ScanReportGallery } from "@/components/ScanReportGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-<<<<<<< HEAD
-=======
 import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 
 // --- Helper Components ---
 
@@ -75,8 +67,6 @@ function EyeIndicator({ eye, compact }: { eye: "OD" | "OS", compact?: boolean })
   );
 }
 
-<<<<<<< HEAD
-=======
 const DIST_VISION_OPTIONS = ["6/6", "6/6(P)", "6/7.5", "6/7.5(P)", "6/9", "6/9(P)", "6/12", "6/12(P)", "6/18", "6/18(P)", "6/24", "6/24(P)", "6/36", "6/36(P)", "6/60", "6/60(P)", "5/60", "4/60", "3/60", "2/60", "1/60", "CF at 50", "HM(+)", "CFCC", "PLPR accurate", "PLPR inaccurate"] as const;
 const NEAR_VISION_OPTIONS = ["<N36", "N36", "N24", "N18", "N12", "N10", "N8", "N6"] as const;
 
@@ -376,7 +366,6 @@ const PowerPaletteInput = React.memo(({
   );
 });
 
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 // --- Types ---
 
 interface Medication {
@@ -546,9 +535,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     { key: 'watering', label: 'Watering' },
     { key: 'discharge', label: 'Discharge' },
     { key: 'itching', label: 'Itching' },
-<<<<<<< HEAD
-    { key: 'dryness', label: 'Dryness' }
-=======
     { key: 'dryness', label: 'Dry Eyes' },
     { key: 'headache', label: 'Headache' },
     { key: 'doubleVision', label: 'Double Vision' },
@@ -558,19 +544,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     { key: 'flashesOfLight', label: 'Flashes of Light' },
     { key: 'lidSwelling', label: 'Lid Swelling' },
     { key: 'eyeStrain', label: 'Eye Strain' }
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
   ] as const;
 
   // Form States
   const [investigation, setInvestigation] = useState({
     diagnosisList: {
-<<<<<<< HEAD
-      OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>,
-      OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>
-=======
       OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' } as Record<string, string>,
       OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' } as Record<string, string>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
     },
     eom: { OD: "", OS: "" },
     eyePain: "No",
@@ -747,13 +727,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             setInvestigation({
               ...loadedInv,
               diagnosisList: loadedInv.diagnosisList || {
-<<<<<<< HEAD
-                OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' },
-                OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' }
-=======
                 OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' },
                 OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' }
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
               }
             });
           }
@@ -804,13 +779,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     // 1. Reset all internal form states to prevent data leakage from previous patient
     setInvestigation({
       diagnosisList: {
-<<<<<<< HEAD
-        OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' },
-        OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' }
-=======
         OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' },
         OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' }
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
       },
       eom: { OD: "", OS: "" },
       eyePain: "No",
@@ -930,13 +900,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         // Sync initial diagnosis values if provided by refraction
         if (!finalDiagnosis.OD && !finalDiagnosis.OS && data?.ocularComplaint) {
           const newDiagList = {
-<<<<<<< HEAD
-            OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>,
-            OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No' } as Record<string, string>
-=======
             OD: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' } as Record<string, string>,
             OS: { eyePain: 'No', blurredVision: 'No', irritation: 'No', photophobia: 'No', redness: 'No', watering: 'No', discharge: 'No', itching: 'No', dryness: 'No', headache: 'No', doubleVision: 'No', floaters: 'No', burningSensation: 'No', foreignBodySensation: 'No', flashesOfLight: 'No', lidSwelling: 'No', eyeStrain: 'No' } as Record<string, string>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
           };
 
           // Split complaints by comma
@@ -2633,48 +2598,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     <EyeIndicator eye={eye as "OD" | "OS"} compact />
                                   </TableCell>
                                   <TableCell>
-<<<<<<< HEAD
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].sphere}
-                                      onChange={e => updateGlassPrescription('distance', eye as any, 'sphere', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].cylinder}
-                                      onChange={e => updateGlassPrescription('distance', eye as any, 'cylinder', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].axis}
-                                      onChange={e => updateGlassPrescription('distance', eye as any, 'axis', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].sphere}
-                                      onChange={e => updateGlassPrescription('near', eye as any, 'sphere', e.target.value)}
-                                      placeholder="+"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20 border-l border-slate-200">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].cylinder}
-                                      onChange={e => updateGlassPrescription('near', eye as any, 'cylinder', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].axis}
-                                      onChange={e => updateGlassPrescription('near', eye as any, 'axis', e.target.value)}
-=======
                                     <PowerPaletteInput
                                       className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
                                       value={(glassPrescription.distance as any)[eye].sphere}
@@ -2727,7 +2650,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       onChange={val => updateGlassPrescription('near', eye as any, 'axis', val)}
                                       label={`${eye} NV (AXIS)`}
                                       type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                     />
                                   </TableCell>
                                 </TableRow>
@@ -2746,66 +2668,38 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             <div className="grid grid-cols-3 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (SPH)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(glassPrescription.distance as any)[eye].sphere}
-                                  onChange={e => updateGlassPrescription('distance', eye as any, 'sphere', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(glassPrescription.distance as any)[eye].sphere}
                                   onChange={val => updateGlassPrescription('distance', eye as any, 'sphere', val)}
                                   label={`${eye} DV (SPH)`}
                                   type="sph"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (CYL)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(glassPrescription.distance as any)[eye].cylinder}
-                                  onChange={e => updateGlassPrescription('distance', eye as any, 'cylinder', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(glassPrescription.distance as any)[eye].cylinder}
                                   onChange={val => updateGlassPrescription('distance', eye as any, 'cylinder', val)}
                                   label={`${eye} DV (CYL)`}
                                   type="cyl"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (AXIS)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(glassPrescription.distance as any)[eye].axis}
-                                  onChange={e => updateGlassPrescription('distance', eye as any, 'axis', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(glassPrescription.distance as any)[eye].axis}
                                   onChange={val => updateGlassPrescription('distance', eye as any, 'axis', val)}
                                   label={`${eye} DV (AXIS)`}
                                   type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                             </div>
                             <div className="pt-2 grid grid-cols-3 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(glassPrescription.near as any)[eye].sphere}
-                                  onChange={e => updateGlassPrescription('near', eye as any, 'sphere', e.target.value)}
-                                  placeholder="+"
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(glassPrescription.near as any)[eye].sphere}
@@ -2813,41 +2707,26 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   placeholder="+"
                                   label={`${eye} NV (SPH)`}
                                   type="sph"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (CYL)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(glassPrescription.near as any)[eye].cylinder}
-                                  onChange={e => updateGlassPrescription('near', eye as any, 'cylinder', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(glassPrescription.near as any)[eye].cylinder}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'cylinder', val)}
                                   label={`${eye} NV (CYL)`}
                                   type="cyl"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (AXIS)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(glassPrescription.near as any)[eye].axis}
-                                  onChange={e => updateGlassPrescription('near', eye as any, 'axis', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(glassPrescription.near as any)[eye].axis}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'axis', val)}
                                   label={`${eye} NV (AXIS)`}
                                   type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                             </div>
@@ -2913,48 +2792,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     <EyeIndicator eye={eye as "OD" | "OS"} compact />
                                   </TableCell>
                                   <TableCell>
-<<<<<<< HEAD
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].sphere}
-                                      onChange={e => updateContactLensPrescription('distance', eye as any, 'sphere', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].cylinder}
-                                      onChange={e => updateContactLensPrescription('distance', eye as any, 'cylinder', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].axis}
-                                      onChange={e => updateContactLensPrescription('distance', eye as any, 'axis', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].sphere}
-                                      onChange={e => updateContactLensPrescription('near', eye as any, 'sphere', e.target.value)}
-                                      placeholder="+"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20 border-l border-slate-200">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].cylinder}
-                                      onChange={e => updateContactLensPrescription('near', eye as any, 'cylinder', e.target.value)}
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <Input
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].axis}
-                                      onChange={e => updateContactLensPrescription('near', eye as any, 'axis', e.target.value)}
-=======
                                     <PowerPaletteInput
                                       className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
                                       value={(contactLensPrescription.distance as any)[eye].sphere}
@@ -3007,7 +2844,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       onChange={val => updateContactLensPrescription('near', eye as any, 'axis', val)}
                                       label={`${eye} NV (AXIS)`}
                                       type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                     />
                                   </TableCell>
                                 </TableRow>
@@ -3026,66 +2862,38 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             <div className="grid grid-cols-3 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (SPH)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(contactLensPrescription.distance as any)[eye].sphere}
-                                  onChange={e => updateContactLensPrescription('distance', eye as any, 'sphere', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(contactLensPrescription.distance as any)[eye].sphere}
                                   onChange={val => updateContactLensPrescription('distance', eye as any, 'sphere', val)}
                                   label={`${eye} DV (SPH)`}
                                   type="sph"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (CYL)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(contactLensPrescription.distance as any)[eye].cylinder}
-                                  onChange={e => updateContactLensPrescription('distance', eye as any, 'cylinder', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(contactLensPrescription.distance as any)[eye].cylinder}
                                   onChange={val => updateContactLensPrescription('distance', eye as any, 'cylinder', val)}
                                   label={`${eye} DV (CYL)`}
                                   type="cyl"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (AXIS)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
-                                  value={(contactLensPrescription.distance as any)[eye].axis}
-                                  onChange={e => updateContactLensPrescription('distance', eye as any, 'axis', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center text-sm font-black bg-white rounded-none border-slate-200"
                                   value={(contactLensPrescription.distance as any)[eye].axis}
                                   onChange={val => updateContactLensPrescription('distance', eye as any, 'axis', val)}
                                   label={`${eye} DV (AXIS)`}
                                   type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                             </div>
                             <div className="pt-2 grid grid-cols-3 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(contactLensPrescription.near as any)[eye].sphere}
-                                  onChange={e => updateContactLensPrescription('near', eye as any, 'sphere', e.target.value)}
-                                  placeholder="+"
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(contactLensPrescription.near as any)[eye].sphere}
@@ -3093,41 +2901,26 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   placeholder="+"
                                   label={`${eye} NV (SPH)`}
                                   type="sph"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (CYL)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(contactLensPrescription.near as any)[eye].cylinder}
-                                  onChange={e => updateContactLensPrescription('near', eye as any, 'cylinder', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(contactLensPrescription.near as any)[eye].cylinder}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'cylinder', val)}
                                   label={`${eye} NV (CYL)`}
                                   type="cyl"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (AXIS)</label>
-<<<<<<< HEAD
-                                <Input
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
-                                  value={(contactLensPrescription.near as any)[eye].axis}
-                                  onChange={e => updateContactLensPrescription('near', eye as any, 'axis', e.target.value)}
-=======
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(contactLensPrescription.near as any)[eye].axis}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'axis', val)}
                                   label={`${eye} NV (AXIS)`}
                                   type="axis"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                 />
                               </div>
                             </div>

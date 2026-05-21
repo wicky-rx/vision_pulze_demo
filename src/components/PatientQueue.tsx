@@ -98,10 +98,7 @@ interface EditFormData {
   specializationId?: string;
   address?: string;
   timeSlot?: string;
-<<<<<<< HEAD
-=======
   complaint?: string;
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 }
 
 export function PatientQueue({
@@ -147,10 +144,7 @@ export function PatientQueue({
     doctorName: "",
     specializationId: "",
     address: "",
-<<<<<<< HEAD
-=======
     complaint: "",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
   });
   
   const [internalDoctors, setInternalDoctors] = useState<any[]>([]);
@@ -215,10 +209,7 @@ export function PatientQueue({
           contactNumber: p.patient?.contactNumber || p.mobile || p.contactNumber || "—",
           secondaryContact: p.patient?.secondaryContact || p.secondaryContact || "",
           co: p.patient?.co || p.co || "",
-<<<<<<< HEAD
-=======
           complaint: p.complaint || "",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
           registeredAt: p.visitedAt ? new Date(p.visitedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
           opId: p.opId || (p.mrNumber ? `OP-${p.mrNumber.toString().slice(-4)}` : "—"),
           appointmentId: p.consultation?.appointmentId || p.appointmentId || "",
@@ -338,10 +329,7 @@ export function PatientQueue({
       doctorName: (patient as any).consultingDoctorName || "",
       specializationId: "", // will be set if doctor is pre-assigned and found
       timeSlot: (patient as any).appointment?.timeSlot || "",
-<<<<<<< HEAD
-=======
       complaint: (patient as any).complaint || "",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
     } as any);
   };
 
@@ -492,10 +480,7 @@ export function PatientQueue({
           doctorId: editFormData.doctorId || undefined,
           doctorName: editFormData.doctorName || undefined,
           timeSlot: editFormData.timeSlot || undefined,
-<<<<<<< HEAD
-=======
           complaint: editFormData.complaint || undefined,
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
         }),
       });
 
@@ -528,10 +513,7 @@ export function PatientQueue({
                 co: editFormData.co as any,
                 consultingDoctorId: editFormData.doctorId as any,
                 consultingDoctorName: editFormData.doctorName as any,
-<<<<<<< HEAD
-=======
                 complaint: editFormData.complaint || "",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
               }
             : p
         )
@@ -1043,69 +1025,6 @@ export function PatientQueue({
                 </Select>
               </div>
 
-<<<<<<< HEAD
-              {/* Time Slot & Scans */}
-              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-                {editFormData.doctorId && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Time Slot</Label>
-                    <Select
-                      value={editFormData.timeSlot}
-                      onValueChange={(val) => handleEditField("timeSlot", val)}
-                      disabled={editLoading}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Select Slot" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                          const doc = doctors.find(d => d.id === editFormData.doctorId);
-                          const daySlots = (doc?.schedules || [])
-                            .filter((s: any) => s.dayOfWeek === new Date().getDay())
-                            .sort((a, b) => a.startTime.localeCompare(b.startTime));
-                          
-                          const now = new Date();
-                          const currentTimeNum = now.getHours() * 60 + now.getMinutes();
-
-                          if (daySlots.length === 0) {
-                            return <div className="py-2 px-3 text-[10px] text-muted-foreground italic text-center">No slots configured for today</div>;
-                          }
-
-                          return daySlots.map((s, idx) => {
-                            const val = `${s.startTime}-${s.endTime}`;
-                            const [eh, em] = s.endTime.split(":").map(Number);
-                            const isEnded = (eh * 60 + em) <= currentTimeNum;
-                            
-                            return (
-                              <SelectItem key={s.id} value={val} className="text-xs group focus:bg-orange-600 focus:text-white">
-                                <div className="flex items-center gap-2">
-                                  <span className={cn(
-                                    "px-1 py-0.5 text-[9px] font-black rounded-sm border",
-                                    isEnded ? "border-slate-200 text-slate-400 bg-slate-50" : "bg-orange-100 text-orange-700 border-orange-200 group-focus:bg-white group-focus:text-orange-600"
-                                  )}>S{idx + 1}</span>
-                                  <span className={cn(isEnded && "text-muted-foreground line-through opacity-50")}>
-                                    {formatToAMPM(s.startTime)} - {formatToAMPM(s.endTime)}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            );
-                          });
-                        })()}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium opacity-0 sm:block hidden">Scan Gallery</Label>
-                  <ScanReportGallery 
-                    mrNumber={editingPatient?.mrNumber} 
-                    visitId={editingPatient?.id}
-                    variant="compact"
-                    showButton={false}
-                    allowUpload={true} 
-                  />
-=======
               {/* Bottom Layout Grid: Ocular Complaints left, Time Slot and Scans right */}
               <div className="col-span-1 sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 {/* Left Column: Ocular Complaint(s) */}
@@ -1208,7 +1127,6 @@ export function PatientQueue({
                       allowUpload={true} 
                     />
                   </div>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                 </div>
               </div>
             </div>

@@ -282,19 +282,11 @@ export function DoctorSchedulesPanel() {
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-<<<<<<< HEAD
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            {viewMode === 'DAILY' ? (
-               <><CalendarIcon className="w-4 h-4 text-primary" /> Appointments Panel</>
-            ) : (
-               <><Settings className="w-4 h-4 text-primary" /> Manage Slots</>
-=======
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
             {viewMode === 'DAILY' ? (
                <><CalendarIcon className="w-4 h-4 text-orange-600" /> Appointments Panel</>
             ) : (
                <><Settings className="w-4 h-4 text-orange-600" /> Manage Slots</>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
             )}
           </h3>
           <Button 
@@ -313,11 +305,7 @@ export function DoctorSchedulesPanel() {
             <Button
               variant="ghost"
               size="icon"
-<<<<<<< HEAD
-              className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
-=======
               className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
               onClick={() => setDate(d => subDays(d, 1))}
               title="Previous Day"
             >
@@ -326,13 +314,8 @@ export function DoctorSchedulesPanel() {
             
             <Popover>
               <PopoverTrigger asChild>
-<<<<<<< HEAD
-                <Button variant="outline" className="flex-1 justify-start text-xs h-9 font-bold bg-white border-slate-200 text-slate-700 hover:bg-[#1a365d] hover:text-white hover:border-[#1a365d] transition-all duration-300 rounded-none shadow-sm group">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-900 transition-colors" />
-=======
                 <Button variant="outline" className="flex-1 justify-start text-sm h-10 font-bold bg-white border-slate-200 text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600 data-[state=open]:border-orange-200 transition-all duration-300 rounded-none shadow-sm group">
                   <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-600 group-data-[state=open]:text-orange-600 transition-colors" />
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                   {format(date, "MMMM do, yyyy")}
                 </Button>
               </PopoverTrigger>
@@ -349,11 +332,7 @@ export function DoctorSchedulesPanel() {
             <Button
               variant="ghost"
               size="icon"
-<<<<<<< HEAD
-              className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
-=======
               className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
               onClick={() => setDate(d => addDays(d, 1))}
               title="Next Day"
             >
@@ -391,15 +370,6 @@ export function DoctorSchedulesPanel() {
           ) : (
             dailySchedules.map((doc) => (
               <Card key={doc.id} className="border-slate-200 shadow-none overflow-hidden bg-white">
-<<<<<<< HEAD
-                <div className="bg-slate-50/50 p-2 border-b border-slate-100">
-                  <p className="text-[11px] font-bold text-slate-900 truncate">{doc.name}</p>
-                  <p className="text-[9px] text-slate-500 uppercase tracking-tighter">{doc.specialization?.name || "General"}</p>
-                </div>
-                <CardContent className="p-2 space-y-3">
-                  <div className="space-y-1">
-                     <p className="text-[10px] text-slate-400 font-medium px-0.5">Availability</p>
-=======
                 <div className="bg-slate-50/50 p-2.5 border-b border-slate-100">
                   <p className="text-sm font-bold text-slate-900 truncate">{doc.name}</p>
                   <p className="text-[11px] text-slate-500 uppercase tracking-tighter">{doc.specialization?.name || "General"}</p>
@@ -407,7 +377,6 @@ export function DoctorSchedulesPanel() {
                 <CardContent className="p-2 space-y-3">
                   <div className="space-y-1.5">
                      <p className="text-xs text-slate-400 font-bold px-0.5">Availability</p>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                       {doc.todaySlots
                         .sort((a: any, b: any) => {
                           const [ah, am] = a.startTime.split(":").map(Number);
@@ -424,21 +393,13 @@ export function DoctorSchedulesPanel() {
                           
                           return (
                             <div key={s.id} className={cn(
-<<<<<<< HEAD
-                              "flex items-center gap-1.5 text-[10px] border rounded px-2 py-1 transition-all",
-=======
                               "flex items-center gap-1.5 text-xs border rounded px-2.5 py-1.5 transition-all",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                               isEnded 
                                 ? "bg-slate-100/50 border-slate-200 text-slate-400 grayscale-[0.5]" 
                                 : "bg-slate-50 border-slate-100/50 text-slate-600"
                             )}>
                                <span className={cn(
-<<<<<<< HEAD
-                                 "font-black mr-1 min-w-[14px]",
-=======
                                  "font-black mr-1 min-w-[16px]",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                  isEnded ? "text-slate-300" : "text-primary/40"
                                )}>S{idx+1}</span>
                                <Clock className={cn("w-3 h-3", isEnded ? "text-slate-300" : "text-primary/60")} />
@@ -450,28 +411,6 @@ export function DoctorSchedulesPanel() {
                       })}
                   </div>
                   
-<<<<<<< HEAD
-                  <div className="space-y-1">
-                     <p className="text-[10px] text-slate-400 font-medium px-0.5">Appointments ({doc.todayAppointments.length})</p>
-                     <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-thin pr-1 pb-1">
-                        {doc.todayAppointments.length === 0 ? (
-                          <p className="text-[9px] text-slate-300 italic px-1">No bookings yet</p>
-                        ) : (
-                          doc.todayAppointments.map((app: any) => (
-                             <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-blue-50/40 border border-blue-100/50 hover:bg-blue-100/40 transition-all">
-                                <div className="min-w-0 flex-1 mr-2">
-                                   <div className="flex items-center justify-between gap-3">
-                                      <p className="text-[13px] font-bold text-slate-900 truncate tracking-tight">{app.patient?.name}</p>
-                                      <p className="text-[11px] text-slate-500 font-bold font-mono tracking-tighter shrink-0">{app.patient?.mrNumber}</p>
-                                   </div>
-                                   <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
-                                      {app.appointmentId && (
-                                        <p className="text-[10px] text-primary/60 font-bold shrink-0">ID: {app.appointmentId}</p>
-                                      )}
-                                      {app.timeSlot && (
-                                        <div className="text-[10px] text-primary/80 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
-                                           {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-[#1a365d]/10 text-[#1a365d] px-1 py-0.5 text-[8px] font-black rounded-sm leading-none min-w-[14px] text-center border border-[#1a365d]/20 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
-=======
                   <div className="space-y-1.5">
                      <p className="text-xs text-slate-400 font-bold px-0.5">Appointments ({doc.todayAppointments.length})</p>
                      <div className="space-y-1.5 max-h-[180px] overflow-y-auto scrollbar-thin pr-1 pb-1">
@@ -492,7 +431,6 @@ export function DoctorSchedulesPanel() {
                                       {app.timeSlot && (
                                         <div className="text-[11px] text-orange-600/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
                                            {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-orange-50 text-orange-600 px-1 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[16px] text-center border border-orange-200/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                         </div>
                                       )}
                                       {app.notes && (
@@ -500,20 +438,12 @@ export function DoctorSchedulesPanel() {
                                           <TooltipProvider delayDuration={0}>
                                             <Tooltip>
                                               <TooltipTrigger asChild>
-<<<<<<< HEAD
-                                                <div className="cursor-help transition-colors hover:text-primary">
-=======
                                                 <div className="cursor-help transition-colors hover:text-orange-600">
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                                   <Info className="w-3 h-3 text-slate-400" />
                                                 </div>
                                               </TooltipTrigger>
                                               <TooltipContent className="max-w-[200px] text-xs p-2 bg-slate-900 text-white border-0 shadow-xl">
-<<<<<<< HEAD
-                                                <p className="font-medium mb-1 border-b border-white/10 pb-1 text-[10px] opacity-70">Instructional Note:</p>
-=======
                                                 <p className="font-medium mb-1 border-b border-white/10 pb-1 text-xs opacity-70">Instructional Note:</p>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                                 <p>{app.notes}</p>
                                               </TooltipContent>
                                             </Tooltip>
@@ -529,11 +459,7 @@ export function DoctorSchedulesPanel() {
                                         <Button 
                                           size="icon" 
                                           variant="ghost" 
-<<<<<<< HEAD
-                                          className="h-7 w-7 rounded-full bg-primary/5 hover:bg-primary/20 hover:text-primary transition-colors shrink-0"
-=======
                                           className="h-7 w-7 rounded-full bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-600 border border-orange-200/50 transition-colors shrink-0"
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                           onClick={() => handleCreateVisit(app.id)}
                                           title="Add to Visit Queue"
                                         >
@@ -552,19 +478,11 @@ export function DoctorSchedulesPanel() {
                                      </>
                                    )}
                                    {app.status === 'VISITED' && (
-<<<<<<< HEAD
-                                     <Badge variant="secondary" className="bg-green-100 text-[9px] h-5 px-1.5 text-green-700 border-green-200">Visited</Badge>
-                                   )}
-                                </div>
-                             </div>
-                          ))
-=======
                                      <Badge variant="secondary" className="bg-green-100 text-[11px] h-5 px-1.5 text-green-700 border-green-200">Visited</Badge>
                                    )}
                                 </div>
                              </div>
                            ))
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                         )}
                      </div>
                   </div>
@@ -618,11 +536,7 @@ export function DoctorSchedulesPanel() {
                      </div>
                   </div>
 
-<<<<<<< HEAD
-                  <Button className="w-full h-8 gap-2 text-xs" onClick={handleAddSlot} disabled={isSubmitting}>
-=======
                   <Button className="w-full h-8 gap-2 text-xs bg-orange-600 hover:bg-black text-white rounded-none border border-transparent shadow-sm hover:shadow transition-colors" onClick={handleAddSlot} disabled={isSubmitting}>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                     <Plus className="w-3 h-3" />
                     {isSubmitting ? "Adding..." : "Add Slot"}
                   </Button>
@@ -664,31 +578,19 @@ export function DoctorSchedulesPanel() {
                               return (
                                 <div key={day} className="space-y-2">
                                   <div className="flex items-center gap-2 px-1">
-<<<<<<< HEAD
-                                    <p className="text-[10px] font-black text-[#1a365d] uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
-=======
                                     <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                     <div className="h-px flex-1 bg-slate-100" />
                                   </div>
                                   <div className="space-y-1.5">
                                     {daySlots.map((s: any, idx: number) => (
-<<<<<<< HEAD
-                                      <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-blue-200 hover:shadow-sm transition-all">
-=======
                                       <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-orange-200 hover:shadow-sm transition-all">
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                         <div className="flex items-center gap-3">
                                           <div className="w-7 h-7 rounded-none bg-slate-50 flex items-center justify-center text-[9px] font-black text-slate-400 border border-slate-100">
                                             S{idx + 1}
                                           </div>
                                           <div>
                                             <p className="text-[10px] font-black text-slate-700 flex items-center gap-1.5">
-<<<<<<< HEAD
-                                              <Clock className="w-3 h-3 text-blue-500" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
-=======
                                               <Clock className="w-3 h-3 text-orange-500" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                                             </p>
                                           </div>
                                         </div>

@@ -36,18 +36,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-none w-9 font-normal text-[0.8rem]",
         row: "flex w-full",
-<<<<<<< HEAD
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-none [&:has([aria-selected].day-outside)]:bg-[#1a365d]/5 [&:has([aria-selected])]:bg-[#1a365d]/10 first:[&:has([aria-selected])]:rounded-none last:[&:has([aria-selected])]:rounded-none focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-none"),
-        day_range_end: "day-range-end",
-        day_selected:
-          "bg-[#1a365d] text-white hover:bg-[#1a365d] hover:text-white focus:bg-[#1a365d] focus:text-white rounded-none",
-        day_today: "bg-slate-100 text-slate-900 rounded-none",
-        day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-[#1a365d]/5 aria-selected:text-muted-foreground aria-selected:opacity-30",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle: "aria-selected:bg-[#1a365d]/5 aria-selected:text-[#1a365d]",
-=======
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-none [&:has([aria-selected].day-outside)]:bg-orange-50/50 [&:has([aria-selected])]:bg-orange-50 first:[&:has([aria-selected])]:rounded-none last:[&:has([aria-selected])]:rounded-none focus-within:relative focus-within:z-20",
         day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-none"),
         day_range_end: "day-range-end",
@@ -58,7 +46,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-orange-50/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle: "aria-selected:bg-orange-50 aria-selected:text-orange-600",
->>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
         day_hidden: "invisible",
         ...classNames,
       }}

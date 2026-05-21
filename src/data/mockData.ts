@@ -35,6 +35,7 @@ export interface Patient {
   mobile?: string;
   parentMrNumber?: string;
   relationshipType?: string;
+  complaint?: string;
 }
 
 export const mockPatients: Patient[] = [
