@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+<<<<<<< HEAD
 import { UserPlus, Search, Calendar as CalendarIcon, Phone, ArrowRight, Printer, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Clock, ClipboardList, Pencil } from "lucide-react";
+=======
+import { UserPlus, Search, Calendar as CalendarIcon, Phone, ArrowRight, Printer, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Clock, ClipboardList, Pencil, ChevronDown } from "lucide-react";
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,8 +92,16 @@ export function ReceptionStation() {
     relationship: "",
     dob: "",
     mrNumber: "",
+<<<<<<< HEAD
   });
 
+=======
+    complaint: "",
+  });
+
+  const [returningComplaint, setReturningComplaint] = useState("");
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
   // DOB helper states (also updates formData.dob)
   const [dobPickerValue, setDobPickerValue] = useState(""); // ISO date string for <input type="date">
   const [dobTextValue, setDobTextValue] = useState("");     // Raw DD/MM/YYYY text typed by user
@@ -130,6 +142,34 @@ export function ReceptionStation() {
 
   const { toast } = useToast();
 
+<<<<<<< HEAD
+=======
+  // Helper to determine if a doctor is currently active (on-duty within their schedule session)
+  const isDoctorActiveNow = (doc: any) => {
+    const today = new Date().getDay();
+    const now = new Date();
+    const currentTimeNum = now.getHours() * 60 + now.getMinutes();
+    return doc.schedules?.some((s: any) => {
+      if (s.dayOfWeek !== today) return false;
+      const [sh, sm] = s.startTime.split(":").map(Number);
+      const [eh, em] = s.endTime.split(":").map(Number);
+      const startNum = sh * 60 + sm;
+      const endNum = eh * 60 + em;
+      // Active if within schedule window (with 45 mins buffer)
+      return (currentTimeNum >= startNum - 45 && currentTimeNum <= endNum + 45);
+    });
+  };
+
+  // Sort doctors: on-duty (active now) first, then alphabetical
+  const sortedDoctors = [...doctors].sort((a, b) => {
+    const aActive = isDoctorActiveNow(a);
+    const bActive = isDoctorActiveNow(b);
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
   useEffect(() => {
     if (dobPopoverOpen && formData.dob) {
       setCalendarMonth(new Date(formData.dob));
@@ -356,6 +396,10 @@ export function ReceptionStation() {
 
   const handleStartNewVisit = async (mrNumber: string) => {
     setAssigningPatientMrn(mrNumber);
+<<<<<<< HEAD
+=======
+    setReturningComplaint("");
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
     setIsDoctorSelectOpen(true);
   };
 
@@ -378,7 +422,12 @@ export function ReceptionStation() {
         body: JSON.stringify({
           doctorId: selectedDoctorId || undefined,
           doctorName: doctor ? doctor.name : undefined,
+<<<<<<< HEAD
           timeSlot: selectedTimeSlot || undefined
+=======
+          timeSlot: selectedTimeSlot || undefined,
+          complaint: returningComplaint || undefined
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
         })
       });
 
@@ -395,6 +444,10 @@ export function ReceptionStation() {
       setIsDoctorSelectOpen(false);
       setAssigningPatientMrn(null);
       setSelectedDoctorId("");
+<<<<<<< HEAD
+=======
+      setReturningComplaint("");
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
 
       // Update the local list so the button becomes disabled without a full refetch
       setReturningPatients(prev => prev.map(p =>
@@ -649,6 +702,10 @@ export function ReceptionStation() {
         relationship: "",
         dob: "",
         mrNumber: "",
+<<<<<<< HEAD
+=======
+        complaint: "",
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
       });
       // Reset selections
       setSelectedDoctorId("");
@@ -689,7 +746,13 @@ export function ReceptionStation() {
       <div className="bg-white border-b border-orange-100 px-4 md:px-8 py-3 flex items-center justify-between shrink-0 shadow-sm z-20 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
         <div className="flex items-center gap-5 relative z-10">
+<<<<<<< HEAD
           <div className="p-3 bg-orange-600 text-white shadow-lg"><UserPlus className="w-6 h-6 shrink-0" /></div>
+=======
+          <div className="p-3 bg-orange-600 text-white shadow-lg shrink-0">
+            <UserPlus className="w-6 h-6 shrink-0" />
+          </div>
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
           <div className="flex flex-col">
             <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Patient Enrollment</span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tighter">Registration Profile</h1>
@@ -699,7 +762,11 @@ export function ReceptionStation() {
 
       <div className="flex-1 p-3 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-y-auto lg:overflow-y-hidden bg-orange-50/30 relative overflow-x-hidden">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
+<<<<<<< HEAD
         <Tabs defaultValue="new" className="flex-1 flex flex-col min-w-0 lg:overflow-y-auto px-1 relative z-10
+=======
+        <Tabs defaultValue="new" className="w-full lg:flex-1 flex flex-col lg:min-h-0 lg:overflow-y-auto px-1 relative z-10
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
           lg:[&::-webkit-scrollbar]:w-1 
           lg:[&::-webkit-scrollbar-track]:bg-transparent 
           lg:[&::-webkit-scrollbar-thumb]:bg-slate-200/50 
@@ -886,6 +953,7 @@ export function ReceptionStation() {
                       setSelectedDoctorId(val);
                       setSelectedTimeSlot("");
                     }}>
+<<<<<<< HEAD
                       <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white">
                         <SelectValue placeholder="Identify Consultant..." />
                       </SelectTrigger>
@@ -903,6 +971,47 @@ export function ReceptionStation() {
                             </div>
                           </SelectItem>
                         ))}
+=======
+                      <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white w-full">
+                        {selectedDoctorId ? (
+                          (() => {
+                            const doc = doctors.find(d => d.id === selectedDoctorId);
+                            if (!doc) return <SelectValue placeholder="Identify Consultant..." />;
+                            const isActive = isDoctorActiveNow(doc);
+                            return (
+                              <div className="flex items-center justify-between w-full pr-2 text-left">
+                                <span className="font-bold text-slate-900 uppercase tracking-tight text-xs truncate mr-2">{doc.name}</span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isActive && (
+                                    <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">ON DUTY</Badge>
+                                  )}
+                                  <span className="text-[9px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <SelectValue placeholder="Identify Consultant..." />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent className="rounded-none border-slate-200 shadow-xl">
+                        {sortedDoctors.map(doc => {
+                          const isActive = isDoctorActiveNow(doc);
+                          return (
+                            <SelectItem key={doc.id} value={doc.id} className="group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
+                              <div className="flex items-center justify-between w-full py-1.5 gap-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
+                                  {isActive && (
+                                    <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                       </SelectContent>
                     </Select>
                   </div>
@@ -916,8 +1025,13 @@ export function ReceptionStation() {
                       )}
                     </div>
                     {selectedDoctorId ? (
+<<<<<<< HEAD
                       <Select 
                         value={selectedTimeSlot} 
+=======
+                      <Select
+                        value={selectedTimeSlot}
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                         onValueChange={(val) => {
                           if (val === "ACTION:SCHEDULE") {
                             handleOpenAppointmentDialog(formData.mrNumber || null, formData.name || "New Patient", "SCHEDULE");
@@ -942,7 +1056,11 @@ export function ReceptionStation() {
                               const currentTimeNum = now.getHours() * 60 + now.getMinutes();
 
                               const daySlots = (doc?.schedules || []).filter((s: any) => s.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
+<<<<<<< HEAD
                               
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                               const availableSlots = daySlots.filter((s: any) => {
                                 if (!isToday) return true;
                                 const [eh, em] = s.endTime.split(":").map(Number);
@@ -952,7 +1070,11 @@ export function ReceptionStation() {
                               });
 
                               if (availableSlots.length === 0) return <div className="py-2 px-3 text-[10px] text-muted-foreground italic text-center uppercase tracking-tighter">No slots {isToday ? 'today' : 'on selected date'}</div>;
+<<<<<<< HEAD
                               
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                               return availableSlots.map((s: any) => {
                                 const slotIdx = daySlots.findIndex(allS => allS.id === s.id);
                                 return (
@@ -964,8 +1086,13 @@ export function ReceptionStation() {
                             })()}
                           </div>
                           <div className="border-t border-slate-100 mt-1">
+<<<<<<< HEAD
                             <SelectItem 
                               value="ACTION:SCHEDULE" 
+=======
+                            <SelectItem
+                              value="ACTION:SCHEDULE"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                               className="text-[10px] font-bold text-orange-600 focus:bg-orange-50 focus:text-orange-600 rounded-none py-3 cursor-pointer flex items-center gap-2"
                             >
                               <CalendarIcon className="w-3.5 h-3.5" />
@@ -986,6 +1113,7 @@ export function ReceptionStation() {
                   </div>
                 </div>
 
+<<<<<<< HEAD
                 <div className="space-y-2">
                   <Label className="clinical-label">Address Details</Label>
                   <div className="space-y-3">
@@ -994,37 +1122,78 @@ export function ReceptionStation() {
                         <Input
                           placeholder="Door No"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: Address Details */}
+                  <div className="lg:col-span-7 space-y-3.5 p-4 border border-slate-100 bg-slate-50/5/10 rounded-sm">
+                    <Label className="clinical-label text-slate-700">Address Details</Label>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                      <div className="sm:col-span-2 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">Door No</Label>
+                        <Input
+                          placeholder="Door No"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.doorNo}
                           onChange={(e) => handleInputChange("doorNo", e.target.value)}
                         />
                       </div>
+<<<<<<< HEAD
                       <div className="flex-[2] min-w-0">
                         <Input
                           placeholder="Street"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+                      <div className="sm:col-span-4 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">Street</Label>
+                        <Input
+                          placeholder="Street"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.street}
                           onChange={(e) => handleInputChange("street", e.target.value)}
                         />
                       </div>
+<<<<<<< HEAD
                       <div className="flex-[1.5] min-w-0">
                         <Input
                           placeholder="Area"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+                      <div className="sm:col-span-3 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">Area</Label>
+                        <Input
+                          placeholder="Area"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.area}
                           onChange={(e) => handleInputChange("area", e.target.value)}
                         />
                       </div>
+<<<<<<< HEAD
                       <div className="flex-[1.5] min-w-0 relative group">
                         <Input
                           placeholder="City"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+                      <div className="sm:col-span-3 space-y-1 relative group">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">City</Label>
+                        <Input
+                          placeholder="City"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.city}
                           onChange={(e) => handleInputChange("city", e.target.value)}
                           onFocus={() => setCityPopoverOpen(true)}
                           onBlur={() => setTimeout(() => setCityPopoverOpen(false), 200)}
                         />
                         {cityPopoverOpen && formData.city.length >= 1 && (
+<<<<<<< HEAD
                           <div className="absolute top-full left-0 w-64 z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-60 overflow-y-auto">
+=======
+                          <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                             {TN_PLACES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
                               <div
                                 key={ct}
@@ -1041,19 +1210,32 @@ export function ReceptionStation() {
                           </div>
                         )}
                       </div>
+<<<<<<< HEAD
                     </div>
                     <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-2 h-auto md:h-10 w-full md:w-3/4">
                       <div className="flex-1 min-w-0 relative group">
                         <Input
                           placeholder="District"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+
+                      <div className="sm:col-span-4 relative group space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">District</Label>
+                        <Input
+                          placeholder="District"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.district}
                           onChange={(e) => handleInputChange("district", e.target.value)}
                           onFocus={() => setDistrictPopoverOpen(true)}
                           onBlur={() => setTimeout(() => setDistrictPopoverOpen(false), 200)}
                         />
                         {districtPopoverOpen && formData.district.length >= 1 && (
+<<<<<<< HEAD
                           <div className="absolute top-full left-0 w-64 z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-60 overflow-y-auto">
+=======
+                          <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                             {TN_DISTRICTS.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
                               <div
                                 key={dist}
@@ -1070,17 +1252,30 @@ export function ReceptionStation() {
                           </div>
                         )}
                       </div>
+<<<<<<< HEAD
                       <div className="flex-1 min-w-0 relative group">
                         <Input
                           placeholder="State"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+
+                      <div className="sm:col-span-5 relative group space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">State</Label>
+                        <Input
+                          placeholder="State"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.state}
                           onChange={(e) => handleInputChange("state", e.target.value)}
                           onFocus={() => setStatePopoverOpen(true)}
                           onBlur={() => setTimeout(() => setStatePopoverOpen(false), 200)}
                         />
                         {statePopoverOpen && formData.state.length >= 1 && (
+<<<<<<< HEAD
                           <div className="absolute top-full left-0 w-64 z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-60 overflow-y-auto">
+=======
+                          <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                             {INDIAN_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
                               <div
                                 key={st}
@@ -1097,14 +1292,24 @@ export function ReceptionStation() {
                           </div>
                         )}
                       </div>
+<<<<<<< HEAD
                       <div className="flex-[0.7] min-w-0">
                         <Input
                           placeholder="PIN"
                           className="h-10 text-[13px] px-1 border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+=======
+
+                      <div className="sm:col-span-3 space-y-1">
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">PIN</Label>
+                        <Input
+                          placeholder="PIN"
+                          className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                           value={formData.pincode}
                           onChange={(e) => handleInputChange("pincode", e.target.value)}
                           maxLength={6}
                         />
+<<<<<<< HEAD
 
                       </div>
                     </div>
@@ -1157,6 +1362,120 @@ export function ReceptionStation() {
                     {patientData ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
                     {loading ? "Processing..." : patientData ? "Update Patient Record" : "Register Patient"}
                   </Button>
+=======
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Ocular Complaint(s) */}
+                  <div className="lg:col-span-5 space-y-4 p-4 border border-blue-50 bg-blue-50/5/10 rounded-sm flex flex-col justify-between min-h-[175px]">
+                    <div className="space-y-2">
+                      <Label className="clinical-label text-slate-700">Ocular Complaint(s)</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <div className="relative cursor-pointer">
+                            <Input
+                              placeholder="Click to select ocular complaints..."
+                              value={formData.complaint || ""}
+                              onChange={(e) => handleInputChange("complaint", e.target.value)}
+                              className="h-9 pr-8 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none cursor-pointer"
+                            />
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                          </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[420px] p-4 rounded-none border border-slate-200 shadow-xl" align="start">
+                          <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-100">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Select Ocular Complaints</span>
+                            <button
+                              type="button"
+                              onClick={() => handleInputChange("complaint", "")}
+                              className="text-[10px] font-bold text-orange-600 hover:underline"
+                            >
+                              Clear All
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1">
+                            {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
+                              const currentVals = formData.complaint ? formData.complaint.split(", ").map(s => s.trim()) : [];
+                              const isSelected = currentVals.includes(comp);
+                              return (
+                                <button
+                                  key={comp}
+                                  type="button"
+                                  onClick={() => {
+                                    let nextVals;
+                                    if (isSelected) {
+                                      nextVals = currentVals.filter(v => v !== comp);
+                                    } else {
+                                      nextVals = [...currentVals, comp];
+                                    }
+                                    handleInputChange("complaint", nextVals.filter(Boolean).join(", "));
+                                  }}
+                                  className={cn(
+                                    "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
+                                    isSelected
+                                      ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                                  )}
+                                >
+                                  {comp}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-center lg:justify-end gap-3 mt-4 w-full">
+                      {patientData && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setPatientData(null);
+                            setFormData({
+                              name: "",
+                              co: "",
+                              age: "",
+                              gender: "",
+                              doorNo: "",
+                              street: "",
+                              area: "",
+                              city: "",
+                              district: "",
+                              state: "Tamil Nadu",
+                              pincode: "",
+                              contactNumber: "",
+                              secondaryContact: "",
+                              relationship: "",
+                              dob: "",
+                              mrNumber: "",
+                              complaint: "",
+                            });
+                            setParentMrn("");
+                            setSelectedDoctorId("");
+                            setSelectedTimeSlot("");
+                            setSelectedAppointmentDate(new Date());
+                          }}
+                          className="h-10 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-destructive rounded-none"
+                        >
+                          Cancel Edit
+                        </Button>
+                      )}
+                      <Button
+                        onClick={handleRegisterPatient}
+                        disabled={loading}
+                        className={cn(
+                          "w-full lg:w-auto h-10 px-8 gap-2.5 font-black uppercase tracking-widest text-[11px] rounded-none shadow-lg hover:shadow-xl transition-all duration-300",
+                          "bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200"
+                        )}
+                      >
+                        {patientData ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                        {loading ? "Processing..." : patientData ? "Update Record" : "Register Patient"}
+                      </Button>
+                    </div>
+                  </div>
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                 </div>
               </CardContent>
             </Card>
@@ -1247,10 +1566,18 @@ export function ReceptionStation() {
                                   secondaryContact: p.secondaryContact != null ? String(p.secondaryContact) : "",
                                   relationship: p.relationshipType || "",
                                   dob: p.dob || "",
+<<<<<<< HEAD
                                   mrNumber: String(p.mrNumber)
                                 });
                                 // We are on returning tab, but we want to show the Form
                                 document.querySelector('[data-value="new"]')?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+=======
+                                  mrNumber: String(p.mrNumber),
+                                  complaint: ""
+                                });
+                                // We are on returning tab, but we want to show the Form
+                                document.querySelector('[data-value="new"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                               }}
                               className="w-9 h-9 p-0 shrink-0 text-slate-400 hover:text-orange-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all rounded-none"
                               title="Edit Patient Details"
@@ -1374,7 +1701,11 @@ export function ReceptionStation() {
                 }
               `}
             </style>
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
             {/* Screen Preview (Hidden in Print) */}
             <div className="border-4 border-orange-600/20 rounded-none p-8 bg-orange-50/50 space-y-6 print:hidden">
               <div className="text-center border-b border-border pb-3 flex flex-col items-center">
@@ -1416,6 +1747,7 @@ export function ReceptionStation() {
                   <span className="text-muted-foreground">Address</span>
                   <p className="font-semibold text-foreground">
                     {([
+<<<<<<< HEAD
                         patientData?.doorNo,
                         patientData?.street,
                         patientData?.area,
@@ -1424,6 +1756,16 @@ export function ReceptionStation() {
                         patientData?.state,
                         patientData?.pincode
                       ].filter(Boolean).join(", ")
+=======
+                      patientData?.doorNo,
+                      patientData?.street,
+                      patientData?.area,
+                      patientData?.city,
+                      patientData?.district,
+                      patientData?.state,
+                      patientData?.pincode
+                    ].filter(Boolean).join(", ")
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                     ) || patientData?.address || "—"}
                   </p>
                 </div>
@@ -1452,7 +1794,11 @@ export function ReceptionStation() {
               <div className="text-center border-b-2 border-black pb-0.5 mb-1 flex flex-col items-center shrink-0 w-full">
                 <h2 className="font-black text-[9px] m-0 p-0 leading-tight uppercase tracking-tighter text-center w-full">VPN Eye Hospital</h2>
               </div>
+<<<<<<< HEAD
               
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
               <div className="flex flex-row w-full flex-1 gap-1">
                 <div className="flex flex-col gap-0.5 text-[7px] leading-tight flex-1">
                   <div className="flex justify-between items-center border-b border-gray-300 pb-[1px]">
@@ -1481,6 +1827,7 @@ export function ReceptionStation() {
                     <span className="font-bold uppercase text-[6px]">Address:</span>
                     <span className="mt-[1px] line-clamp-2 leading-[1.1] text-[5px]">
                       {([
+<<<<<<< HEAD
                           patientData?.doorNo,
                           patientData?.street,
                           patientData?.area,
@@ -1489,6 +1836,16 @@ export function ReceptionStation() {
                           patientData?.state,
                           patientData?.pincode
                         ].filter(Boolean).join(", ")
+=======
+                        patientData?.doorNo,
+                        patientData?.street,
+                        patientData?.area,
+                        patientData?.city,
+                        patientData?.district,
+                        patientData?.state,
+                        patientData?.pincode
+                      ].filter(Boolean).join(", ")
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                       ) || patientData?.address || "—"}
                     </span>
                   </div>
@@ -1529,11 +1886,16 @@ export function ReceptionStation() {
                 </DialogDescription>
               </div>
             </div>
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
             <div className="p-6 pt-4 space-y-4">
               <div className="space-y-2.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Consulting Physician</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
+<<<<<<< HEAD
                   <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none">
                     <SelectValue placeholder="Select an on-duty doctor..." />
                   </SelectTrigger>
@@ -1559,15 +1921,50 @@ export function ReceptionStation() {
                       }
 
                       return activeDoctors.map(doc => (
+=======
+                  <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none w-full">
+                    {selectedDoctorId ? (
+                      (() => {
+                        const doc = doctors.find(d => d.id === selectedDoctorId);
+                        if (!doc) return <SelectValue placeholder="Select a consulting doctor..." />;
+                        const isActive = isDoctorActiveNow(doc);
+                        return (
+                          <div className="flex items-center justify-between w-full pr-2 text-left">
+                            <span className="font-bold text-slate-900 uppercase tracking-tight text-xs sm:text-sm truncate mr-2">{doc.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {isActive && (
+                                <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">On Duty</Badge>
+                              )}
+                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <SelectValue placeholder="Select a consulting doctor..." />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-200 shadow-xl rounded-none">
+                    {sortedDoctors.map(doc => {
+                      const isActive = isDoctorActiveNow(doc);
+                      return (
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                         <SelectItem key={doc.id} value={doc.id} className="text-xs group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
                           <div className="flex items-center justify-between w-full py-1.5 gap-4">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
+<<<<<<< HEAD
                               <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
+=======
+                              {isActive && (
+                                <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
+                              )}
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                             </div>
                             <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                           </div>
                         </SelectItem>
+<<<<<<< HEAD
                       ));
                     })()}
                   </SelectContent>
@@ -1575,6 +1972,73 @@ export function ReceptionStation() {
               </div>
             </div>
             
+=======
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-slate-100">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Ocular Complaint(s)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="relative cursor-pointer">
+                      <Input
+                        placeholder="Click to select ocular complaints..."
+                        value={returningComplaint || ""}
+                        onChange={(e) => setReturningComplaint(e.target.value)}
+                        className="h-9 pr-8 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none cursor-pointer"
+                      />
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[420px] p-4 rounded-none border border-slate-200 shadow-xl" align="start">
+                    <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-100">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Select Ocular Complaints</span>
+                      <button
+                        type="button"
+                        onClick={() => setReturningComplaint("")}
+                        className="text-[10px] font-bold text-orange-600 hover:underline"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1">
+                      {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
+                        const currentVals = returningComplaint ? returningComplaint.split(", ").map(s => s.trim()) : [];
+                        const isSelected = currentVals.includes(comp);
+                        return (
+                          <button
+                            key={comp}
+                            type="button"
+                            onClick={() => {
+                              let nextVals;
+                              if (isSelected) {
+                                nextVals = currentVals.filter(v => v !== comp);
+                              } else {
+                                nextVals = [...currentVals, comp];
+                              }
+                              setReturningComplaint(nextVals.filter(Boolean).join(", "));
+                            }}
+                            className={cn(
+                              "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
+                              isSelected
+                                ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                            )}
+                          >
+                            {comp}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
             <div className="bg-slate-50/50 border-t border-slate-100 p-4 px-6 flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsDoctorSelectOpen(false)} className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold uppercase tracking-widest text-xs h-10 rounded-none">Cancel</Button>
               <Button
@@ -1679,8 +2143,29 @@ export function ReceptionStation() {
               <div className="space-y-2">
                 <Label className="text-xs font-medium">Consulting Doctor</Label>
                 <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
+<<<<<<< HEAD
                   <SelectTrigger>
                     <SelectValue placeholder="Select Doctor" />
+=======
+                  <SelectTrigger className="w-full">
+                    {selectedDoctorId ? (
+                      (() => {
+                        const doc = doctors.find(d => d.id === selectedDoctorId);
+                        if (!doc) return <SelectValue placeholder="Select Doctor" />;
+                        return (
+                          <div className="flex items-center justify-between w-full pr-2 text-left">
+                            <span className="font-bold text-slate-900 uppercase tracking-tight text-xs truncate mr-2">{doc.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge className="h-4 px-1 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">Available</Badge>
+                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <SelectValue placeholder="Select Doctor" />
+                    )}
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                   </SelectTrigger>
                   <SelectContent>
                     {doctors
@@ -1755,7 +2240,11 @@ export function ReceptionStation() {
                         const [eh, em] = s.endTime.split(":").map(Number);
                         const endNum = eh * 60 + em;
                         const isEnded = isToday && endNum <= currentTimeNum;
+<<<<<<< HEAD
                         
+=======
+
+>>>>>>> 6a67076def9b07ee5fce45dda1877589dec1bbdb
                         const slotIdx = daySlots.findIndex(allS => allS.id === s.id);
                         const slotLabel = `S${slotIdx + 1}`;
                         return (
