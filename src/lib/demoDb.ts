@@ -343,6 +343,49 @@ const getInitialRefractions = () => {
   ];
 };
 
+const getInitialConsultations = () => {
+  return [
+    {
+      id: "visit-4",
+      visitId: "visit-4",
+      createdAt: new Date().toISOString(),
+      notes: "Prescribed SVN glass for reading and distance.",
+      diagnosisText: "OD: Blurred vision | OS: Blurred vision",
+      medicalPrescription: [],
+      finalGlassPrescription: {
+        glassType: "SVN",
+        OD: { sphere: "-1.00", cylinder: "-0.50", axis: "90", bcva: "6/6" },
+        OS: { sphere: "-1.25", cylinder: "-0.75", axis: "180", bcva: "6/6" }
+      },
+      finalContactLensPrescription: {
+        clType: ["Soft CL"],
+        OD: { sphere: "", cylinder: "", axis: "", bcva: "" },
+        OS: { sphere: "", cylinder: "", axis: "", bcva: "" }
+      }
+    },
+    {
+      id: "visit-5",
+      visitId: "visit-5",
+      createdAt: new Date().toISOString(),
+      notes: "No glass prescription required. Eye clinically clear.",
+      diagnosisText: "OD: Post-op clear | OS: Post-op clear",
+      medicalPrescription: [
+        { id: "med-1", drug: "Tears Natural", dosage: "1 drop", route: "Topical", frequency: "QID", duration: "1 month", eye: "Both" }
+      ],
+      finalGlassPrescription: {
+        glassType: "SVN",
+        OD: { sphere: "", cylinder: "", axis: "", bcva: "" },
+        OS: { sphere: "", cylinder: "", axis: "", bcva: "" }
+      },
+      finalContactLensPrescription: {
+        clType: ["Soft CL"],
+        OD: { sphere: "", cylinder: "", axis: "", bcva: "" },
+        OS: { sphere: "", cylinder: "", axis: "", bcva: "" }
+      }
+    }
+  ];
+};
+
 export class DemoDatabase {
   private getStore<T>(key: string): T[] {
     const raw = localStorage.getItem(key);
@@ -351,6 +394,20 @@ export class DemoDatabase {
 
   private setStore<T>(key: string, data: T[]): void {
     localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  private populateVisitRelations(visit: any) {
+    if (!visit) return visit;
+    const refractions = this.getStore<any>("demo_refractions") || [];
+    const consultations = this.getStore<any>("demo_consultations") || [];
+    const opticals = this.getStore<any>("demo_opticals") || [];
+
+    return {
+      ...visit,
+      refraction: refractions.find((r: any) => r.visitId === visit.id) || null,
+      consultation: consultations.find((c: any) => c.visitId === visit.id) || null,
+      optical: opticals.find((o: any) => o.visitId === visit.id) || null,
+    };
   }
 
   private getVisitsWithTokens(): any[] {
@@ -411,6 +468,11 @@ export class DemoDatabase {
     // 5. Seed Refractions
     if (!localStorage.getItem("demo_refractions")) {
       this.setStore("demo_refractions", getInitialRefractions());
+    }
+
+    // 6. Seed Consultations
+    if (!localStorage.getItem("demo_consultations")) {
+      this.setStore("demo_consultations", getInitialConsultations());
     }
   }
 
@@ -489,9 +551,10 @@ export class DemoDatabase {
     // Map active visits status onto the search result
     return filtered.map((p) => {
       const patientVisits = visits.filter((v) => v.mrNumber === p.mrNumber);
+      const populatedVisits = patientVisits.map((v) => this.populateVisitRelations(v));
       return {
         ...p,
-        visits: patientVisits.sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()),
+        visits: populatedVisits.sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()),
       };
     });
   }
@@ -502,9 +565,10 @@ export class DemoDatabase {
     if (!p) return null;
 
     const visits = this.getVisitsWithTokens().filter((v) => v.mrNumber === mrNumber);
+    const populatedVisits = visits.map((v) => this.populateVisitRelations(v));
     return {
       ...p,
-      visits: visits.sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()),
+      visits: populatedVisits.sort((a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()),
     };
   }
 
@@ -592,7 +656,8 @@ export class DemoDatabase {
 
   // Visit Operations
   public getQueue() {
-    return this.getVisitsWithTokens();
+    const visits = this.getVisitsWithTokens();
+    return visits.map((v) => this.populateVisitRelations(v));
   }
 
   public startVisit(mrNumber: string, visitData: any) {
@@ -760,6 +825,60 @@ export class DemoDatabase {
     const updatedVisits = visits.map((v) => {
       if (v.id === visitId) {
         return { ...v, status: "IN_REFRACTION" };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updatedVisits);
+    return updatedVisits.find((v) => v.id === visitId);
+  }
+
+  // Consultation Operations
+  public getConsultation(visitId: string) {
+    const consultations = this.getStore<any>("demo_consultations") || [];
+    return consultations.find((c: any) => c.visitId === visitId) || null;
+  }
+
+  public saveConsultation(visitId: string, consultationData: any) {
+    const consultations = this.getStore<any>("demo_consultations") || [];
+    const existingIndex = consultations.findIndex((c: any) => c.visitId === visitId);
+
+    const updatedRecord = {
+      ...consultationData,
+      id: visitId,
+      visitId: visitId,
+      createdAt: consultationData.createdAt || new Date().toISOString(),
+    };
+
+    if (existingIndex !== -1) {
+      consultations[existingIndex] = updatedRecord;
+    } else {
+      consultations.push(updatedRecord);
+    }
+    this.setStore("demo_consultations", consultations);
+
+    // Update corresponding visit status
+    const visits = this.getVisitsWithTokens();
+    const updatedVisits = visits.map((v) => {
+      if (v.id === visitId) {
+        const hasGlasses = consultationData.finalGlassPrescription && 
+          ((consultationData.finalGlassPrescription.OD?.sphere && consultationData.finalGlassPrescription.OD.sphere !== "0.00") || 
+           (consultationData.finalGlassPrescription.OS?.sphere && consultationData.finalGlassPrescription.OS.sphere !== "0.00") ||
+           (consultationData.finalGlassPrescription.distance?.OD?.sphere && consultationData.finalGlassPrescription.distance.OD.sphere !== "0.00") ||
+           (consultationData.finalGlassPrescription.distance?.OS?.sphere && consultationData.finalGlassPrescription.distance.OS.sphere !== "0.00"));
+        return { ...v, status: hasGlasses ? "AT_OPTICAL" : "CONSULTED" };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updatedVisits);
+
+    return updatedRecord;
+  }
+
+  public attendVisit(visitId: string) {
+    const visits = this.getVisitsWithTokens();
+    const updatedVisits = visits.map((v) => {
+      if (v.id === visitId) {
+        return { ...v, status: "WITH_DOCTOR" };
       }
       return v;
     });

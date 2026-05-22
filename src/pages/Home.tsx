@@ -56,7 +56,7 @@ const Home = () => {
 
     return (
         <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-6">
-            <div className="max-w-4xl w-full text-center space-y-12">
+            <div className="max-w-5xl w-full text-center space-y-12">
                 <div className="space-y-4">
                     <div className="flex flex-col items-center justify-center mb-6 gap-2 leading-none">
                         <span
@@ -72,7 +72,7 @@ const Home = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                     {stations.map((station) => (
                         <button
                             key={station.id}

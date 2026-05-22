@@ -90,4 +90,22 @@ export const api = {
   async advanceToRefraction(visitId: string) {
     return demoDb.advanceToRefraction(visitId);
   },
+
+  // Consultation Operations
+  async getConsultation(visitId: string) {
+    return demoDb.getConsultation(visitId);
+  },
+
+  async saveConsultation(visitId: string, data: any) {
+    return demoDb.saveConsultation(visitId, data);
+  },
+
+  async attendVisit(visitId: string) {
+    return demoDb.attendVisit(visitId);
+  },
+
+  async getVisitHistory(mrNumber: string) {
+    const patient = demoDb.getPatientByMrn(mrNumber);
+    return { visits: patient?.visits || [] };
+  },
 };

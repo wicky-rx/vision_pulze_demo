@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
-import { API_BASE_URL } from "@/config";
 import { api } from "@/lib/api";
 import { RefractionSummaryView } from "./RefractionSummaryView";
 import { getPatientAgeString, getPatientAgeNumber, cn, calculateSessionSlot } from "@/lib/utils";
@@ -872,14 +871,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     if (!patient?.mrNumber) return;
     try {
       setIsLoadingHistory(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/consultation/history/${patient.mrNumber}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setVisitHistory(data.visits || []);
-      }
+      const data = await api.getVisitHistory(patient.mrNumber);
+      setVisitHistory(data.visits || []);
     } catch (error) {
       console.error("Failed to fetch history:", error);
     } finally {
@@ -1077,13 +1070,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   const fetchCurrentConsultation = async () => {
     if (!patient?.id) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/consultation/${patient.id}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data) {
+      const data = await api.getConsultation(patient.id);
+      if (data) {
           // If we have saved data in DB, it becomes the source of truth if the draft was empty or not loaded yet.
           // Note: for safety, we only overwrite if the current fields are relatively empty.
 
@@ -1193,7 +1181,23 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             setGlassPrescription(prev => {
               const isGlassEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
               if (isGlassEmpty || !isDraftLoaded) {
-                return data.finalGlassPrescription;
+                const raw = data.finalGlassPrescription;
+                // Normalize: if the saved data is a flat {OD, OS} format (legacy),
+                // or missing distance/near keys, wrap it safely.
+                const emptyEye = { sphere: '', cylinder: '', axis: '' };
+                const normalizedGlass: PrescriptionState = {
+                  glassType: raw.glassType,
+                  clType: raw.clType,
+                  distance: {
+                    OD: raw.distance?.OD ?? raw.OD ?? emptyEye,
+                    OS: raw.distance?.OS ?? raw.OS ?? emptyEye,
+                  },
+                  near: {
+                    OD: raw.near?.OD ?? emptyEye,
+                    OS: raw.near?.OS ?? emptyEye,
+                  },
+                };
+                return normalizedGlass;
               }
               return prev;
             });
@@ -1203,13 +1207,26 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             setContactLensPrescription(prev => {
               const isCLEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
               if (isCLEmpty || !isDraftLoaded) {
-                return data.finalContactLensPrescription;
+                const raw = data.finalContactLensPrescription;
+                const emptyEye = { sphere: '', cylinder: '', axis: '' };
+                const normalizedCL: PrescriptionState = {
+                  glassType: raw.glassType,
+                  clType: raw.clType,
+                  distance: {
+                    OD: raw.distance?.OD ?? raw.OD ?? emptyEye,
+                    OS: raw.distance?.OS ?? raw.OS ?? emptyEye,
+                  },
+                  near: {
+                    OD: raw.near?.OD ?? emptyEye,
+                    OS: raw.near?.OS ?? emptyEye,
+                  },
+                };
+                return normalizedCL;
               }
               return prev;
             });
           }
         }
-      }
     } catch (error) {
       console.error("Failed to fetch current consultation record:", error);
     }
@@ -1219,12 +1236,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     if (!patient?.id) return;
     try {
       setIsAttending(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/patients/visits/${patient.id}/attend`, {
-        method: "PATCH",
-        headers: { "Authorization": `Bearer ${token}` },
-      });
-      if (response.ok) {
+      const updatedVisit = await api.attendVisit(patient.id);
+      if (updatedVisit) {
         toast({ title: "Started Consultation", description: `You are now attending to ${patient.name}.` });
         setLocalStatus("doctor");
         window.dispatchEvent(new Event("patientQueueUpdated"));
@@ -1309,31 +1322,20 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     };
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/consultation/${patient.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const data = await api.saveConsultation(patient.id, {
+        anteriorSegment: { slitLamp: investigation.slitLamp, eom: investigation.eom, eyePain: (investigation.diagnosisList?.OD?.eyePain === 'Yes' || investigation.diagnosisList?.OS?.eyePain === 'Yes') ? 'Yes' : 'No' },
+        fundusObservation: investigation.fundus,
+        posteriorSegment: {
+          required: investigation.required,
+          other: investigation.other,
+          adminInstructions: investigation.adminInstructions
         },
-        body: JSON.stringify({
-          anteriorSegment: { slitLamp: investigation.slitLamp, eom: investigation.eom, eyePain: (investigation.diagnosisList?.OD?.eyePain === 'Yes' || investigation.diagnosisList?.OS?.eyePain === 'Yes') ? 'Yes' : 'No' },
-          fundusObservation: investigation.fundus,
-          posteriorSegment: {
-            required: investigation.required,
-            other: investigation.other,
-            adminInstructions: investigation.adminInstructions
-          },
-          diagnosisText: `OD: ${generateDiagnosisText(investigation.diagnosisList?.OD, finalDiagnosis.OD)} | OS: ${generateDiagnosisText(investigation.diagnosisList?.OS, finalDiagnosis.OS)}`,
-          medicalPrescription: medications,
-          finalGlassPrescription: glassPrescription,
-          finalContactLensPrescription: contactLensPrescription,
-          notes: investigation.opinion
-        })
+        diagnosisText: `OD: ${generateDiagnosisText(investigation.diagnosisList?.OD, finalDiagnosis.OD)} | OS: ${generateDiagnosisText(investigation.diagnosisList?.OS, finalDiagnosis.OS)}`,
+        medicalPrescription: medications,
+        finalGlassPrescription: glassPrescription,
+        finalContactLensPrescription: contactLensPrescription,
+        notes: investigation.opinion
       });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || data.error || "Failed to save consultation");
 
       toast({
         title: "Consultation Completed",
@@ -1345,7 +1347,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       const storageKey = `doctor_work_draft_${patient.mrNumber}`;
       localStorage.removeItem(storageKey);
 
-      setLocalStatus("consulted");
+      // Determine local status from glass prescription
+      const hasGlasses = glassPrescription && 
+        ((glassPrescription.distance?.OD?.sphere && glassPrescription.distance.OD.sphere !== "0.00") || 
+         (glassPrescription.distance?.OS?.sphere && glassPrescription.distance.OS.sphere !== "0.00"));
+      setLocalStatus(hasGlasses ? "AT_OPTICAL" : "consulted");
       fetchVisitHistory();
       fetchCurrentConsultation();
       window.dispatchEvent(new Event("patientQueueUpdated"));
