@@ -435,11 +435,18 @@ const Admin = () => {
             {/* Initial Loading Screen */}
             {isInitialLoading && (
                 <div className="fixed inset-0 bg-slate-50/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
-                    <img
-                        src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                        alt="VPN Eye Hospital"
-                        className="h-16 w-auto object-contain animate-pulse"
-                    />
+                    <div className="flex flex-col items-center justify-center gap-1.5 leading-none animate-pulse">
+                        <span
+                            style={{ fontFamily: "'Outfit', sans-serif" }}
+                            className="font-extrabold text-2xl tracking-tight leading-none"
+                        >
+                            <span style={{ color: "#0F172A" }}>Vision</span>
+                            <span style={{ color: "#2563EB" }}>Pulze</span>
+                        </span>
+                        <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
+                            Ophthalmic Ecosystem
+                        </span>
+                    </div>
                     <div className="flex items-center gap-2 text-slate-500 font-medium animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <Activity className="w-5 h-5 animate-spin text-primary" />
                         Initializing Clinical Dashboard...

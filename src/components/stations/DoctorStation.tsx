@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/config";
+import { api } from "@/lib/api";
 import { RefractionSummaryView } from "./RefractionSummaryView";
 import { getPatientAgeString, getPatientAgeNumber, cn, calculateSessionSlot } from "@/lib/utils";
 import { sanitizeOptometryInput, getFieldTypeFromName } from "@/lib/validation";
@@ -889,12 +890,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   const fetchCurrentRefraction = async () => {
     if (!patient?.id) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/refraction/${patient.id}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
+      const data = await api.getRefraction(patient.id);
+      if (data) {
         setRefractionData(data);
 
         // Sync initial diagnosis values if provided by refraction
@@ -3407,18 +3404,17 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 <DialogHeader className="bg-white border-b border-slate-200 p-5 sm:p-6 shrink-0 print:hidden">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                     {/* Branding Group */}
-                    <div className="flex items-center gap-4">
-                      <img
-                        src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                        alt="VPN Logo"
-                        className="h-8 sm:h-10 w-auto object-contain shrink-0"
-                      />
-                      <div>
-                        <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">VPN Eye Hospital</h2>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                          25, Neela West Street, Nagapattinam - 611001
-                        </p>
-                      </div>
+                    <div className="flex flex-col gap-0.5 leading-none shrink-0">
+                      <span
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
+                        className="font-extrabold text-xl tracking-tight leading-none"
+                      >
+                        <span style={{ color: "#0F172A" }}>Vision</span>
+                        <span style={{ color: "#2563EB" }}>Pulze</span>
+                      </span>
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                        Ophthalmic Ecosystem
+                      </span>
                     </div>
 
                     {/* Metadata Group */}
@@ -3828,9 +3824,17 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           <div id="print-section" className="hidden print:block w-full bg-white text-black text-[9px] font-sans p-4 space-y-4 leading-tight">
                   {/* Hospital Header */}
                   <div className="border-b-2 border-black pb-1.5 flex justify-between items-start">
-                    <div>
-                      <h1 className="text-xs font-bold uppercase tracking-tight">VPN Eye Hospital</h1>
-                      <p className="text-[8px] text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                    <div className="flex flex-col gap-0.5 leading-none">
+                      <span
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
+                        className="font-extrabold text-xs tracking-tight leading-none"
+                      >
+                        <span style={{ color: "#0F172A" }}>Vision</span>
+                        <span style={{ color: "#2563EB" }}>Pulze</span>
+                      </span>
+                      <span className="text-[7px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                        Ophthalmic Ecosystem
+                      </span>
                     </div>
                     <div className="text-right text-[8px] space-y-0.5">
                       <p><strong>Consulting Doctor:</strong> {selectedHistoricalVisit.consultation?.doctorName || selectedHistoricalVisit.consultingDoctorName || "Dr. Clinical Lead"}</p>
@@ -4398,9 +4402,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           {printType === 'glass' && (
             <div className="space-y-4">
               {/* Hospital Header */}
-              <div className="border-b-2 border-black pb-2 text-center">
-                <h1 className="text-lg font-black uppercase tracking-tight">VPN EYE HOSPITAL</h1>
-                <p className="text-[8px] text-gray-700 font-medium">25, Neela West Street, Nagapattinam - 611001 | Phone: 04365-224000</p>
+              <div className="border-b-2 border-black pb-2 text-center flex flex-col items-center leading-none">
+                <div className="flex flex-col items-center gap-0.5 leading-none">
+                  <span
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-extrabold text-lg tracking-tight leading-none"
+                  >
+                    <span style={{ color: "#0F172A" }}>Vision</span>
+                    <span style={{ color: "#2563EB" }}>Pulze</span>
+                  </span>
+                  <span className="text-[8px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
+                    Ophthalmic Ecosystem
+                  </span>
+                </div>
                 <div className="mt-2 text-center border-t border-black pt-1">
                   <span className="text-sm font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Glass Prescription</span>
                 </div>
@@ -4572,9 +4586,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           {printType === 'medical' && (
             <div className="space-y-6">
               {/* Hospital Header */}
-              <div className="border-b-2 border-black pb-2 text-center">
-                <h1 className="text-lg font-black uppercase tracking-tight">VPN EYE HOSPITAL</h1>
-                <p className="text-[8px] text-gray-700 font-medium">25, Neela West Street, Nagapattinam - 611001 | Phone: 04365-224000</p>
+              <div className="border-b-2 border-black pb-2 text-center flex flex-col items-center leading-none">
+                <div className="flex flex-col items-center gap-0.5 leading-none">
+                  <span
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-extrabold text-lg tracking-tight leading-none"
+                  >
+                    <span style={{ color: "#0F172A" }}>Vision</span>
+                    <span style={{ color: "#2563EB" }}>Pulze</span>
+                  </span>
+                  <span className="text-[8px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
+                    Ophthalmic Ecosystem
+                  </span>
+                </div>
                 <div className="mt-2 text-center border-t border-black pt-1">
                   <span className="text-sm font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Medical Prescription</span>
                 </div>
@@ -4672,9 +4696,17 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             <>
               {/* Hospital Header */}
               <div className="border-b-2 border-black pb-1.5 flex justify-between items-start">
-                <div>
-                  <h1 className="text-xs font-bold uppercase tracking-tight">VPN Eye Hospital</h1>
-                  <p className="text-[8px] text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-extrabold text-xs tracking-tight leading-none"
+                  >
+                    <span style={{ color: "#0F172A" }}>Vision</span>
+                    <span style={{ color: "#2563EB" }}>Pulze</span>
+                  </span>
+                  <span className="text-[7px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                    Ophthalmic Ecosystem
+                  </span>
                 </div>
                 <div className="text-right text-[8px] space-y-0.5">
                   <p><strong>Consulting Doctor:</strong> {printData.doctorName}</p>

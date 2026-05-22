@@ -182,6 +182,167 @@ const getInitialAppointments = (seededPatients: Patient[]) => {
   ];
 };
 
+const getInitialRefractions = () => {
+  return [
+    {
+      id: "visit-4",
+      visitId: "visit-4",
+      patientId: "visit-4",
+      ocularComplaint: "Spec frame purchase, blurred vision",
+      refractionistName: "Demo Optometrist",
+      createdAt: new Date().toISOString(),
+      complaints: ["Blurred Vision in both eyes"],
+      complaintNotes: "",
+      visualAcuity: {
+        OD: { unaided: "6/9", nearVision: "N6", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+        OS: { unaided: "6/12", nearVision: "N8", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+        OU: { unaided: "6/9", nearVision: "N6", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+      },
+      pgPower: {
+        activeTab: "glass",
+        glass: {
+          glassType: "SVN",
+          OD: { sphere1: "-1.00", cylinder1: "-0.50", axis1: "90", add: "", vn1: "6/6", vnNear1: "N6", sphere2: "", cylinder2: "", axis2: "" },
+          OS: { sphere1: "-1.25", cylinder1: "-0.75", axis1: "180", add: "", vn1: "6/6", vnNear1: "N6", sphere2: "", cylinder2: "", axis2: "" },
+        },
+        contact: {
+          clType: ["Soft CL"],
+          OD: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+          OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+        },
+        notes: "Wears spectacles for distance"
+      },
+      objectiveRefraction: {
+        type: "DilRR",
+        OD: { sphere: "-1.00", cylinder: "-0.50", axis: "90", qualityOfRef: "Good", cycloSphere: "", cycloCylinder: "", cycloAxis: "" },
+        OS: { sphere: "-1.25", cylinder: "-0.75", axis: "180", qualityOfRef: "Good", cycloSphere: "", cycloCylinder: "", cycloAxis: "" },
+      },
+      glassPrescription: {
+        glassType: "SVN",
+        OD: { sphere: "-1.00", cylinder: "-0.50", axis: "90", bcva: "6/6", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+        OS: { sphere: "-1.25", cylinder: "-0.75", axis: "180", bcva: "6/6", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+      },
+      contactLensPrescription: {
+        clType: ["Soft CL"],
+        OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+        OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+      },
+      arMeterEnabled: false,
+      arMeter: {
+        OD: { SPH: "", CYL: "", AXIS: "" },
+        OS: { SPH: "", CYL: "", AXIS: "" },
+      },
+      refining: {
+        duochrome: { OD: "Equal", OS: "Equal" },
+        jcc: { OD: "NAD", OS: "NAD" },
+      },
+      binocular: "Balanced",
+      optometristNotes: "Advised spectacles use for all distance activities",
+      keratometry: { OD: [], OS: [] },
+      schirmerTest: { OD: "Normal (> 15 mm)", OS: "Normal (> 15 mm)" },
+      ctrr: "",
+      orthoptics: "",
+      jcc: "",
+      amslerGrid: "",
+      ishiharaTest: { status: "Normal", notes: "17/17 plates read" },
+      contrastSensitivity: "Normal",
+      autoRef: {
+        OD: { sphere1: "-1.00", cylinder1: "-0.50", axis1: "90" },
+        OS: { sphere1: "-1.25", cylinder1: "-0.75", axis1: "180" },
+      },
+      tonometryDetails: {
+        nct: { OD: { mean: ["14"], iop: "14" }, OS: { mean: ["15"], iop: "15" } },
+        gat: { OD: { reading: [], iop: "" }, OS: { reading: [], iop: "" } },
+        schiotz: { OD: { reading: "", weight: "5.5", iop: "" }, OS: { reading: "", weight: "5.5", iop: "" } }
+      },
+      acceptance: {
+        distance: { OD: { sphere: "-1.00", cylinder: "-0.50", axis: "90", vn: "6/6" }, OS: { sphere: "-1.25", cylinder: "-0.75", axis: "180", vn: "6/6" } },
+        near: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } },
+        remarks: { OD: "Good acceptance", OS: "Good acceptance" }
+      },
+      systemicHistory: []
+    },
+    {
+      id: "visit-5",
+      visitId: "visit-5",
+      patientId: "visit-5",
+      ocularComplaint: "Post-op checkup, regular follow-up",
+      refractionistName: "Demo Optometrist",
+      createdAt: new Date().toISOString(),
+      complaints: ["Post-op checkup"],
+      complaintNotes: "",
+      visualAcuity: {
+        OD: { unaided: "6/6", nearVision: "N6", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+        OS: { unaided: "6/6", nearVision: "N6", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+        OU: { unaided: "6/6", nearVision: "N6", aided: "6/6", aidedNear: "N6", contactLens: "", contactLensNear: "", pinhole: "" },
+      },
+      pgPower: {
+        activeTab: "glass",
+        glass: {
+          glassType: "SVN",
+          OD: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+          OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+        },
+        contact: {
+          clType: ["Soft CL"],
+          OD: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+          OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
+        },
+        notes: "No glasses currently used"
+      },
+      objectiveRefraction: {
+        type: "DilRR",
+        OD: { sphere: "0.00", cylinder: "0.00", axis: "0", qualityOfRef: "Good", cycloSphere: "", cycloCylinder: "", cycloAxis: "" },
+        OS: { sphere: "0.00", cylinder: "0.00", axis: "0", qualityOfRef: "Good", cycloSphere: "", cycloCylinder: "", cycloAxis: "" },
+      },
+      glassPrescription: {
+        glassType: "SVN",
+        OD: { sphere: "0.00", cylinder: "0.00", axis: "0", bcva: "6/6", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+        OS: { sphere: "0.00", cylinder: "0.00", axis: "0", bcva: "6/6", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+      },
+      contactLensPrescription: {
+        clType: ["Soft CL"],
+        OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+        OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
+      },
+      arMeterEnabled: false,
+      arMeter: {
+        OD: { SPH: "", CYL: "", AXIS: "" },
+        OS: { SPH: "", CYL: "", AXIS: "" },
+      },
+      refining: {
+        duochrome: { OD: "Equal", OS: "Equal" },
+        jcc: { OD: "NAD", OS: "NAD" },
+      },
+      binocular: "Balanced",
+      optometristNotes: "Optically clear, regular post-op check",
+      keratometry: { OD: [], OS: [] },
+      schirmerTest: { OD: "Normal (> 15 mm)", OS: "Normal (> 15 mm)" },
+      ctrr: "",
+      orthoptics: "",
+      jcc: "",
+      amslerGrid: "",
+      ishiharaTest: { status: "Normal", notes: "17/17 plates read" },
+      contrastSensitivity: "Normal",
+      autoRef: {
+        OD: { sphere1: "0.00", cylinder1: "0.00", axis1: "0" },
+        OS: { sphere1: "0.00", cylinder1: "0.00", axis1: "0" },
+      },
+      tonometryDetails: {
+        nct: { OD: { mean: ["12"], iop: "12" }, OS: { mean: ["13"], iop: "13" } },
+        gat: { OD: { reading: [], iop: "" }, OS: { reading: [], iop: "" } },
+        schiotz: { OD: { reading: "", weight: "5.5", iop: "" }, OS: { reading: "", weight: "5.5", iop: "" } }
+      },
+      acceptance: {
+        distance: { OD: { sphere: "0.00", cylinder: "0.00", axis: "0", vn: "6/6" }, OS: { sphere: "0.00", cylinder: "0.00", axis: "0", vn: "6/6" } },
+        near: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } },
+        remarks: { OD: "Comfortable", OS: "Comfortable" }
+      },
+      systemicHistory: []
+    }
+  ];
+};
+
 export class DemoDatabase {
   private getStore<T>(key: string): T[] {
     const raw = localStorage.getItem(key);
@@ -245,6 +406,11 @@ export class DemoDatabase {
     if (!localStorage.getItem("demo_appointments")) {
       const patients = this.getStore<Patient>("demo_patients");
       this.setStore("demo_appointments", getInitialAppointments(patients));
+    }
+
+    // 5. Seed Refractions
+    if (!localStorage.getItem("demo_refractions")) {
+      this.setStore("demo_refractions", getInitialRefractions());
     }
   }
 
@@ -549,6 +715,56 @@ export class DemoDatabase {
       success: true,
       visit,
     };
+  }
+
+  // Refraction Operations
+  public getRefraction(visitId: string) {
+    const refractions = this.getStore<any>("demo_refractions");
+    return refractions.find((r) => r.visitId === visitId) || null;
+  }
+
+  public saveRefraction(visitId: string, refractionData: any) {
+    const refractions = this.getStore<any>("demo_refractions");
+    const existingIndex = refractions.findIndex((r) => r.visitId === visitId);
+
+    const updatedRecord = {
+      ...refractionData,
+      id: visitId,
+      visitId: visitId,
+      patientId: visitId,
+      createdAt: refractionData.createdAt || new Date().toISOString(),
+    };
+
+    if (existingIndex !== -1) {
+      refractions[existingIndex] = updatedRecord;
+    } else {
+      refractions.push(updatedRecord);
+    }
+    this.setStore("demo_refractions", refractions);
+
+    // Update corresponding visit status to REFRACTION_DONE
+    const visits = this.getVisitsWithTokens();
+    const updatedVisits = visits.map((v) => {
+      if (v.id === visitId) {
+        return { ...v, status: "REFRACTION_DONE" };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updatedVisits);
+
+    return updatedRecord;
+  }
+
+  public advanceToRefraction(visitId: string) {
+    const visits = this.getVisitsWithTokens();
+    const updatedVisits = visits.map((v) => {
+      if (v.id === visitId) {
+        return { ...v, status: "IN_REFRACTION" };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updatedVisits);
+    return updatedVisits.find((v) => v.id === visitId);
   }
 }
 

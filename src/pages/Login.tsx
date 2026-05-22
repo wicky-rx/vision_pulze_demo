@@ -44,10 +44,14 @@ const Login = () => {
         return null;
     });
 
-    // Pre-fill credentials if it is the reception station demo
+    // Pre-fill credentials if it is the reception or refraction station demo
     useEffect(() => {
         if (stationId === "reception") {
             setUsername("reception");
+            setPassword("demo123");
+            setLockoutTime(null);
+        } else if (stationId === "refraction") {
+            setUsername("refraction");
             setPassword("demo123");
             setLockoutTime(null);
         } else {
@@ -82,6 +86,7 @@ const Login = () => {
     const isLockedOut = lockoutTime !== null;
     useEffect(() => {
         if (!isLockedOut) return;
+        if (stationId === "reception" || stationId === "refraction") return;
 
         const checkStatus = async () => {
             try {
@@ -105,7 +110,7 @@ const Login = () => {
         // The first real check happens after 15 s (for admin-unblock detection).
         const id = setInterval(checkStatus, 15_000);
         return () => clearInterval(id);
-    }, [isLockedOut]);
+    }, [isLockedOut, stationId]);
 
     // If a valid session already exists, redirect to the appropriate dashboard
     useEffect(() => {
@@ -182,6 +187,38 @@ const Login = () => {
                 toast({
                     title: "Login Successful",
                     description: "Welcome to the Reception demo workspace",
+                });
+                setIsLoading(false);
+                navigate("/dashboard");
+            }, 800);
+            return;
+        }
+
+        // Demo login bypass for refraction station
+        if (stationId === "refraction") {
+            if (username !== "refraction" || password !== "demo123") {
+                toast({
+                    variant: "destructive",
+                    title: "Login Failed",
+                    description: "Invalid demo credentials.",
+                });
+                return;
+            }
+
+            setIsLoading(true);
+            setTimeout(() => {
+                localStorage.setItem("token", "demo_refraction_token");
+                localStorage.setItem("user_session", JSON.stringify({
+                    username: "refraction",
+                    role: "OPTOMETRIST",
+                    name: "Demo Optometrist",
+                    stationId: "refraction",
+                    loginTime: new Date().toISOString()
+                }));
+
+                toast({
+                    title: "Login Successful",
+                    description: "Welcome to the Refraction demo workspace",
                 });
                 setIsLoading(false);
                 navigate("/dashboard");
@@ -290,15 +327,17 @@ const Login = () => {
 
             <Card className="w-full max-w-md border-slate-200 shadow-xl rounded-3xl overflow-hidden bg-white">
                 <CardHeader className="space-y-2 text-center pt-10 pb-6">
-                    <div className="flex flex-col items-center justify-center mb-6 gap-2">
-                        <img
-                            src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                            alt="VPN Eye Hospital"
-                            className="h-20 w-auto object-contain"
-                        />
-                        <p className="text-xs text-slate-500 text-center px-4">
-                            25, Neela West Street, Velippalayam, Nagapattinam - 611001, Tamil Nadu
-                        </p>
+                    <div className="flex flex-col items-center justify-center mb-6 gap-2 leading-none">
+                        <span
+                            style={{ fontFamily: "'Outfit', sans-serif" }}
+                            className="font-extrabold text-3xl tracking-tight leading-none"
+                        >
+                            <span style={{ color: "#0F172A" }}>Vision</span>
+                            <span style={{ color: "#2563EB" }}>Pulze</span>
+                        </span>
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-2">
+                            Ophthalmic Ecosystem
+                        </span>
                     </div>
                     <CardTitle className="text-3xl font-black font-sans text-slate-900 tracking-tight uppercase flex items-center justify-center gap-4">
                         {stationLabels[stationId]} Login
@@ -313,7 +352,7 @@ const Login = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-6">
-                        {stationId === "reception" && (
+                        {(stationId === "reception" || stationId === "refraction") && (
                             <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 text-xs text-blue-800">
                                 <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
@@ -336,12 +375,12 @@ const Login = () => {
                                     placeholder="Enter your name"
                                     className={cn(
                                         "pl-10 h-11 border-slate-200 rounded-xl",
-                                        stationId === "reception" && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                        (stationId === "reception" || stationId === "refraction") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
                                     )}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     disabled={isLoading}
-                                    readOnly={stationId === "reception"}
+                                    readOnly={stationId === "reception" || stationId === "refraction"}
                                 />
                             </div>
                         </div>
@@ -357,12 +396,12 @@ const Login = () => {
                                     placeholder="••••••••"
                                     className={cn(
                                         "pl-10 h-11 border-slate-200 rounded-xl",
-                                        stationId === "reception" && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                        (stationId === "reception" || stationId === "refraction") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
                                     )}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     disabled={isLoading}
-                                    readOnly={stationId === "reception"}
+                                    readOnly={stationId === "reception" || stationId === "refraction"}
                                 />
                             </div>
                         </div>

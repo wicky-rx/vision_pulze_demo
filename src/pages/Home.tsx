@@ -58,15 +58,17 @@ const Home = () => {
         <div className="min-h-screen w-full bg-slate-50 flex flex-col items-center justify-center p-6">
             <div className="max-w-4xl w-full text-center space-y-12">
                 <div className="space-y-4">
-                    <div className="flex flex-col items-center justify-center mb-6 gap-2">
-                        <img
-                            src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                            alt="VPN Eye Hospital"
-                            className="h-24 w-auto object-contain"
-                        />
-                        <p className="text-sm text-slate-500 max-w-sm font-medium">
-                            25, Neela West Street, Velippalayam, Nagapattinam - 611001, Tamil Nadu
-                        </p>
+                    <div className="flex flex-col items-center justify-center mb-6 gap-2 leading-none">
+                        <span
+                            style={{ fontFamily: "'Outfit', sans-serif" }}
+                            className="font-extrabold text-4xl tracking-tight leading-none"
+                        >
+                            <span style={{ color: "#0F172A" }}>Vision</span>
+                            <span style={{ color: "#2563EB" }}>Pulze</span>
+                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mt-2">
+                            Ophthalmic Ecosystem
+                        </span>
                     </div>
                 </div>
 
@@ -91,10 +93,6 @@ const Home = () => {
                         </button>
                     ))}
                 </div>
-
-                <p className="text-slate-400 text-xs pt-8 text-dark font-bold">
-                    Supported by Ragavarshini Traders @ 9840957945
-                </p>
             </div>
         </div>
     );

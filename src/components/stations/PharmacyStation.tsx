@@ -301,10 +301,19 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                         <h2 className="text-white font-black uppercase tracking-[0.4em] text-xs">Pharmacy Bill Preview</h2>
                     </div>
                     <div id="print-section" className="bg-white p-10 space-y-8">
-                        <div className="text-center flex flex-col items-center">
-                            <img src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" alt="Logo" className="h-14 w-auto mb-4" />
-                            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">VPN Eye Hospital</h3>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1 italic">World-Class Vision Care • Nagapattinam</p>
+                        <div className="text-center flex flex-col items-center leading-none">
+                            <div className="flex flex-col items-center gap-0.5 leading-none mb-3">
+                                <span
+                                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                                    className="font-extrabold text-xl tracking-tight leading-none"
+                                >
+                                    <span style={{ color: "#0F172A" }}>Vision</span>
+                                    <span style={{ color: "#2563EB" }}>Pulze</span>
+                                </span>
+                                <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                                    Ophthalmic Ecosystem
+                                </span>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[10px] py-6 border-y border-slate-100">

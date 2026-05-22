@@ -77,4 +77,17 @@ export const api = {
   async convertAppointmentToVisit(appointmentId: string) {
     return demoDb.convertAppointmentToVisit(appointmentId);
   },
+
+  // Refraction Operations
+  async getRefraction(visitId: string) {
+    return demoDb.getRefraction(visitId);
+  },
+
+  async saveRefraction(visitId: string, data: any) {
+    return demoDb.saveRefraction(visitId, data);
+  },
+
+  async advanceToRefraction(visitId: string) {
+    return demoDb.advanceToRefraction(visitId);
+  },
 };

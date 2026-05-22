@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { API_BASE_URL } from "@/config";
+import { api } from "@/lib/api";
 import { getPatientAgeString, getPatientAgeNumber, calculateSessionSlot } from "@/lib/utils";
 import { ScanReportGallery } from "@/components/ScanReportGallery";
 import { CTRRDrawingDialog } from "./CTRRDrawingDialog";
@@ -1179,18 +1179,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
     if (!patient?.id) return;
     try {
       setAdvanceLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_BASE_URL}/api/patients/visits/${patient.id}/advance-to-refraction`,
-        {
-          method: "PATCH",
-          headers: { "Authorization": `Bearer ${token}` },
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || data.error || "Failed to advance patient");
-      }
+      await api.advanceToRefraction(patient.id);
       toast({
         title: "Status Updated",
         description: `${patient.name} is now In Refraction.`,
@@ -1213,53 +1202,28 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const handleCTRRUpload = async () => {
     if (!formData.ctrr || !patient?.id || !patient?.mrNumber) return;
     if (!formData.ctrr.startsWith('data:image')) {
-      toast({ title: "Already Uploaded", description: "Drawing is already stored in the cloud." });
-      return;
+      toast({ title: "Already Uploaded", description: "Drawing is already stored." });
+      return formData.ctrr;
     }
 
     setIsUploadingCTRR(true);
     try {
-      // 1. Convert Base64 (Data URI) to Blob
-      const response = await fetch(formData.ctrr);
-      const blob = await response.blob();
-      const file = new File([blob], `ctrr_${patient.id}.png`, { type: "image/png" });
-
-      // 2. Prepare FormData
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("mrNumber", patient.mrNumber.toString());
-      fd.append("visitId", patient.id);
-
-      // 3. Upload to backend → Google Drive
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/refraction/upload-ctrr`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` },
-        body: fd,
-      });
-
-      if (!res.ok) {
-        throw new Error("Cloud upload rejected");
-      }
-
-      const result = await res.json();
-      const cloudUrl = result.url || result.path;
-
-      // 4. Update Form State locally
-      setFormData(prev => ({ ...prev, ctrr: cloudUrl }));
+      // Simulate network latency for saving the drawing locally
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       toast({
-        title: "Cloud Sync Successful",
-        description: "Drawing is now stored securely in the patient's cloud directory.",
+        title: "Drawing Saved",
+        description: "Drawing is saved locally in this offline session.",
       });
 
-      return cloudUrl;
+      // Just return the base64 URL directly, avoiding cloud uploads.
+      return formData.ctrr;
     } catch (err) {
-      console.error("CTRR Cloud Upload error:", err);
+      console.error("CTRR save error:", err);
       toast({
         variant: "destructive",
-        title: "Sync Failed",
-        description: "Could not upload drawing to cloud drive. It will be sent as a local draft.",
+        title: "Failed to save drawing",
+        description: "An error occurred during local save.",
       });
       return null;
     } finally {
@@ -1453,16 +1417,8 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
     const loadRefractionData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/refraction/${patient.id}`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        // 1. Fetch Server Data
-        let serverData = null;
-        if (res.ok) {
-          serverData = await res.json();
-        }
+        // 1. Fetch Offline Data
+        const serverData = await api.getRefraction(patient.id);
 
         // 2. Fetch Local Draft
         const savedDraft = localStorage.getItem(storageKey);
@@ -3621,21 +3577,14 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             const cloudSyncedUrl = await handleCTRRUpload();
                             if (cloudSyncedUrl) finalFormData.ctrr = cloudSyncedUrl;
                           }
-                          const token = localStorage.getItem("token");
-                          const res = await fetch(`${API_BASE_URL}/api/refraction/${patient.id}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ 
-                              ...finalFormData, 
-                              complaint: Array.isArray(finalFormData.complaints)
-                                ? finalFormData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
-                                : "",
-                              systemicHistory: selectedChips,
-                              refractionistName: userName 
-                            })
+                          await api.saveRefraction(patient.id, { 
+                            ...finalFormData, 
+                            complaint: Array.isArray(finalFormData.complaints)
+                              ? finalFormData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
+                              : "",
+                            systemicHistory: selectedChips,
+                            refractionistName: userName 
                           });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.message || data.error || "Submission failed");
                           toast({ title: "Clinical Record Persistence Successful", description: "Record moved to Diagnostic Archive." });
                           localStorage.removeItem(storageKey);
                           window.dispatchEvent(new Event("patientQueueUpdated"));

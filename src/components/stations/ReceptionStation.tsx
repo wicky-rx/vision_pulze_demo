@@ -1437,12 +1437,18 @@ export function ReceptionStation() {
             {/* Screen Preview (Hidden in Print) */}
             <div className="border-4 border-orange-600/20 rounded-none p-8 bg-orange-50/50 space-y-6 print:hidden">
               <div className="text-center border-b border-border pb-3 flex flex-col items-center">
-                <img
-                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                  alt="VPN Eye Hospital"
-                  className="h-12 w-auto object-contain mb-2"
-                />
-                <p className="text-[11px] text-muted-foreground">25, Neela West Street, Velippalayam, Nagapattinam - 611001, Tamil Nadu</p>
+                <div className="flex flex-col items-center gap-0.5 leading-none mb-2">
+                  <span
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-extrabold text-xl tracking-tight leading-none"
+                  >
+                    <span style={{ color: "#0F172A" }}>Vision</span>
+                    <span style={{ color: "#2563EB" }}>Pulze</span>
+                  </span>
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                    Ophthalmic Ecosystem
+                  </span>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 text-xs">
                 <div>
@@ -1509,7 +1515,13 @@ export function ReceptionStation() {
             {/* Print Version (Hidden on Screen, Tag Size 60x40mm) */}
             <div id="print-section" className="hidden print:flex print:flex-col print:justify-start print:bg-white print:text-black print:p-1 print:w-[60mm] print:h-[40mm] print:font-sans print:box-border overflow-hidden">
               <div className="text-center border-b-2 border-black pb-0.5 mb-1 flex flex-col items-center shrink-0 w-full">
-                <h2 className="font-black text-[9px] m-0 p-0 leading-tight uppercase tracking-tighter text-center w-full">VPN Eye Hospital</h2>
+                <span
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
+                  className="font-extrabold text-[9px] tracking-tight leading-none text-center w-full"
+                >
+                  <span style={{ color: "#0F172A" }}>Vision</span>
+                  <span style={{ color: "#2563EB" }}>Pulze</span>
+                </span>
               </div>
 
               <div className="flex flex-row w-full flex-1 gap-1">

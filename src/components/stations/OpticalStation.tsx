@@ -496,14 +496,20 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
           </DialogHeader>
           <div id="print-section" className="bg-white p-12 space-y-10">
             {/* Header with Hospital Info */}
-            <div className="text-center border-b border-slate-100 pb-8 flex flex-col items-center">
-              <img 
-                src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
-                alt="VPN Eye Hospital" 
-                className="h-16 w-auto object-contain mb-4"
-              />
-              <h4 className="text-lg font-black text-[orange-600] uppercase tracking-tighter">Optical RX Order</h4>
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Nagapattinam • Primary Care Center • ISO Certified Optics</p>
+            <div className="text-center border-b border-slate-100 pb-8 flex flex-col items-center leading-none">
+              <div className="flex flex-col items-center gap-0.5 leading-none mb-3">
+                <span
+                  style={{ fontFamily: "'Outfit', sans-serif" }}
+                  className="font-extrabold text-2xl tracking-tight leading-none"
+                >
+                  <span style={{ color: "#0F172A" }}>Vision</span>
+                  <span style={{ color: "#2563EB" }}>Pulze</span>
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
+                  Ophthalmic Ecosystem
+                </span>
+              </div>
+              <h4 className="text-lg font-black text-[orange-600] uppercase tracking-tighter mt-2">Optical RX Order</h4>
             </div>
 
             {/* Patient Info Table */}
@@ -629,7 +635,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
             </div>
 
             <div className="pt-8 flex justify-between items-end border-t border-slate-100 italic">
-               <p className="text-[10px] text-slate-400 font-bold max-w-xs leading-relaxed">This slip serves as a verified optical directive from VPN Eye Hospital. Authenticity can be verified via MRN-{patient?.mrNumber}.</p>
+               <p className="text-[10px] text-slate-400 font-bold max-w-xs leading-relaxed">This slip serves as a verified optical directive from VisionPulze Ophthalmic Ecosystem. Authenticity can be verified via MRN-{patient?.mrNumber}.</p>
                <div className="text-right">
                   <div className="w-32 h-px bg-slate-300 mb-2 ml-auto" />
                   <p className="text-[9px] font-black uppercase tracking-widest text-[orange-600]">Official Optical Seal</p>

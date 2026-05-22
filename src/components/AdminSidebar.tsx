@@ -26,12 +26,19 @@ export function AdminSidebar({ activeView, onViewChange, isSuperAdmin, onLogout,
     return (
         <aside className="w-64 min-h-screen bg-slate-900 text-white flex flex-col shrink-0">
             {/* Logo */}
-            <div className="px-6 py-6 border-b border-slate-700/60">
-                <img
-                    src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                    alt="VPN Eye Hospital"
-                    className="h-10 w-auto object-contain brightness-0 invert mb-3"
-                />
+            <div className="px-6 py-6 border-b border-slate-700/60 leading-none">
+                <div className="flex flex-col gap-0.5 mb-3 leading-none">
+                    <span
+                        style={{ fontFamily: "'Outfit', sans-serif" }}
+                        className="font-extrabold text-xl tracking-tight leading-none"
+                    >
+                        <span style={{ color: "#FFFFFF" }}>Vision</span>
+                        <span style={{ color: "#3B82F6" }}>Pulze</span>
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                        Ophthalmic Ecosystem
+                    </span>
+                </div>
                 <p className="text-[10px] text-slate-400 leading-tight">Admin Control Panel</p>
             </div>
 

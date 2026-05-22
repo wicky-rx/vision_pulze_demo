@@ -49,11 +49,18 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
       <div className="flex items-center gap-6 md:gap-10">
         {/* Logo Section */}
         <div className="flex items-center lg:pr-10 lg:border-r border-slate-200/60 shrink-0">
-          <img
-            src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-            alt="VPN Eye Hospital"
-            className="h-8 lg:h-12 w-auto object-contain transition-transform hover:scale-105 duration-300"
-          />
+          <div className="flex flex-col leading-none gap-0.5">
+            <span
+              style={{ fontFamily: "'Outfit', sans-serif" }}
+              className="font-extrabold text-xl tracking-tight leading-none"
+            >
+              <span style={{ color: "#0F172A" }}>Vision</span>
+              <span style={{ color: "#2563EB" }}>Pulze</span>
+            </span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+              Ophthalmic Ecosystem
+            </span>
+          </div>
         </div>
 
         <div className="space-y-0.5">
@@ -68,8 +75,8 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
         </div>
 
         <div className="hidden 2xl:flex flex-col justify-center border-l border-slate-200 pl-10">
-          <span className="text-xs font-black tracking-tight text-slate-900 leading-none mb-1">VPN EYE HOSPITAL</span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">25, Neela West Street, Nagapattinam - 611001</span>
+          <span className="text-xs font-black tracking-tight text-slate-900 leading-none mb-1">VISIONPULZE</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ophthalmic Ecosystem</span>
         </div>
       </div>
 

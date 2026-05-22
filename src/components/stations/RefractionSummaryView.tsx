@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, ClipboardList, Activity, Thermometer, FileText, Zap, ExternalLink, Glasses, ShieldCheck, AlertCircle } from "lucide-react";
-import { API_BASE_URL } from "@/config";
 import { cn } from "@/lib/utils";
 
 function SectionHeader({ icon: Icon, title, category = "Clinical Assessment" }: { icon: any, title: string, category?: string }) {
@@ -33,8 +32,7 @@ export function RefractionSummaryView({
 
   const getImageUrl = (path: string) => {
     if (!path) return "";
-    if (path.startsWith('data:image') || path.startsWith('http')) return path;
-    return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+    return path;
   };
 
   const ctrrUrl = getImageUrl(rd.ctrr);
