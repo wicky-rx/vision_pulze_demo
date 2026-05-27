@@ -978,7 +978,7 @@ export function ReceptionStation() {
                   {/* Left Column: Address Details */}
                   <div className="lg:col-span-7 space-y-3.5 p-4 border border-slate-100 bg-slate-50/5/10 rounded-sm">
                     <Label className="clinical-label text-slate-700">Address Details</Label>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                       <div className="sm:col-span-2 space-y-1">
                         <Label className="text-[10px] font-bold text-slate-400 uppercase">Door No</Label>

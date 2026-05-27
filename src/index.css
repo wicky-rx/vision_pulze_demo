@@ -34,7 +34,8 @@
     --input: 25 95% 85%;
     --ring: 25 95% 53%;
 
-    --radius: 0px; /* Sharp clinical look per request */
+    --radius: 0px;
+    /* Sharp clinical look per request */
 
     --sidebar-background: 213 55% 24%;
     --sidebar-foreground: 210 40% 98%;
@@ -60,14 +61,22 @@
      *   pharmacy    (future)        = 🩵 Light-blue
      *   completed   (COMPLETED)     = 🟢 Green
      */
-    --status-reception:   217 91% 60%;   /* Blue   */
-    --status-optometrist: 25 95% 53%;    /* Orange */
-    --status-doctor:      271 76% 53%;   /* Purple */
-    --status-consulted:   45 93% 47%;    /* Amber  */
-    --status-optical:     181 80% 42%;   /* Teal   */
-    --status-pharmacy:    199 89% 48%;   /* Cyan   */
-    --status-refraction-done: 245 58% 51%; /* Indigo */
-    --status-completed:   142 71% 45%;   /* Green  */
+    --status-reception: 217 91% 60%;
+    /* Blue   */
+    --status-optometrist: 25 95% 53%;
+    /* Orange */
+    --status-doctor: 271 76% 53%;
+    /* Purple */
+    --status-consulted: 45 93% 47%;
+    /* Amber  */
+    --status-optical: 181 80% 42%;
+    /* Teal   */
+    --status-pharmacy: 199 89% 48%;
+    /* Cyan   */
+    --status-refraction-done: 245 58% 51%;
+    /* Indigo */
+    --status-completed: 142 71% 45%;
+    /* Green  */
   }
 
   .dark {
@@ -102,14 +111,22 @@
     --clinic-sky: 217 91% 60%;
     --clinic-gray: 213 50% 14%;
     --clinic-surface: 213 55% 8%;
-    --status-reception:   217 91% 60%;   /* Blue   */
-    --status-optometrist: 25 95% 53%;    /* Orange */
-    --status-doctor:      271 76% 53%;   /* Purple */
-    --status-consulted:   45 93% 47%;    /* Amber  */
-    --status-optical:     181 80% 42%;   /* Teal   */
-    --status-pharmacy:    199 89% 48%;   /* Cyan   */
-    --status-refraction-done: 245 58% 60%; /* Indigo */
-    --status-completed:   142 71% 45%;   /* Green  */
+    --status-reception: 217 91% 60%;
+    /* Blue   */
+    --status-optometrist: 25 95% 53%;
+    /* Orange */
+    --status-doctor: 271 76% 53%;
+    /* Purple */
+    --status-consulted: 45 93% 47%;
+    /* Amber  */
+    --status-optical: 181 80% 42%;
+    /* Teal   */
+    --status-pharmacy: 199 89% 48%;
+    /* Cyan   */
+    --status-refraction-done: 245 58% 60%;
+    /* Indigo */
+    --status-completed: 142 71% 45%;
+    /* Green  */
   }
 }
 
@@ -133,13 +150,16 @@
     width: 6px;
     height: 6px;
   }
+
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--accent) / 0.2);
     border-radius: 10px;
   }
+
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--accent) / 0.4);
   }
@@ -148,22 +168,22 @@
   .clinical-card {
     @apply border-0 shadow-lg bg-white overflow-hidden;
   }
-  
+
   .clinical-section {
     @apply p-8 space-y-10;
   }
-  
+
   .clinical-group {
     @apply p-6 bg-slate-50 border border-slate-100 space-y-6 transition-all;
   }
-  
+
   .clinical-label {
     @apply text-xs font-bold uppercase tracking-widest text-[#1a365d] mb-2 block;
   }
 
   .bg-sprinkles {
-    background-image: url("data:image/svg+xml,%3Csvg width='160' height='160' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23f97316' transform='translate(20, 20) rotate(15 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23ea580c' transform='translate(100, 30) rotate(-45 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23fb923c' transform='translate(50, 100) rotate(115 6 10)' /%3E%3Cpolygon points='6,0 12,20 0,20' fill='%23fb923c' transform='translate(130, 10) rotate(150 6 10)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23ea580c' stroke-width='3' stroke-linecap='round' transform='translate(60, 20) rotate(30 6 6)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23f97316' stroke-width='4' stroke-linecap='round' transform='translate(120, 90) rotate(-15 6 6)' /%3E%3Cpath d='M6,0 L6,12 M0,6 L12,6' stroke='%23fb923c' stroke-width='3.5' stroke-linecap='round' transform='translate(20, 70) rotate(45 6 6)' /%3E%3Ccircle cx='6' cy='6' r='5' fill='none' stroke='%23f97316' stroke-width='3' transform='translate(80, 120)' /%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='%23ea580c' stroke-width='4' transform='translate(10, 120)' /%3E%3Cpolygon points='5,0 10,5 5,10 0,5' fill='%23f97316' transform='translate(70, 70) rotate(15 5 5)' /%3E%3Cpolygon points='6,0 12,6 6,12 0,6' fill='%23fb923c' transform='translate(130, 130) rotate(30 6 6)' /%3E%3Cpolygon points='5,0 10,5 5,10 0,5' fill='%23ea580c' transform='translate(110, 50) rotate(-20 5 5)' /%3E%3C/svg%3E");
-    background-size: 160px 160px;
+    background-image: url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15,19 A3.5,3.5 0 1,0 22,19 A3.5,3.5 0 1,0 15,19 M22,19 C23,17 27,17 28,19 M28,19 A3.5,3.5 0 1,0 35,19 A3.5,3.5 0 1,0 28,19 M15,17 L11,15 M35,17 L39,15' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M60,20 C65,13 75,13 80,20 C75,27 65,27 60,20 Z' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Ccircle cx='70' cy='20' r='3.5' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Ccircle cx='70' cy='20' r='1' fill='%2394a3b8' /%3E%3Cpath d='M130,22 h5 v-5 h4 v5 h5 v4 h-5 v5 h-4 v-5 h-5 Z' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Crect x='15' y='65' width='20' height='26' rx='1' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M22,70 h6 M22,73 h4 M22,76 h6 M22,70 v6' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cline x1='19' y1='81' x2='31' y2='81' stroke='%2394a3b8' stroke-width='1.2' /%3E%3Cline x1='21' y1='85' x2='29' y2='85' stroke='%2394a3b8' stroke-width='1.2' /%3E%3Cpath d='M65,70 C65,82 77,82 77,70' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M71,76 v6 C71,85 75,87 75,89' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Ccircle cx='75' cy='90' r='2' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M63,70 h4 M75,70 h4' stroke='%2394a3b8' stroke-width='1.2' /%3E%3Cpath d='M135,80 C135,76 140,70 140,70 C140,70 145,76 145,80 A5,5 0 1,1 135,80 Z' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M132,87 C135,89 145,89 148,87' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M20,130 C20,130 20,123 30,120 C40,123 40,130 40,130 C40,138 30,143 30,143 C30,143 20,138 20,130 Z' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M28,131 h4 M30,129 v4' stroke='%2394a3b8' stroke-width='1.2' /%3E%3Crect x='65' y='132' width='16' height='7' rx='3.5' transform='rotate(-30 73 135)' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M71,130 L74,136' stroke='%2394a3b8' stroke-width='1.2' /%3E%3Ccircle cx='135' cy='128' r='5' stroke='%2394a3b8' stroke-width='1.2' fill='none' /%3E%3Cpath d='M135,133 L141,143' stroke='%2394a3b8' stroke-width='1.2' /%3E%3C/svg%3E");
+    background-size: 180px 180px;
     opacity: 0.3;
   }
 }
@@ -188,7 +208,7 @@
   }
 
   /* Hide the overlay and close button completely during print */
-  [data-radix-portal] > div[class*="bg-black"],
+  [data-radix-portal]>div[class*="bg-black"],
   div[class*="bg-black/80"],
   button[class*="DialogClose"],
   button[class*="absolute right-4"] {
