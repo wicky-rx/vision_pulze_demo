@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,12 @@ import {
     Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const ReceptionStandalone = lazy(() => import("../components/previews/ReceptionStandalone"));
+const RefractionStandalone = lazy(() => import("../components/previews/RefractionStandalone"));
+const DoctorStandalone = lazy(() => import("../components/previews/DoctorStandalone"));
+const OpticalStandalone = lazy(() => import("../components/previews/OpticalStandalone"));
+const PharmacyStandalone = lazy(() => import("../components/previews/PharmacyStandalone"));
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -373,6 +379,78 @@ const UserDetails = () => {
                         <div className="absolute -top-4 -right-4 bg-[#1a365d] rounded-2xl shadow-xl px-4 py-3 flex items-center gap-2">
                             <Activity className="w-4 h-4 text-green-400 animate-pulse" />
                             <span className="text-xs font-black text-white">34 patients today</span>
+                        </div>
+                    </div>
+                </section>
+                {/* ── Cinematic SaaS Mockup Showcase ── */}
+                <section className="relative w-full max-w-[1600px] mx-auto min-h-[900px] flex flex-col items-center justify-center pr-44 py-24 overflow-hidden bg-slate-50/50">
+                    {/* Background Accents */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+                    <div className="text-center mb-16 relative z-50">
+                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+                            Enterprise-Grade Workflow
+                        </h2>
+                        <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto">
+                            Purpose-built, high-fidelity interfaces for every clinical station, seamlessly integrated into a single unified platform.
+                        </p>
+                    </div>
+
+                    {/* 3D Composition Container */}
+                    <div
+                        className="relative w-full max-w-7xl h-[650px] mx-auto"
+                        style={{ perspective: "2500px" }}
+                    >
+                        {/* 1. Left Wing - Reception */}
+                        <div
+                            className="absolute top-12 left-4 w-[700px] h-[480px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200/50 z-10 transition-transform hover:-translate-y-2 duration-500 ease-out"
+                            style={{
+                                transform: "rotateY(25deg) rotateX(10deg) rotateZ(-2deg) translateZ(-150px) translateX(30px)",
+                                transformStyle: "preserve-3d"
+                            }}
+                        >
+                            <div className="w-full h-full opacity-[0.98]">
+                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
+                                    <ReceptionStandalone />
+                                </Suspense>
+                            </div>
+                            {/* Depth Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-900/10 pointer-events-none" />
+                        </div>
+
+                        {/* 2. Right Wing - Pharmacy */}
+                        <div
+                            className="absolute top-12 right-4 w-[700px] h-[480px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200/50 z-10 transition-transform hover:-translate-y-2 duration-500 ease-out"
+                            style={{
+                                transform: "rotateY(-25deg) rotateX(10deg) rotateZ(2deg) translateZ(-150px) translateX(-30px)",
+                                transformStyle: "preserve-3d"
+                            }}
+                        >
+                            <div className="w-full h-full opacity-[0.98]">
+                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
+                                    <PharmacyStandalone />
+                                </Suspense>
+                            </div>
+                            {/* Depth Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-slate-900/10 pointer-events-none" />
+                        </div>
+
+                        {/* 3. Center Hero - Doctor */}
+                        <div
+                            className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[580px] bg-white rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden border border-slate-200/80 z-30 transition-transform hover:-translate-y-3 hover:shadow-[0_45px_70px_-15px_rgba(0,0,0,0.35)] duration-500 ease-out"
+                            style={{
+                                transform: "rotateX(5deg) translateY(10px)",
+                                transformStyle: "preserve-3d"
+                            }}
+                        >
+                            {/* Glass reflection top edge */}
+                            <div className="absolute top-0 inset-x-0 h-px bg-white/50 z-50 pointer-events-none" />
+                            <div className="w-full h-full bg-white relative z-0">
+                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
+                                    <DoctorStandalone />
+                                </Suspense>
+                            </div>
                         </div>
                     </div>
                 </section>

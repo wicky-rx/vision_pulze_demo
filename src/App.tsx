@@ -22,16 +22,16 @@ const TOAST_THROTTLE_MS = 3000; // Only show one toast every 3 seconds
 
 window.fetch = async (...args) => {
   const response = await originalFetch(...args);
-  
+
   if (response.status === 401 || response.status === 403) {
     const session = localStorage.getItem("user_session");
     const token = localStorage.getItem("token");
-    
+
     // Only logout if we actually have a session/token to clear
     if (session || token) {
       localStorage.removeItem("token");
       localStorage.removeItem("user_session");
-      
+
       // Prevent infinite redirect loops if we're already on login page
       if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login?expired=true";
@@ -43,12 +43,12 @@ window.fetch = async (...args) => {
     const now = Date.now();
     if (now - lastToastTime > TOAST_THROTTLE_MS) {
       lastToastTime = now;
-      
+
       try {
         // Try to clone the response to read body without affecting the original requester
         const clone = response.clone();
         const data = await clone.json();
-        
+
         toast.error(data.error || "Too many requests. Please slow down.", {
           duration: 3000,
           id: "rate-limit-error", // Ensure we don't stack multiple identical toasts
@@ -63,7 +63,7 @@ window.fetch = async (...args) => {
       }
     }
   }
-  
+
   return response;
 };
 
