@@ -236,17 +236,85 @@ const WorkspaceLoader = ({ step }: { step: number }) => (
 );
 
 // ─── Main Component ────────────────────────────────────────────────────────────
+const stations = [
+    { name: "Reception Station", Component: ReceptionStandalone },
+    { name: "Refraction Station", Component: RefractionStandalone },
+    { name: "Doctor Station", Component: DoctorStandalone },
+    { name: "Optical Station", Component: OpticalStandalone },
+    { name: "Pharmacy Station", Component: PharmacyStandalone }
+];
+
 const UserDetails = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [loadStep, setLoadStep] = useState(0);
     const formRef = useRef<HTMLDivElement>(null);
 
+    const [isMobile, setIsMobile] = useState(false);
+    const [mobileCardWidth, setMobileCardWidth] = useState(340);
+    const [scrollStep, setScrollStep] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const {
         register,
         handleSubmit,
         formState: { errors },
     } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+    // Responsiveness check
+    useEffect(() => {
+        const media = window.matchMedia("(max-width: 1023px)");
+        const handleResize = () => {
+            setIsMobile(media.matches);
+            setMobileCardWidth(Math.min(window.innerWidth * 0.85, 340));
+        };
+        
+        // Initial set
+        setIsMobile(media.matches);
+        setMobileCardWidth(Math.min(window.innerWidth * 0.85, 340));
+
+        media.addEventListener("change", handleResize);
+        window.addEventListener("resize", handleResize);
+        return () => {
+            media.removeEventListener("change", handleResize);
+            window.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    // Scroll logic for cycling stations
+    useEffect(() => {
+        if (isMobile) return;
+
+        const handleScroll = () => {
+            if (!containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+
+            const totalScrollable = rect.height - window.innerHeight;
+            if (totalScrollable <= 0) return;
+
+            const scrolled = -rect.top;
+            const progress = Math.max(0, Math.min(1, scrolled / totalScrollable));
+
+            let nextStep = 0;
+            if (progress >= 0.8) {
+                nextStep = 4;
+            } else if (progress >= 0.6) {
+                nextStep = 3;
+            } else if (progress >= 0.4) {
+                nextStep = 2;
+            } else if (progress >= 0.2) {
+                nextStep = 1;
+            } else {
+                nextStep = 0;
+            }
+
+            setScrollStep(nextStep);
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        handleScroll();
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [isMobile]);
 
     // Animate loading steps
     useEffect(() => {
@@ -383,96 +451,210 @@ const UserDetails = () => {
                     </div>
                 </section>
                 {/* ── Cinematic SaaS Mockup Showcase ── */}
-                <section className="relative w-full max-w-[1600px] mx-auto min-h-[900px] flex flex-col items-center justify-center pr-44 py-24 overflow-hidden bg-slate-50/50">
-                    {/* Background Accents */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
-                    <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+                {isMobile ? (
+                    <section className="relative w-full py-16 overflow-hidden bg-slate-50/50">
+                        {/* Background Accents */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[300px] bg-blue-600/5 rounded-full blur-[80px] pointer-events-none" />
 
-                    <div className="text-center mb-16 relative z-50">
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
-                            Enterprise-Grade Workflow
-                        </h2>
-                        <p className="text-lg text-slate-500 font-medium max-w-2xl mx-auto">
-                            Purpose-built, high-fidelity interfaces for every clinical station, seamlessly integrated into a single unified platform.
-                        </p>
+                        <div className="text-center mb-10 px-6 relative z-50">
+                            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">
+                                Enterprise-Grade Workflow
+                            </h2>
+                            <p className="text-sm text-slate-500 font-medium max-w-md mx-auto">
+                                Purpose-built, high-fidelity interfaces for every clinical station, seamlessly integrated into a single unified platform.
+                            </p>
+                            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest mt-3 animate-pulse">
+                                Swipe to explore stations →
+                            </p>
+                        </div>
+
+                        {/* Swipeable Container */}
+                        <div className="flex overflow-x-auto gap-6 px-6 pb-6 snap-x snap-mandatory scrollbar-none scroll-smooth">
+                            <style>{`
+                                .scrollbar-none::-webkit-scrollbar {
+                                    display: none;
+                                }
+                                .scrollbar-none {
+                                    -ms-overflow-style: none;
+                                    scrollbar-width: none;
+                                }
+                            `}</style>
+                            {stations.map((station, index) => {
+                                const StationComp = station.Component;
+                                const scale = mobileCardWidth / 1024;
+                                const cardHeight = 720 * scale;
+                                return (
+                                    <div
+                                        key={station.name}
+                                        className="snap-center shrink-0 bg-white rounded-2xl shadow-xl border border-slate-200/50 overflow-hidden flex flex-col"
+                                        style={{ width: mobileCardWidth }}
+                                    >
+                                        {/* Frame Header */}
+                                        <div className="bg-slate-900 px-4 py-2 flex items-center justify-between shrink-0">
+                                            <span className="text-[10px] font-black text-white tracking-wider uppercase">
+                                                {station.name}
+                                            </span>
+                                            <span className="text-[9px] text-slate-400 font-bold tracking-widest">
+                                                {index + 1} / 5
+                                            </span>
+                                        </div>
+                                        {/* Screen wrapper to simulate browser */}
+                                        <div 
+                                            className="relative bg-slate-50 overflow-hidden"
+                                            style={{ 
+                                                width: mobileCardWidth, 
+                                                height: cardHeight 
+                                            }}
+                                        >
+                                            <div 
+                                                style={{ 
+                                                    width: 1024, 
+                                                    height: 720, 
+                                                    transform: `scale(${scale})`, 
+                                                    transformOrigin: "top left",
+                                                    position: "absolute",
+                                                    top: 0,
+                                                    left: 0,
+                                                    pointerEvents: "none"
+                                                }}
+                                            >
+                                                <Suspense fallback={<div className="w-full h-full bg-slate-50 flex items-center justify-center text-xs text-slate-400">Loading...</div>}>
+                                                    <StationComp />
+                                                </Suspense>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ) : (
+                    <div ref={containerRef} className="relative w-full h-[350vh] bg-slate-50/30">
+                        <section className="sticky top-0 h-screen w-full flex flex-col items-center justify-center pr-44 py-12 overflow-hidden bg-slate-50/50">
+                            {/* Background Accents */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+                            <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+                            <div className="text-center mb-10 relative z-50">
+                                <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-3">
+                                    Enterprise-Grade Workflow
+                                </h2>
+                                <p className="text-base text-slate-500 font-medium max-w-2xl mx-auto">
+                                    Purpose-built, high-fidelity interfaces for every clinical station, seamlessly integrated into a single unified platform.
+                                </p>
+                                {/* Step Indicators */}
+                                <div className="flex justify-center gap-2 mt-4">
+                                    {Array.from({ length: 5 }).map((_, stepIdx) => (
+                                        <div
+                                            key={stepIdx}
+                                            className={cn(
+                                                "h-1.5 rounded-full transition-all duration-300",
+                                                scrollStep === stepIdx ? "w-8 bg-blue-600" : "w-2 bg-slate-300"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 3D Composition Container */}
+                            <div
+                                className="relative w-full max-w-7xl h-[600px] mx-auto"
+                                style={{ perspective: "2500px" }}
+                            >
+                                {stations.map((station, index) => {
+                                    const rel = index - scrollStep;
+                                    const StationComp = station.Component;
+
+                                    // Determine positions/classes based on relative index
+                                    let style: React.CSSProperties = {
+                                        transformStyle: "preserve-3d",
+                                        transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)"
+                                    };
+                                    let positionClass = "";
+
+                                    if (rel === -1) {
+                                        // Left Wing
+                                        positionClass = "z-10 opacity-[0.9] pointer-events-none";
+                                        style.transform = "translateX(-82.4%) translateY(40px) rotateY(22deg) rotateX(10deg) rotateZ(-2deg) translateZ(-150px) scale(0.82)";
+                                    } else if (rel === 0) {
+                                        // Center Hero
+                                        positionClass = "z-30 opacity-100 pointer-events-none"; // Keep it pointer-events-none to prevent interception as per user global rules
+                                        style.transform = "translateX(-50%) translateY(10px) rotateX(5deg) scale(1)";
+                                    } else if (rel === 1) {
+                                        // Right Wing
+                                        positionClass = "z-10 opacity-[0.9] pointer-events-none";
+                                        style.transform = "translateX(-17.6%) translateY(40px) rotateY(-22deg) rotateX(10deg) rotateZ(2deg) translateZ(-150px) scale(0.82)";
+                                    } else if (rel < -1) {
+                                        // Hidden Left
+                                        positionClass = "z-0 opacity-0 pointer-events-none";
+                                        style.transform = "translateX(-140%) translateY(80px) rotateY(45deg) rotateX(15deg) translateZ(-300px) scale(0.6)";
+                                    } else {
+                                        // Hidden Right
+                                        positionClass = "z-0 opacity-0 pointer-events-none";
+                                        style.transform = "translateX(40%) translateY(80px) rotateY(-45deg) rotateX(15deg) translateZ(-300px) scale(0.6)";
+                                    }
+
+                                    return (
+                                        <div
+                                            key={station.name}
+                                            className={cn(
+                                                "absolute top-0 left-1/2 w-[850px] h-[540px] bg-white rounded-2xl shadow-[0_30px_50px_rgba(0,0,0,0.15)] overflow-hidden border border-slate-200/60 transition-all",
+                                                positionClass
+                                            )}
+                                            style={style}
+                                        >
+                                            {/* Glass reflection top edge */}
+                                            <div className="absolute top-0 inset-x-0 h-px bg-white/50 z-50 pointer-events-none" />
+
+                                            {/* Header to display station name */}
+                                            <div className="bg-slate-900/90 backdrop-blur-md px-5 py-2 flex items-center justify-between z-40 relative border-b border-slate-800">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                                                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                                                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                                                    <span className="text-[10px] text-slate-400 font-mono ml-2 font-bold uppercase tracking-wider">
+                                                        {station.name}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">
+                                                    Vision Pulze HMS
+                                                </span>
+                                            </div>
+
+                                            <div className="w-full h-[calc(100%-36px)] bg-white relative z-0">
+                                                <Suspense fallback={<div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-400">Loading...</div>}>
+                                                    <StationComp />
+                                                </Suspense>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
                     </div>
-
-                    {/* 3D Composition Container */}
-                    <div
-                        className="relative w-full max-w-7xl h-[650px] mx-auto"
-                        style={{ perspective: "2500px" }}
-                    >
-                        {/* 1. Left Wing - Reception */}
-                        <div
-                            className="absolute top-12 left-4 w-[700px] h-[480px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200/50 z-10 transition-transform hover:-translate-y-2 duration-500 ease-out"
-                            style={{
-                                transform: "rotateY(25deg) rotateX(10deg) rotateZ(-2deg) translateZ(-150px) translateX(30px)",
-                                transformStyle: "preserve-3d"
-                            }}
-                        >
-                            <div className="w-full h-full opacity-[0.98]">
-                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
-                                    <ReceptionStandalone />
-                                </Suspense>
-                            </div>
-                            {/* Depth Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-900/10 pointer-events-none" />
-                        </div>
-
-                        {/* 2. Right Wing - Pharmacy */}
-                        <div
-                            className="absolute top-12 right-4 w-[700px] h-[480px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200/50 z-10 transition-transform hover:-translate-y-2 duration-500 ease-out"
-                            style={{
-                                transform: "rotateY(-25deg) rotateX(10deg) rotateZ(2deg) translateZ(-150px) translateX(-30px)",
-                                transformStyle: "preserve-3d"
-                            }}
-                        >
-                            <div className="w-full h-full opacity-[0.98]">
-                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
-                                    <PharmacyStandalone />
-                                </Suspense>
-                            </div>
-                            {/* Depth Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-slate-900/10 pointer-events-none" />
-                        </div>
-
-                        {/* 3. Center Hero - Doctor */}
-                        <div
-                            className="absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[580px] bg-white rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden border border-slate-200/80 z-30 transition-transform hover:-translate-y-3 hover:shadow-[0_45px_70px_-15px_rgba(0,0,0,0.35)] duration-500 ease-out"
-                            style={{
-                                transform: "rotateX(5deg) translateY(10px)",
-                                transformStyle: "preserve-3d"
-                            }}
-                        >
-                            {/* Glass reflection top edge */}
-                            <div className="absolute top-0 inset-x-0 h-px bg-white/50 z-50 pointer-events-none" />
-                            <div className="w-full h-full bg-white relative z-0">
-                                <Suspense fallback={<div className="w-full h-full bg-slate-50" />}>
-                                    <DoctorStandalone />
-                                </Suspense>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                )}
 
                 {/* ── Benefits ────────────────────────────────────────────── */}
                 <section className="bg-white border-y border-slate-100 py-14">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col sm:flex-row">
-                            <span className="text-[18px]  font-medium">Want to know more? Write to us!</span>
-                        </div>
-                        <div>
+                        {/* Centered responsive contact callout */}
+                        <div className="flex flex-col items-center justify-center text-center mb-12 border border-slate-100 bg-slate-50/50 p-6 rounded-2xl max-w-xl mx-auto">
+                            <span className="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                                Want to know more? Write to us!
+                            </span>
                             <a
                                 href="mailto:connect@flowtency.com"
-                                className="text-[21px] font-bold text-[#2563EB] hover:underline underline-offset-2 transition-all"
+                                className="text-xl sm:text-2xl font-black text-[#2563EB] hover:underline underline-offset-2 transition-all break-all"
                             >
                                 connect@flowtency.com
                             </a>
                         </div>
+
                         <p className="text-center text-xs font-black uppercase tracking-widest text-slate-400 mb-8">
                             What&apos;s included in your demo workspace
                         </p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
                             {benefits.map((b) => (
                                 <div
                                     key={b.title}
@@ -481,9 +663,23 @@ const UserDetails = () => {
                                     <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5", b.bg)}>
                                         <b.icon className={cn("w-4.5 h-4.5", b.color)} />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0 flex-1">
                                         <p className="text-sm font-black text-slate-800">{b.title}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{b.desc}</p>
+                                        {b.title === "Full Clinical Pipeline" ? (
+                                            <div className="flex flex-wrap items-center gap-1 mt-1.5 text-[9px] font-bold text-slate-500 uppercase tracking-wide">
+                                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded-sm">Reception</span>
+                                                <span className="text-slate-300">→</span>
+                                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded-sm">Refract</span>
+                                                <span className="text-slate-300">→</span>
+                                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded-sm">Doctor</span>
+                                                <span className="text-slate-300">→</span>
+                                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded-sm">Optical</span>
+                                                <span className="text-slate-300">→</span>
+                                                <span className="bg-slate-200/60 px-1.5 py-0.5 rounded-sm">Pharma</span>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{b.desc}</p>
+                                        )}
                                     </div>
                                 </div>
                             ))}
