@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer } from "lucide-react";
+import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +96,7 @@ const PowerPaletteInput = React.memo(({
     return "+";
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync sign with value when value changes externally
   useEffect(() => {
@@ -147,7 +148,6 @@ const PowerPaletteInput = React.memo(({
       finalVal = sign + val;
     }
     onChange(finalVal);
-    setOpen(false);
   };
 
   const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
@@ -202,7 +202,7 @@ const PowerPaletteInput = React.memo(({
 
   return (
     <Popover open={open && !disabled} onOpenChange={setOpen}>
-      <div className="relative flex items-center w-full group">
+      <div ref={containerRef} className="relative flex items-center w-full group">
         <PopoverAnchor asChild>
           <Input
             ref={inputRef}
@@ -254,6 +254,14 @@ const PowerPaletteInput = React.memo(({
       <PopoverContent 
         className="w-[340px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          if (
+            containerRef.current &&
+            (containerRef.current === e.target || containerRef.current.contains(e.target as Node))
+          ) {
+            e.preventDefault();
+          }
+        }}
       >
         <button
           type="button"
@@ -546,6 +554,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     { key: 'eyeStrain', label: 'Eye Strain' }
   ] as const;
 
+  const templateTimeframes: Record<string, string> = {
+    "Normal Exam": "1 Year",
+    "Refractive Error": "6 Months",
+    "Presbyopia": "1 Year",
+    "Dry Eye Syndrome": "1 Month",
+    "Allergic Conjunctival": "2 Weeks",
+    "Blepharitis": "3 Weeks",
+    "Cataract Eval": "6 Months",
+    "Glaucoma Suspect": "3 Months",
+    "Diabetic Eval (No DR)": "1 Year",
+    "Diabetic Eval (DR)": "4 Months"
+  };
+
   // Form States
   const [investigation, setInvestigation] = useState({
     diagnosisList: {
@@ -577,6 +598,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     other: "",
     opinion: "",
     adminInstructions: "",
+    followUpDate: "",
+    followUpTimeFrame: "",
   });
 
   const [finalDiagnosis, setFinalDiagnosis] = useState({
@@ -807,6 +830,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       other: "",
       opinion: "",
       adminInstructions: "",
+      followUpDate: "",
+      followUpTimeFrame: "",
     });
     setFinalDiagnosis({ OD: "", OS: "" });
     setMedications([{ id: Math.random().toString(36).slice(2, 11), drug: "", dosage: "", route: "Topical", frequency: "", duration: "", eye: "Both" }]);
@@ -895,7 +920,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           };
 
           // Split complaints by comma
-          const parts = data.ocularComplaint.split(',').map((s: string) => s.trim()).filter(Boolean);
+          const parts = data.ocularComplaint.split(',').map((s: string) => s.trim()).filter((s: string) => s && !s.toLowerCase().includes("followup") && !s.toLowerCase().includes("review"));
           const manualTextsOD: string[] = [];
           const manualTextsOS: string[] = [];
 
@@ -1143,6 +1168,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             });
           }
 
+          if (data.visit?.followUpDate || data.visit?.followUpTimeFrame) {
+            setInvestigation(prev => {
+              if ((!prev.followUpDate && !prev.followUpTimeFrame) || !isDraftLoaded) {
+                return {
+                  ...prev,
+                  followUpDate: data.visit.followUpDate ? data.visit.followUpDate.split('T')[0] : "",
+                  followUpTimeFrame: data.visit.followUpTimeFrame || ""
+                };
+              }
+              return prev;
+            });
+          }
+
           if (data.diagnosisText) {
             setFinalDiagnosis(prev => {
               // Determine if current diagnosis is effectively empty
@@ -1306,6 +1344,41 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     });
   };
 
+  const selectFollowUpTimeFrame = (timeFrame: string) => {
+    if (timeFrame === "none") {
+      setInvestigation(prev => ({ ...prev, followUpTimeFrame: "", followUpDate: "" }));
+      return;
+    }
+    
+    const today = new Date();
+    let futureDate = new Date();
+    
+    const match = timeFrame.match(/^(\d+)\s+(Day|Days|Week|Weeks|Month|Months|Year|Years)$/i);
+    if (match) {
+      const val = parseInt(match[1]);
+      const unit = match[2].toLowerCase();
+      if (unit.startsWith("day")) {
+        futureDate.setDate(today.getDate() + val);
+      } else if (unit.startsWith("week")) {
+        futureDate.setDate(today.getDate() + val * 7);
+      } else if (unit.startsWith("month")) {
+        futureDate.setMonth(today.getMonth() + val);
+      } else if (unit.startsWith("year")) {
+        futureDate.setFullYear(today.getFullYear() + val);
+      }
+    }
+    
+    const yyyy = futureDate.getFullYear();
+    const mm = String(futureDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(futureDate.getDate()).padStart(2, '0');
+    
+    setInvestigation(prev => ({
+      ...prev,
+      followUpTimeFrame: timeFrame,
+      followUpDate: `${yyyy}-${mm}-${dd}`
+    }));
+  };
+
   const saveConsultation = async () => {
     if (!patient?.id || isSubmitting) return;
     setIsSubmitting(true);
@@ -1334,7 +1407,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         medicalPrescription: medications,
         finalGlassPrescription: glassPrescription,
         finalContactLensPrescription: contactLensPrescription,
-        notes: investigation.opinion
+        notes: investigation.opinion,
+        followUpDate: investigation.followUpDate || null,
+        followUpTimeFrame: investigation.followUpTimeFrame || null
       });
 
       toast({
@@ -1504,6 +1579,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   { id: "investigation", icon: Microscope, label: "Investigation" },
                   { id: "glass", icon: Glasses, label: "Glass Rx" },
                   { id: "medical", icon: Pill, label: "Medical Rx" },
+                  { id: "followup", icon: Calendar, label: "Follow Up" },
                   { id: "history", icon: History, label: "Records" },
                 ].map((tab) => (
                   <TabsTrigger
@@ -1524,11 +1600,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Demographics - col-span-3 */}
                 <Card className="lg:col-span-3 clinical-card border border-slate-200 shadow-sm">
-                  <div className="p-4 border-b bg-orange-50/30 flex items-center justify-between">
+                  <div className="p-4 border-b bg-orange-50/30 flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-black text-orange-600 uppercase tracking-wider flex items-center gap-2">
                       <User className="w-4 h-4" /> Patient Demographics
                     </h3>
-                    <Badge className="bg-orange-600 text-[10px] font-black h-5 uppercase px-2 rounded-none">
+                    <Badge className="bg-orange-600 text-[10px] font-black h-5 uppercase px-2 rounded-none whitespace-nowrap shrink-0">
                       MRN: {patient.mrNumber || "N/A"}
                     </Badge>
                   </div>
@@ -1576,7 +1652,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       </div>
                       <div className="px-1">
                         <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phase</span>
-                        <span className="text-xs font-black text-orange-600 uppercase tracking-wider">Clinical</span>
+                        <span className="text-xs font-black text-orange-600 uppercase tracking-wider">
+                          {(patient.complaint?.toLowerCase().includes("followup") || 
+                            patient.complaint?.toLowerCase().includes("review") ||
+                            refractionData?.ocularComplaint?.toLowerCase().includes("followup") || 
+                            refractionData?.ocularComplaint?.toLowerCase().includes("review")) 
+                            ? "Follow-up" 
+                            : "Clinical"}
+                        </span>
                       </div>
                       <div className="px-1">
                         <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Wait Time</span>
@@ -1613,7 +1696,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           </span>
                         </div>
                         <div className="p-4 bg-gradient-to-br from-blue-50/40 to-sky-50/20 border-l-4 border-blue-500 shadow-sm text-sm font-bold text-slate-800 min-h-[70px] flex items-center">
-                          {refractionData?.ocularComplaint || "No primary complaints recorded."}
+                          {refractionData?.ocularComplaint 
+                            ? refractionData.ocularComplaint
+                                .split(',')
+                                .map((s: string) => s.trim())
+                                .filter((s: string) => !s.toLowerCase().includes("followup") && !s.toLowerCase().includes("review"))
+                                .join(', ') || "No primary complaints recorded."
+                            : "No primary complaints recorded."}
                         </div>
                       </div>
 
@@ -1775,7 +1864,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               type="button"
                               onClick={() => scrollToSection(sec.id)}
                               className={cn(
-                                "w-full text-left transition-all leading-tight flex items-center py-2.5 px-3 border-b border-slate-100 last:border-b-0",
+                                "w-full text-left transition-all leading-tight flex items-center py-4 px-3 border-b border-slate-100 last:border-b-0",
                                 activeSection === sec.id
                                   ? "text-orange-600 border-l-2 border-l-orange-600 bg-orange-50/50"
                                   : "text-slate-400 border-l-2 border-l-transparent hover:text-slate-600 hover:border-l-slate-300 hover:bg-slate-50/30"
@@ -1812,12 +1901,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         </div>
                       </div>
                     )}
-                    <Card className="clinical-card bg-white shadow-md border border-slate-200">
-                      <div className="p-6 sm:p-8 border-b border-slate-100 bg-white">
-                        <SectionHeader icon={Microscope} category="Clinical Investigation" title="Diagnostic Profile & Findings" />
-                      </div>
-
-                      <div className="clinical-section !p-4 sm:!p-10 space-y-12">
+                      <div className="space-y-12">
                         <div id="sec-anterior" className="scroll-mt-6 space-y-6 bg-slate-50/60 p-4 sm:p-8 border border-slate-200 shadow-sm rounded-none">
                           <SectionHeader icon={Eye} category="Slit Lamp & Specialized Profile" title="Anterior Segment" />
 
@@ -2432,10 +2516,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               )}
                             </div>
                           </div>
-                          <div id="sec-clinical-opinion" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                            <Label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Clinical Opinion</Label>
-                            <Textarea placeholder="Detailed findings..." className="min-h-[140px] text-base font-medium rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 p-5 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.opinion} onChange={e => updateInvestigation(['opinion'], e.target.value)} />
-                          </div>
                           <div id="sec-final-diagnosis" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-8 space-y-4 shadow-md">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-slate-100 pb-4">
                               <Label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
@@ -2475,7 +2555,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           </div>
                         </div>
                       </div>
-                    </Card>
                   </div>
                 </div>
               </fieldset>
@@ -3274,7 +3353,32 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         ))}
                       </div>
                       <div className="p-10 bg-orange-600/5 border-t-2 border-slate-100">
-                        <label className="text-xs font-black uppercase tracking-widest text-orange-600 mb-4 block">Special Administration Instructions</label>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                          <label className="text-xs font-black uppercase tracking-widest text-orange-600">Special Administration Instructions</label>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              { name: "Shake Well", text: "Shake well before use." },
+                              { name: "5 Min Interval", text: "Keep a 5-minute interval between different eye drops." },
+                              { name: "Avoid Contact", text: "Avoid touching the dropper tip to the eye or any surface to prevent contamination." },
+                              { name: "Bedtime Ointment", text: "Apply eye ointment at bedtime (may cause temporary blurry vision)." },
+                              { name: "Store Cool", text: "Store eye drops in a cool, dry place. Protect from direct light." },
+                              { name: "Remove Contacts", text: "Remove contact lenses before instilling drops. Reinsert only after 15 minutes." }
+                            ].map(tmpl => (
+                              <button
+                                key={tmpl.name}
+                                type="button"
+                                onClick={() => {
+                                  const currentVal = investigation.adminInstructions || "";
+                                  const newVal = currentVal ? `${currentVal}\n${tmpl.text}` : tmpl.text;
+                                  updateInvestigation(['adminInstructions'], newVal);
+                                }}
+                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-orange-50 text-slate-500 hover:text-orange-600 border border-slate-200 hover:border-orange-200 active:scale-95 transition-all rounded-none"
+                              >
+                                {tmpl.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <Textarea
                           placeholder="Instructions for patient counseling or pharmacist (e.g. Shake well, Avoid light...)"
                           className="min-h-[120px] text-lg font-medium border-slate-200 rounded-none bg-white p-6 shadow-inner leading-relaxed"
@@ -3286,6 +3390,155 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   </Card>
                 </div>
               </fieldset>
+            </TabsContent>
+
+            <TabsContent value="followup" className="p-4 sm:p-6 outline-none">
+              <div className="max-w-5xl mx-auto space-y-6">
+                <Card className="clinical-card bg-white shadow-sm overflow-hidden border border-slate-200">
+                  <div className="p-4 sm:p-5 border-b border-slate-100 bg-white">
+                    <SectionHeader icon={Calendar} category="Review & Scheduler" title="Follow-up Configuration" />
+                  </div>
+                  
+                  <div className="p-4 sm:p-6 space-y-6">
+                    {/* Section 1: Current Status */}
+                    <div className="bg-orange-50/40 border border-orange-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Current Follow-up Plan</span>
+                        {investigation.followUpDate ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-black text-orange-600">
+                              Scheduled for {new Date(investigation.followUpDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
+                            <Badge className="bg-orange-600/10 text-orange-600 border border-orange-200/50 text-[10px] font-black uppercase px-2 h-5 rounded-none whitespace-nowrap shrink-0">
+                              {investigation.followUpTimeFrame}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-bold text-slate-500 italic">No follow-up currently scheduled for this patient.</span>
+                        )}
+                      </div>
+                      {investigation.followUpDate && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setInvestigation(prev => ({
+                              ...prev,
+                              followUpDate: "",
+                              followUpTimeFrame: ""
+                            }));
+                          }}
+                          className="h-8 border-slate-200 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-none uppercase tracking-wider"
+                        >
+                          Clear Schedule
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Section 2: Timeframe Picker */}
+                    <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">Assign Follow-up Interval</Label>
+                      
+                      {/* Standard Presets */}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Quick Presets</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                          {[
+                            { name: "3 Days", value: "3 Days" },
+                            { name: "5 Days", value: "5 Days" },
+                            { name: "1 Week", value: "1 Week" },
+                            { name: "2 Weeks", value: "2 Weeks" },
+                            { name: "3 Weeks", value: "3 Weeks" },
+                            { name: "1 Month", value: "1 Month" },
+                            { name: "3 Months", value: "3 Months" },
+                            { name: "6 Months", value: "6 Months" }
+                          ].map(option => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => selectFollowUpTimeFrame(option.value)}
+                              className={cn(
+                                "px-3 py-2 text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 rounded-none text-center",
+                                investigation.followUpTimeFrame === option.value
+                                  ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                                  : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                              )}
+                            >
+                              {option.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Custom Value Builder */}
+                      <div className="pt-2 max-w-xs">
+                        <div className="space-y-2 bg-slate-50/50 p-4 border border-slate-200/60">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Specific Date Picker</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              value={investigation.followUpDate || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setInvestigation(prev => ({
+                                  ...prev,
+                                  followUpDate: val,
+                                  followUpTimeFrame: val ? "Custom Date" : ""
+                                }));
+                              }}
+                              className="h-9 px-3 border border-slate-200 text-xs font-bold text-slate-700 bg-white focus:outline-none focus:border-orange-600 w-full"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Review Details & Templates */}
+                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">Review Details & Instructions</Label>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select templates to pre-fill</span>
+                      </div>
+
+                      {/* Templates Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {[
+                          { name: "Refractive Review", text: "Refractive Error Review: Assess spectacle adaptation, visual comfort, and repeat subjective refraction check.", time: "6 Months" },
+                          { name: "Dry Eye Follow-up", text: "Dry Eye Syndrome Evaluation: Review symptom relief, assess tear film break-up time (TBUT), and adjust lubricant frequency.", time: "1 Month" },
+                          { name: "Glaucoma Monitor", text: "Glaucoma Suspect Review: Perform Goldmann applanation tonometry (IOP check) and review visual field / OCT reports.", time: "3 Months" },
+                          { name: "Diabetic Retinopathy", text: "Diabetic Fundus Evaluation: Conduct dilated fundus examination to monitor for NPDR progression or macular edema.", time: "6 Months" },
+                          { name: "Post-op Assessment", text: "Post-operative Check: Inspect surgical wound, check intraocular pressure, examine anterior chamber for inflammation.", time: "1 Week" },
+                          { name: "Allergy Review", text: "Allergic Conjunctivitis Review: Check resolution of conjunctival congestion, check for giant papillae, adjust steroid/antihistamine drops.", time: "2 Weeks" },
+                          { name: "Blepharitis Check", text: "Blepharitis Follow-up: Inspect meibomian gland expression, evaluate lid hygiene compliance, check for secondary infection.", time: "3 Weeks" }
+                        ].map(tmpl => (
+                          <button
+                            key={tmpl.name}
+                            type="button"
+                            onClick={() => {
+                              updateInvestigation(['opinion'], tmpl.text);
+                              selectFollowUpTimeFrame(tmpl.time);
+                            }}
+                            className="p-3 text-left border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 transition-all duration-200 bg-slate-50/30 active:scale-[0.98] rounded-sm"
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs font-black uppercase tracking-wider text-slate-700">{tmpl.name}</span>
+                              <Badge className="bg-orange-600/10 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-none">{tmpl.time}</Badge>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">{tmpl.text}</p>
+                          </button>
+                        ))}
+                      </div>
+
+                      <Textarea
+                        placeholder="Provide specific instructions or reason for the review visit..."
+                        className="min-h-[140px] text-base font-medium rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 p-5 leading-relaxed bg-white"
+                        value={investigation.opinion}
+                        onChange={e => updateInvestigation(['opinion'], e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* 7. Case Record (History) */}

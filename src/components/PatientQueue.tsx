@@ -988,7 +988,7 @@ export function PatientQueue({
                 <div className="space-y-2 p-4 border border-blue-50 bg-blue-50/10 rounded-sm flex flex-col justify-start min-h-[220px]">
                   <Label className="text-xs font-medium text-slate-700">Ocular Complaint(s)</Label>
                   <div className="flex flex-wrap gap-1.5 overflow-y-auto max-h-[190px] pr-1">
-                    {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
+                    {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain", "Review / Followup"].map((comp) => {
                       const currentVals = editFormData.complaint ? editFormData.complaint.split(", ").map(s => s.trim()) : [];
                       const isSelected = currentVals.includes(comp);
                       return (

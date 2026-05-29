@@ -104,6 +104,14 @@ export const api = {
     return demoDb.attendVisit(visitId);
   },
 
+  async getFollowUps() {
+    return demoDb.getFollowUps();
+  },
+
+  async updateFollowUpStatus(visitId: string, status: string) {
+    return demoDb.updateFollowUpStatus(visitId, status);
+  },
+
   async getVisitHistory(mrNumber: string) {
     const patient = demoDb.getPatientByMrn(mrNumber);
     return { visits: patient?.visits || [] };

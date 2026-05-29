@@ -835,7 +835,12 @@ export class DemoDatabase {
   // Consultation Operations
   public getConsultation(visitId: string) {
     const consultations = this.getStore<any>("demo_consultations") || [];
-    return consultations.find((c: any) => c.visitId === visitId) || null;
+    const consultation = consultations.find((c: any) => c.visitId === visitId) || null;
+    if (consultation) {
+      const visits = this.getStore<any>("demo_visits") || [];
+      consultation.visit = visits.find((v: any) => v.id === visitId) || null;
+    }
+    return consultation;
   }
 
   public saveConsultation(visitId: string, consultationData: any) {
@@ -865,13 +870,38 @@ export class DemoDatabase {
            (consultationData.finalGlassPrescription.OS?.sphere && consultationData.finalGlassPrescription.OS.sphere !== "0.00") ||
            (consultationData.finalGlassPrescription.distance?.OD?.sphere && consultationData.finalGlassPrescription.distance.OD.sphere !== "0.00") ||
            (consultationData.finalGlassPrescription.distance?.OS?.sphere && consultationData.finalGlassPrescription.distance.OS.sphere !== "0.00"));
-        return { ...v, status: hasGlasses ? "AT_OPTICAL" : "CONSULTED" };
+        return { 
+          ...v, 
+          status: hasGlasses ? "AT_OPTICAL" : "CONSULTED",
+          followUpDate: consultationData.followUpDate || null,
+          followUpTimeFrame: consultationData.followUpTimeFrame || null,
+          followUpStatus: consultationData.followUpStatus || v.followUpStatus || "PENDING"
+        };
       }
       return v;
     });
     this.setStore("demo_visits", updatedVisits);
 
     return updatedRecord;
+  }
+
+  public getFollowUps() {
+    const visits = this.getVisitsWithTokens();
+    return visits
+      .filter((v: any) => v.followUpDate)
+      .map((v: any) => this.populateVisitRelations(v));
+  }
+
+  public updateFollowUpStatus(visitId: string, status: string) {
+    const visits = this.getVisitsWithTokens();
+    const updated = visits.map((v: any) => {
+      if (v.id === visitId) {
+        return { ...v, followUpStatus: status };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updated);
+    return { success: true };
   }
 
   public attendVisit(visitId: string) {

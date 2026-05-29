@@ -775,6 +775,7 @@ const PowerPaletteInput = React.memo(({
     return "+";
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync sign with value when value changes externally
   useEffect(() => {
@@ -834,7 +835,6 @@ const PowerPaletteInput = React.memo(({
       finalVal = sign + val;
     }
     onChange(finalVal);
-    setOpen(false);
   };
 
   const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
@@ -848,45 +848,42 @@ const PowerPaletteInput = React.memo(({
         idx = 0;
       }
       if (direction === "up") {
-        idx = (idx - 1 + arr.length) % arr.length;
+        idx = Math.max(0, idx - 1);
       } else {
-        idx = (idx + 1) % arr.length;
+        idx = Math.min(arr.length - 1, idx + 1);
       }
       onChange(arr[idx]);
-      return;
-    }
-
-    if (type === "iop") {
-      let num = parseInt(value) || 15;
-      if (direction === "up") num += 1;
-      else num -= 1;
-      if (num < 0) num = 0;
-      onChange(String(num));
-      return;
-    }
-
-    if (type === "schiotz_scale") {
-      let num = parseFloat(value) || 5.5;
-      if (direction === "up") num += 0.5;
-      else num -= 0.5;
-      if (num < 0) num = 0;
-      onChange(num.toFixed(1));
-      return;
-    }
-
-    let num = parseFloat(value) || 0;
-    
-    if (type === "axis") {
-      const step = 5;
+    } else if (type === "axis") {
+      let num = parseInt(value || "0");
+      if (isNaN(num)) num = 0;
       if (direction === "up") {
-        num = num + step;
-        if (num > 180) num = 0;
+        num = (num + 1) % 181;
       } else {
-        num = num - step;
+        num = num - 1;
         if (num < 0) num = 180;
       }
-      onChange(String(num));
+      onChange(num.toString());
+    } else if (type === "iop") {
+      let num = parseInt(value || "10");
+      if (isNaN(num)) num = 10;
+      if (direction === "up") {
+        num = num + 1;
+      } else {
+        num = Math.max(0, num - 1);
+      }
+      onChange(num.toString());
+    } else if (type === "schiotz_scale") {
+      let num = parseFloat(value || "5.5");
+      if (isNaN(num)) num = 5.5;
+      if (direction === "up") {
+        num = num + 0.5;
+      } else {
+        num = Math.max(0, num - 0.5);
+      }
+      onChange(num.toFixed(1));
     } else {
+      let num = parseFloat(value || "0.00");
+      if (isNaN(num)) num = 0;
       const step = 0.25;
       if (direction === "up") {
         num = num + step;
@@ -907,7 +904,7 @@ const PowerPaletteInput = React.memo(({
 
   return (
     <Popover open={open && !disabled} onOpenChange={setOpen}>
-      <div className="relative flex items-center w-full group">
+      <div ref={containerRef} className="relative flex items-center w-full group">
         <PopoverAnchor asChild>
           <Input
             ref={inputRef}
@@ -959,6 +956,14 @@ const PowerPaletteInput = React.memo(({
       <PopoverContent 
         className="w-[340px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          if (
+            containerRef.current &&
+            (containerRef.current === e.target || containerRef.current.contains(e.target as Node))
+          ) {
+            e.preventDefault();
+          }
+        }}
       >
         {/* Custom Circular Close button absolute-positioned at top center */}
         <button
@@ -1481,11 +1486,11 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             if (serverData?.ocularComplaint && !draftData?.data?.complaints) {
               final.complaints = serverData.ocularComplaint.split(',').map((s: string) => {
                 return parseComplaintString(s);
-              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other" && !c.complaint.toLowerCase().includes("followup") && !c.complaint.toLowerCase().includes("review"));
             } else if (!serverData?.ocularComplaint && !draftData?.data?.complaints && patient?.complaint) {
               final.complaints = patient.complaint.split(',').map((s: string) => {
                 return parseComplaintString(s.trim());
-              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+              }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other" && !c.complaint.toLowerCase().includes("followup") && !c.complaint.toLowerCase().includes("review"));
             }
 
             if (final.complaints) {
@@ -1496,7 +1501,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                 return c;
               }).filter((c: any) => {
                 const name = typeof c === 'string' ? c : c?.complaint;
-                return name && name.toLowerCase() !== "other";
+                return name && name.toLowerCase() !== "other" && !name.toLowerCase().includes("followup") && !name.toLowerCase().includes("review");
               });
             }
 
@@ -1520,7 +1525,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
           if (patient?.complaint) {
             initialData.complaints = patient.complaint.split(',').map((s: string) => {
               return parseComplaintString(s.trim());
-            }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other");
+            }).filter((c: any) => c.complaint && c.complaint.toLowerCase() !== "other" && !c.complaint.toLowerCase().includes("followup") && !c.complaint.toLowerCase().includes("review"));
           }
           _setFormData(() => initialData);
           setSelectedChips([]);
