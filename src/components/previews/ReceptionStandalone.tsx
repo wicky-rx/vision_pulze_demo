@@ -140,7 +140,7 @@ function LocalTopHeader() {
   };
 
   return (
-    <header className="h-16 md:h-20 border-b border-orange-200/50 bg-white/85 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0">
+    <header className="h-16 md:h-20 border-b border-[#8b3d87]/20 bg-white/85 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0">
       <div className="flex items-center gap-6 md:gap-10">
         <div className="flex items-center lg:pr-10 lg:border-r border-slate-200/60 shrink-0">
           <div className="flex flex-col leading-none gap-0.5">
@@ -155,7 +155,7 @@ function LocalTopHeader() {
 
         <div className="space-y-0.5">
           <h2 className="text-sm lg:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#8b3d87] animate-pulse" />
             Reception Desk
           </h2>
           <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -172,7 +172,7 @@ function LocalTopHeader() {
 
       <div className="flex items-center gap-3 md:gap-6">
         <div className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/50">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-200">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-[#8b3d87] to-rose-500 text-white shadow-lg shadow-[#8b3d87]/20">
             <User className="w-5 h-5" />
           </div>
           <div className="hidden lg:flex flex-col items-start text-left">
@@ -262,14 +262,14 @@ function LocalPatientQueue({
       <div className="px-4 py-4 border-b border-slate-200 bg-white shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-orange-600" />
+            <Users className="w-4 h-4 text-[#8b3d87]" />
             <h3 className="text-sm font-semibold text-slate-800">Live Queue</h3>
-            <Badge className="bg-orange-50 text-orange-600 border-0 text-[11px]">{patients.length}</Badge>
+            <Badge className="bg-[#8b3d87]/10 text-[#8b3d87] border-0 text-[11px]">{patients.length}</Badge>
           </div>
         </div>
 
         <div className="flex gap-0.5 p-0.5 bg-slate-100 rounded-lg">
-          <div className="flex-1 px-0.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-md text-center bg-orange-600 text-white shadow-sm cursor-default">
+          <div className="flex-1 px-0.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-md text-center bg-[#8b3d87] text-white shadow-sm cursor-default">
             All
           </div>
           <div className="flex-1 px-0.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-md text-center text-slate-400 cursor-default">
@@ -296,7 +296,7 @@ function LocalPatientQueue({
               onClick={() => onSelectPatient?.(patient)}
               className={cn(
                 "w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50/80 transition-colors cursor-pointer border-l-4",
-                selectedPatientId === patient.id ? "bg-orange-50/40 border-l-orange-600" : "border-l-transparent"
+                selectedPatientId === patient.id ? "bg-[#8b3d87]/10 border-l-[#8b3d87]" : "border-l-transparent"
               )}
             >
               <div className="min-w-0 flex-1">
@@ -389,7 +389,7 @@ function LocalDoctorSchedulesPanel({ refreshTrigger }: { refreshTrigger: number 
     <div className="w-full lg:w-[210px] border-t lg:border-t-0 lg:border-l border-slate-200 bg-white flex flex-col shrink-0 h-full p-2.5">
       <div className="flex flex-col gap-2 shrink-0 mb-3">
         <h3 className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-          <CalendarIcon className="w-3.5 h-3.5 text-orange-600" />
+          <CalendarIcon className="w-3.5 h-3.5 text-[#8b3d87]" />
           Appointments
         </h3>
 
@@ -424,7 +424,7 @@ function LocalDoctorSchedulesPanel({ refreshTrigger }: { refreshTrigger: number 
                   <p className="text-[10px] text-slate-400 font-bold">Availability</p>
                   {doc.todaySlots.map((s: any, idx: number) => (
                     <div key={s.id} className="flex items-center gap-1.5 text-[11px] text-slate-600 border border-slate-100 p-1.5 bg-slate-50/50">
-                      <span className="font-bold text-orange-600">S{idx + 1}</span>
+                      <span className="font-bold text-[#8b3d87]">S{idx + 1}</span>
                       <Clock className="w-3 h-3 text-slate-400" />
                       <span>{formatToAMPM(s.startTime)} - {formatToAMPM(s.endTime)}</span>
                     </div>
@@ -435,12 +435,12 @@ function LocalDoctorSchedulesPanel({ refreshTrigger }: { refreshTrigger: number 
                   <p className="text-[10px] text-slate-400 font-bold">Appointments ({doc.todayAppointments.length})</p>
                   <div className="space-y-1.5">
                     {doc.todayAppointments.map((app: any) => (
-                      <div key={app.id} className="flex items-center justify-between p-2 rounded bg-orange-50/20 border border-orange-100/30">
+                      <div key={app.id} className="flex items-center justify-between p-2 rounded bg-[#8b3d87]/5 border border-[#8b3d87]/10">
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-800 truncate">{app.patient?.name}</p>
                           <p className="text-[9px] font-mono text-slate-500 mt-0.5">{app.patient?.mrNumber}</p>
                         </div>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-orange-600 hover:bg-orange-600 hover:text-white" onClick={() => handleCreateVisit(app.id)}>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-[#8b3d87] hover:bg-[#8b3d87] hover:text-white" onClick={() => handleCreateVisit(app.id)}>
                           <UserCheck className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -638,16 +638,16 @@ export function ReceptionStandalone() {
           />
 
           {/* Center Column: Enrollment Forms */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-orange-50/15 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#8b3d87]/5 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
 
             <div className="p-4 lg:p-5 space-y-4 relative z-10 flex-1">
-              <div className="flex items-center gap-4 bg-white border border-orange-100 p-4 shadow-sm mb-6 rounded-xl">
-                <div className="p-3 bg-orange-600 text-white rounded-lg">
+              <div className="flex items-center gap-4 bg-white border border-[#8b3d87]/10 p-4 shadow-sm mb-6 rounded-xl">
+                <div className="p-3 bg-[#8b3d87] text-white rounded-lg">
                   <UserPlus className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-600 block">Patient Enrollment</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#8b3d87] block">Patient Enrollment</span>
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tight">Registration Profile</h1>
                 </div>
               </div>
@@ -658,7 +658,7 @@ export function ReceptionStandalone() {
                   onClick={() => setActiveTab("new")}
                   className={cn(
                     "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-md transition-all gap-2 flex items-center justify-center",
-                    activeTab === "new" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                    activeTab === "new" ? "bg-white text-[#8b3d87] shadow-sm" : "text-slate-500 hover:text-slate-900"
                   )}
                 >
                   <UserPlus className="w-3.5 h-3.5" />
@@ -668,7 +668,7 @@ export function ReceptionStandalone() {
                   onClick={() => setActiveTab("returning")}
                   className={cn(
                     "flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-md transition-all gap-2 flex items-center justify-center",
-                    activeTab === "returning" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-900"
+                    activeTab === "returning" ? "bg-white text-[#8b3d87] shadow-sm" : "text-slate-500 hover:text-slate-900"
                   )}
                 >
                   <Search className="w-3.5 h-3.5" />
@@ -792,7 +792,7 @@ export function ReceptionStandalone() {
                                 }}
                                 className={cn(
                                   "px-2.5 py-1 text-[10px] font-bold border transition-all rounded-none uppercase tracking-wider",
-                                  isSel ? "bg-orange-600 border-orange-600 text-white" : "bg-white text-slate-600 border-slate-200"
+                                  isSel ? "bg-[#8b3d87] border-[#8b3d87] text-white" : "bg-white text-slate-600 border-slate-200"
                                 )}
                               >
                                 {comp}
@@ -802,7 +802,7 @@ export function ReceptionStandalone() {
                         </div>
                       </div>
 
-                      <Button type="submit" disabled={loading} className="w-full h-11 bg-orange-600 hover:bg-black text-white font-bold uppercase tracking-wider rounded-none shadow-md mt-4 gap-2">
+                      <Button type="submit" disabled={loading} className="w-full h-11 bg-[#8b3d87] hover:bg-[#722f6e] text-white font-bold uppercase tracking-wider rounded-none shadow-md mt-4 gap-2">
                         <UserPlus className="w-4 h-4" />
                         {loading ? "Registering..." : "Register Patient"}
                       </Button>
