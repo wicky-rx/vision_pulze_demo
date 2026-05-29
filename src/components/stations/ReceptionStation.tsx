@@ -18,7 +18,7 @@ import { api } from "@/lib/api";
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 import { toTitleCase, calculateAgeFromDob, parseDDMMYYYY, getPatientAgeString, getPatientAgeNumber } from "@/lib/utils";
-import { TN_PLACES } from "@/data/tnPlaces";
+import { US_CITIES } from "@/data/tnPlaces";
 import { DoctorSchedulesPanel } from "@/components/DoctorSchedulesPanel";
 import { format, addDays, subDays, startOfToday } from "date-fns";
 import { formatToAMPM } from "@/lib/dateUtils";
@@ -52,23 +52,22 @@ const BarcodeGenerator = ({ value, height = 30, barWidth = 1 }: { value: string,
 
 
 export function ReceptionStation() {
-  const INDIAN_STATES = [
-    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
-    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
-    "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
-    "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-    "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim",
-    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+  const US_STATES = [
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+    "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+    "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+    "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+    "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+    "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+    "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
   ];
 
-  const TN_DISTRICTS = [
-    "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul",
-    "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai",
-    "Mayiladuthurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
-    "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni",
-    "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur",
-    "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"
-  ];
+  const US_COUNTIES = [
+    "Los Angeles County", "Cook County", "Harris County", "Maricopa County", "San Diego County",
+    "Orange County", "Miami-Dade County", "Dallas County", "Kings County", "Riverside County",
+    "Queens County", "King County", "Clark County", "Tarrant County", "Santa Clara County",
+    "Broward County", "Bexar County", "Wayne County", "Alameda County", "Middlesex County"
+  ].sort();
   const [showOPCard, setShowOPCard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -81,8 +80,8 @@ export function ReceptionStation() {
     area: "",
     city: "",
     district: "",
-    state: "Tamil Nadu",
-    pincode: "",
+    state: "California",
+    zip: "",
     contactNumber: "",
     secondaryContact: "",
     relationship: "",
@@ -350,9 +349,9 @@ export function ReceptionStation() {
     } else if (field === "contactNumber" || field === "secondaryContact") {
       // Mobile numbers should only accept digits and max 10
       filteredValue = value.replace(/\D/g, "").slice(0, 10);
-    } else if (field === "pincode") {
-      // PIN should only accept digits and max 6
-      filteredValue = value.replace(/\D/g, "").slice(0, 6);
+    } else if (field === "zip") {
+      // ZIP should only accept digits and max 5
+      filteredValue = value.replace(/\D/g, "").slice(0, 5);
     }
 
     setFormData((prev) => ({ ...prev, [field]: filteredValue }));
@@ -497,7 +496,7 @@ export function ReceptionStation() {
         city: p.city,
         district: p.district,
         state: p.state,
-        pincode: p.pincode,
+        zip: p.pincode,
         address: p.address, // Fallback
         co: p.co,
       });
@@ -544,12 +543,12 @@ export function ReceptionStation() {
       return;
     }
 
-    // PIN validation: Exact 6 digits (if provided)
-    if (formData.pincode && formData.pincode.length !== 6) {
+    // ZIP validation: Exact 5 digits (if provided)
+    if (formData.zip && formData.zip.length !== 5) {
       toast({
         variant: "destructive",
-        title: "Invalid PIN Code",
-        description: "PIN code must be exactly 6 digits.",
+        title: "Invalid ZIP Code",
+        description: "ZIP code must be exactly 5 digits.",
       });
       return;
     }
@@ -573,12 +572,14 @@ export function ReceptionStation() {
 
       const submissionData: any = {
         ...formData,
+        pincode: formData.zip,
         name: formattedName,
         doctorId: selectedDoctorId || undefined,
         doctorName: doctor ? doctor.name : undefined,
         timeSlot: selectedTimeSlot || undefined,
         appointmentDate: selectedAppointmentDate || undefined
       };
+      delete submissionData.zip;
       delete submissionData.age; // DOB is the single source of truth now. Backend handles parsing or storing DOB
 
       // If mobile exists, we act on the backend logic found in registerPatient endpoint
@@ -604,8 +605,8 @@ export function ReceptionStation() {
         area: "",
         city: "",
         district: "",
-        state: "Tamil Nadu",
-        pincode: "",
+        state: "California",
+        zip: "",
         contactNumber: "",
         secondaryContact: "",
         relationship: "",
@@ -1019,7 +1020,7 @@ export function ReceptionStation() {
                         />
                         {cityPopoverOpen && formData.city.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {TN_PLACES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
+                            {US_CITIES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
                               <div
                                 key={ct}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1037,9 +1038,9 @@ export function ReceptionStation() {
                       </div>
 
                       <div className="sm:col-span-4 relative group space-y-1">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">District</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">County</Label>
                         <Input
-                          placeholder="District"
+                          placeholder="County"
                           className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.district}
                           onChange={(e) => handleInputChange("district", e.target.value)}
@@ -1048,7 +1049,7 @@ export function ReceptionStation() {
                         />
                         {districtPopoverOpen && formData.district.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {TN_DISTRICTS.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
+                            {US_COUNTIES.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
                               <div
                                 key={dist}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1077,7 +1078,7 @@ export function ReceptionStation() {
                         />
                         {statePopoverOpen && formData.state.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {INDIAN_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
+                            {US_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
                               <div
                                 key={st}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1095,13 +1096,13 @@ export function ReceptionStation() {
                       </div>
 
                       <div className="sm:col-span-3 space-y-1">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">PIN</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">ZIP</Label>
                         <Input
-                          placeholder="PIN"
+                          placeholder="ZIP"
                           className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
-                          value={formData.pincode}
-                          onChange={(e) => handleInputChange("pincode", e.target.value)}
-                          maxLength={6}
+                          value={formData.zip}
+                          onChange={(e) => handleInputChange("zip", e.target.value)}
+                          maxLength={5}
                         />
                       </div>
                     </div>
@@ -1183,8 +1184,8 @@ export function ReceptionStation() {
                               area: "",
                               city: "",
                               district: "",
-                              state: "Tamil Nadu",
-                              pincode: "",
+                              state: "California",
+                              zip: "",
                               contactNumber: "",
                               secondaryContact: "",
                               relationship: "",
@@ -1299,8 +1300,8 @@ export function ReceptionStation() {
                                   area: p.area || "",
                                   city: p.city || "",
                                   district: p.district || "",
-                                  state: p.state || "Tamil Nadu",
-                                  pincode: p.pincode != null ? String(p.pincode) : "",
+                                  state: p.state || "California",
+                                  zip: p.pincode != null ? String(p.pincode) : "",
                                   contactNumber: String(p.contactNumber),
                                   secondaryContact: p.secondaryContact != null ? String(p.secondaryContact) : "",
                                   relationship: p.relationshipType || "",
@@ -1461,7 +1462,7 @@ export function ReceptionStation() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Date</span>
-                  <p className="font-semibold text-foreground">{new Date().toLocaleDateString("en-IN")}</p>
+                  <p className="font-semibold text-foreground">{new Date().toLocaleDateString("en-US")}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Mobile</span>
@@ -1487,7 +1488,7 @@ export function ReceptionStation() {
                       patientData?.city,
                       patientData?.district,
                       patientData?.state,
-                      patientData?.pincode
+                      patientData?.zip
                     ].filter(Boolean).join(", ")
                     ) || patientData?.address || "—"}
                   </p>
@@ -1558,7 +1559,7 @@ export function ReceptionStation() {
                         patientData?.city,
                         patientData?.district,
                         patientData?.state,
-                        patientData?.pincode
+                        patientData?.zip
                       ].filter(Boolean).join(", ")
                       ) || patientData?.address || "—"}
                     </span>

@@ -438,11 +438,11 @@ export class DemoDatabase {
         ...p,
         // Make sure address fields are split out
         doorNo: p.doorNo || "12",
-        street: p.street || "Main Road",
-        city: p.city || "Chennai",
-        district: p.district || "Chennai",
-        state: p.state || "Tamil Nadu",
-        pincode: p.pincode || "600001",
+        street: p.street || "Broadway",
+        city: p.city || "Los Angeles",
+        district: p.district || "Los Angeles County",
+        state: p.state || "California",
+        pincode: p.pincode || "90001",
         co: p.co || "Self",
       }));
       this.setStore("demo_patients", formattedPatients);

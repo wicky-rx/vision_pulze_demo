@@ -25,7 +25,7 @@ import { getPatientAgeString, getPatientAgeNumber, calculateAgeFromDob, calculat
 import { statusLabels, statusColors, type PatientStatus, type Patient } from "@/data/mockData";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
-import { TN_PLACES } from "@/data/tnPlaces";
+import { TN_PLACES, US_CITIES } from "@/data/tnPlaces";
 import { formatToAMPM } from "@/lib/dateUtils";
 
 
@@ -38,23 +38,22 @@ const filterMap: Record<Filter, PatientStatus[] | null> = {
   completed: ["consulted", "completed", "optical", "pharmacy"],
 };
 
-const INDIAN_STATES = [
-  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
-  "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
-  "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
-  "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-  "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim",
-  "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
 ];
 
-const TN_DISTRICTS = [
-  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul",
-  "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai",
-  "Mayiladuthurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
-  "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni",
-  "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur",
-  "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"
-];
+const US_COUNTIES = [
+  "Los Angeles County", "Cook County", "Harris County", "Maricopa County", "San Diego County",
+  "Orange County", "Miami-Dade County", "Dallas County", "Kings County", "Riverside County",
+  "Queens County", "King County", "Clark County", "Tarrant County", "Santa Clara County",
+  "Broward County", "Bexar County", "Wayne County", "Alameda County", "Middlesex County"
+].sort();
 
 // Maps backend VisitStatus enum values → frontend PatientStatus keys
 const backendStatusMap: Record<string, PatientStatus> = {
@@ -88,7 +87,7 @@ interface EditFormData {
   city: string;
   district: string;
   state: string;
-  pincode: string;
+  zip: string;
   contactNumber: string;
   secondaryContact: string;
   co: string;
@@ -134,8 +133,8 @@ export function PatientQueue({
     area: "",
     city: "",
     district: "",
-    state: "Tamil Nadu",
-    pincode: "",
+    state: "California",
+    zip: "",
     contactNumber: "",
     secondaryContact: "",
     co: "",
@@ -196,8 +195,8 @@ export function PatientQueue({
           area: p.patient?.area || p.area || "",
           city: p.patient?.city || p.city || "",
           district: p.patient?.district || p.district || "",
-          state: p.patient?.state || p.state || "Tamil Nadu",
-          pincode: p.patient?.pincode || p.pincode || "",
+          state: p.patient?.state || p.state || "California",
+          zip: p.patient?.pincode || p.pincode || "",
           address: p.patient?.address || p.address || "",
           contactNumber: p.patient?.contactNumber || p.mobile || p.contactNumber || "—",
           secondaryContact: p.patient?.secondaryContact || p.secondaryContact || "",
@@ -297,8 +296,8 @@ export function PatientQueue({
       area: (patient as any).area || "",
       city: (patient as any).city || "",
       district: (patient as any).district || "",
-      state: (patient as any).state || "Tamil Nadu",
-      pincode: (patient as any).pincode || "",
+      state: (patient as any).state || "California",
+      zip: (patient as any).pincode || "",
       contactNumber: (patient as any).contactNumber || (patient as any).mobile || "",
       secondaryContact: (patient as any).secondaryContact || "",
       co: (patient as any).co || "",
@@ -320,9 +319,9 @@ export function PatientQueue({
     } else if (field === "contactNumber" || field === "secondaryContact") {
       // Mobile numbers should only accept digits and max 10
       filteredValue = value.replace(/\D/g, "").slice(0, 10);
-    } else if (field === "pincode") {
-      // PIN should only accept digits and max 6
-      filteredValue = value.replace(/\D/g, "").slice(0, 6);
+    } else if (field === "zip") {
+      // ZIP should only accept digits and max 5
+      filteredValue = value.replace(/\D/g, "").slice(0, 5);
     }
 
     setEditFormData((prev) => ({ ...prev, [field]: filteredValue }));
@@ -410,12 +409,12 @@ export function PatientQueue({
       return;
     }
 
-    // PIN validation: Exact 6 digits (if provided)
-    if (editFormData.pincode && editFormData.pincode.length !== 6) {
+    // ZIP validation: Exact 5 digits (if provided)
+    if (editFormData.zip && editFormData.zip.length !== 5) {
       toast({
         variant: "destructive",
-        title: "Invalid PIN Code",
-        description: "PIN code must be exactly 6 digits.",
+        title: "Invalid ZIP Code",
+        description: "ZIP code must be exactly 5 digits.",
       });
       return;
     }
@@ -444,7 +443,7 @@ export function PatientQueue({
         city: editFormData.city,
         district: editFormData.district,
         state: editFormData.state,
-        pincode: editFormData.pincode,
+        pincode: editFormData.zip,
         contactNumber: editFormData.contactNumber,
         secondaryContact: editFormData.secondaryContact,
         co: editFormData.co,
@@ -470,7 +469,7 @@ export function PatientQueue({
               city: editFormData.city as any,
               district: editFormData.district as any,
               state: editFormData.state as any,
-              pincode: editFormData.pincode as any,
+              pincode: editFormData.zip as any,
               address: editFormData.city || editFormData.address || "", // legacy fallback
               contactNumber: editFormData.contactNumber as any,
               secondaryContact: editFormData.secondaryContact as any,
@@ -853,7 +852,7 @@ export function PatientQueue({
                     />
                     {cityPopoverOpen && editFormData.city.length >= 1 && (
                       <div className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                        {TN_PLACES.filter(d => d.toLowerCase().includes(editFormData.city.toLowerCase())).map((ct) => (
+                        {US_CITIES.filter(d => d.toLowerCase().includes(editFormData.city.toLowerCase())).map((ct) => (
                           <div
                             key={ct}
                             className="px-3 py-2 text-[10px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0"
@@ -877,7 +876,7 @@ export function PatientQueue({
                     />
                     {districtPopoverOpen && editFormData.district.length >= 1 && (
                       <div className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                        {TN_DISTRICTS.filter(d => d.toLowerCase().includes(editFormData.district.toLowerCase())).map((dist) => (
+                        {US_COUNTIES.filter(d => d.toLowerCase().includes(editFormData.district.toLowerCase())).map((dist) => (
                           <div
                             key={dist}
                             className="px-3 py-2 text-[10px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0"
@@ -901,7 +900,7 @@ export function PatientQueue({
                     />
                     {statePopoverOpen && editFormData.state.length >= 1 && (
                       <div className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                        {INDIAN_STATES.filter(s => s.toLowerCase().includes(editFormData.state.toLowerCase())).map((st) => (
+                        {US_STATES.filter(s => s.toLowerCase().includes(editFormData.state.toLowerCase())).map((st) => (
                           <div
                             key={st}
                             className="px-3 py-2 text-[10px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0"
@@ -914,11 +913,11 @@ export function PatientQueue({
                     )}
                   </div>
                   <Input
-                    placeholder="PIN"
+                    placeholder="ZIP"
                     className="h-8 text-[11px]"
-                    value={editFormData.pincode}
-                    onChange={(e) => handleEditField("pincode", e.target.value)}
-                    maxLength={6}
+                    value={editFormData.zip}
+                    onChange={(e) => handleEditField("zip", e.target.value)}
+                    maxLength={5}
                   />
                 </div>
               </div>

@@ -268,7 +268,7 @@ const UserDetails = () => {
             setIsMobile(media.matches);
             setMobileCardWidth(Math.min(window.innerWidth * 0.85, 340));
         };
-        
+
         // Initial set
         setIsMobile(media.matches);
         setMobileCardWidth(Math.min(window.innerWidth * 0.85, 340));
@@ -499,18 +499,18 @@ const UserDetails = () => {
                                             </span>
                                         </div>
                                         {/* Screen wrapper to simulate browser */}
-                                        <div 
+                                        <div
                                             className="relative bg-slate-50 overflow-hidden"
-                                            style={{ 
-                                                width: mobileCardWidth, 
-                                                height: cardHeight 
+                                            style={{
+                                                width: mobileCardWidth,
+                                                height: cardHeight
                                             }}
                                         >
-                                            <div 
-                                                style={{ 
-                                                    width: 1024, 
-                                                    height: 720, 
-                                                    transform: `scale(${scale})`, 
+                                            <div
+                                                style={{
+                                                    width: 1024,
+                                                    height: 720,
+                                                    transform: `scale(${scale})`,
                                                     transformOrigin: "top left",
                                                     position: "absolute",
                                                     top: 0,
@@ -653,7 +653,7 @@ const UserDetails = () => {
                         <p className="text-center text-xs font-black uppercase tracking-widest text-slate-400 mb-8">
                             What&apos;s included in your demo workspace
                         </p>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
                             {benefits.map((b) => (
                                 <div

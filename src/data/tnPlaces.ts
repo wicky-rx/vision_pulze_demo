@@ -1,3 +1,13 @@
+export const US_CITIES = [
+  "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego",
+  "Dallas", "San Jose", "Austin", "Jacksonville", "Fort Worth", "Columbus", "San Francisco", "Charlotte",
+  "Indianapolis", "Seattle", "Denver", "Washington", "Boston", "El Paso", "Nashville", "Detroit",
+  "Oklahoma City", "Portland", "Las Vegas", "Memphis", "Louisville", "Baltimore", "Milwaukee", "Albuquerque",
+  "Tucson", "Fresno", "Sacramento", "Mesa", "Atlanta", "Kansas City", "Colorado Springs", "Miami",
+  "Raleigh", "Omaha", "Long Beach", "Virginia Beach", "Oakland", "Minneapolis", "Tampa", "Tulsa",
+  "Arlington", "New Orleans", "Wichita", "Bakersfield", "Cleveland", "Aurora", "Anaheim", "Honolulu"
+].sort();
+
 export const TN_PLACES = [
   "A.Vallalapatti", "Achalpuram", "Achanpudur", "Acharapakkam", "Adaiyur", "Adamangalam-Pudur",
   "Adigaratty", "Adirampattinam", "Aduthurai", "Agaram", "Agastheeswaram", "Alagapuram",
