@@ -49,7 +49,80 @@ const BarcodeGenerator = ({ value, height = 30, barWidth = 1 }: { value: string,
   return <svg ref={barcodeRef} className="max-w-full h-auto"></svg>;
 };
 
+const ReasonForVisitInput = ({
+  value,
+  onChange,
+  placeholder = "Click to select ocular complaints..."
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) => {
+  const complaints = [
+    "Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain",
+    "Redness", "Watering", "Itching", "Double Vision", "Floaters",
+    "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation",
+    "Flashes of Light", "Lid Swelling", "Eye Strain", "Review / Followup"
+  ];
 
+  const currentVals = value ? value.split(", ").map(s => s.trim()) : [];
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <div className="relative cursor-pointer">
+          <Input
+            placeholder={placeholder}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-9 pr-8 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none cursor-pointer"
+          />
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-[420px] p-4 rounded-none border border-slate-200 shadow-xl" align="start">
+        <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-100">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Select Ocular Complaints</span>
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[10px] font-bold text-orange-600 hover:underline"
+          >
+            Clear All
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1">
+          {complaints.map((comp) => {
+            const isSelected = currentVals.includes(comp);
+            return (
+              <button
+                key={comp}
+                type="button"
+                onClick={() => {
+                  let nextVals;
+                  if (isSelected) {
+                    nextVals = currentVals.filter(v => v !== comp);
+                  } else {
+                    nextVals = [...currentVals, comp];
+                  }
+                  onChange(nextVals.filter(Boolean).join(", "));
+                }}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
+                  isSelected
+                    ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                )}
+              >
+                {comp}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 export function ReceptionStation() {
   const US_STATES = [
@@ -125,11 +198,18 @@ export function ReceptionStation() {
   const [appointmentPatientMrn, setAppointmentPatientMrn] = useState<string | null>(null);
   const [appointmentPatientName, setAppointmentPatientName] = useState<string>("");
   const [appointmentNote, setAppointmentNote] = useState("");
+  const [appointmentFollowUpVisitId, setAppointmentFollowUpVisitId] = useState<string | null>(null);
   const [settingAppointment, setSettingAppointment] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>("");
   const [appointmentDialogMode, setAppointmentDialogMode] = useState<"START_VISIT" | "SCHEDULE">("SCHEDULE");
 
   const { toast } = useToast();
+
+  // Helper to truncate doctor name to 12 characters max
+  const truncateDoctorName = (name: string) => {
+    if (!name) return "";
+    return name.length > 12 ? name.substring(0, 12) + "..." : name;
+  };
 
   // Helper to determine if a doctor is currently active (on-duty within their schedule session)
   const isDoctorActiveNow = (doc: any) => {
@@ -410,10 +490,16 @@ export function ReceptionStation() {
     }
   };
 
-  const handleOpenAppointmentDialog = (mrNumber: string | null, name: string, mode: "START_VISIT" | "SCHEDULE" = "SCHEDULE") => {
+  const handleOpenAppointmentDialog = (
+    mrNumber: string | null,
+    name: string,
+    mode: "START_VISIT" | "SCHEDULE" = "SCHEDULE",
+    followUpVisitId: string | null = null
+  ) => {
     setAppointmentPatientMrn(mrNumber);
     setAppointmentPatientName(name);
     setAppointmentDialogMode(mode);
+    setAppointmentFollowUpVisitId(followUpVisitId);
     if (mode === "START_VISIT") {
       setSelectedAppointmentDate(new Date());
     }
@@ -444,7 +530,8 @@ export function ReceptionStation() {
         doctorId: selectedDoctorId,
         appointmentDate: selectedAppointmentDate,
         notes: appointmentNote,
-        timeSlot: selectedTimeSlot
+        timeSlot: selectedTimeSlot,
+        followUpVisitId: appointmentFollowUpVisitId
       });
 
       toast({
@@ -455,6 +542,7 @@ export function ReceptionStation() {
       setIsAppointmentDialogOpen(false);
       setAppointmentPatientMrn(null);
       setAppointmentNote("");
+      setAppointmentFollowUpVisitId(null);
       setSelectedDoctorId("");
       setSelectedTimeSlot("");
 
@@ -852,15 +940,15 @@ export function ReceptionStation() {
                       setSelectedDoctorId(val);
                       setSelectedTimeSlot("");
                     }}>
-                      <SelectTrigger className="h-9 text-xs rounded-none border-slate-200 bg-white w-full">
+                      <SelectTrigger className="h-10 text-xs rounded-none border-slate-200 bg-white w-full">
                         {selectedDoctorId ? (
                           (() => {
                             const doc = doctors.find(d => d.id === selectedDoctorId);
                             if (!doc) return <SelectValue placeholder="Identify Consultant..." />;
                             const isActive = isDoctorActiveNow(doc);
                             return (
-                              <div className="flex items-center justify-between w-full pr-2 text-left">
-                                <span className="font-bold text-slate-900 uppercase tracking-tight text-xs truncate mr-2">{doc.name}</span>
+                              <div className="flex items-center justify-between w-full pr-6 text-left">
+                                <span className="font-bold text-slate-900 uppercase tracking-tight text-[11px] truncate mr-2">{truncateDoctorName(doc.name)}</span>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {isActive && (
                                     <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">ON DUTY</Badge>
@@ -879,9 +967,9 @@ export function ReceptionStation() {
                           const isActive = isDoctorActiveNow(doc);
                           return (
                             <SelectItem key={doc.id} value={doc.id} className="group focus:bg-slate-50 focus:text-slate-900 cursor-pointer rounded-none">
-                              <div className="flex items-center justify-between w-full py-1.5 gap-4">
+                              <div className="flex items-center justify-between w-full py-1.5 gap-4 pr-4">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-bold text-slate-900 uppercase tracking-tight text-sm">{doc.name}</span>
+                                  <span className="font-bold text-slate-900 uppercase tracking-tight text-xs">{truncateDoctorName(doc.name)}</span>
                                   {isActive && (
                                     <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
                                   )}
@@ -914,7 +1002,7 @@ export function ReceptionStation() {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-9 text-[11px] font-black uppercase tracking-widest gap-2 bg-blue-50/30 border-slate-200 text-orange-600 rounded-none shadow-sm">
+                        <SelectTrigger className="h-10 text-[11px] font-black uppercase tracking-widest gap-2 bg-blue-50/30 border-slate-200 text-orange-600 rounded-none shadow-sm">
                           <div className="flex items-center gap-2 overflow-hidden flex-1">
                             <Clock className="w-3.5 h-3.5 shrink-0" />
                             <SelectValue placeholder="CHOOSE SLOT" />
@@ -966,7 +1054,7 @@ export function ReceptionStation() {
                       <Button
                         variant="outline"
                         disabled
-                        className="h-9 text-[10px] font-bold uppercase tracking-widest gap-2 bg-orange-50/50 border-dashed border-slate-200 text-slate-300 rounded-none cursor-not-allowed"
+                        className="h-10 text-[10px] font-bold uppercase tracking-widest gap-2 bg-orange-50/50 border-dashed border-slate-200 text-slate-300 rounded-none cursor-not-allowed"
                       >
                         Select Doctor first
                       </Button>
@@ -1111,61 +1199,11 @@ export function ReceptionStation() {
                   {/* Right Column: Ocular Complaint(s) */}
                   <div className="lg:col-span-5 space-y-4 p-4 border border-blue-50 bg-blue-50/5/10 rounded-sm flex flex-col justify-between min-h-[175px]">
                     <div className="space-y-2">
-                      <Label className="clinical-label text-slate-700">Ocular Complaint(s)</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <div className="relative cursor-pointer">
-                            <Input
-                              placeholder="Click to select ocular complaints..."
-                              value={formData.complaint || ""}
-                              onChange={(e) => handleInputChange("complaint", e.target.value)}
-                              className="h-9 pr-8 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none cursor-pointer"
-                            />
-                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                          </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[420px] p-4 rounded-none border border-slate-200 shadow-xl" align="start">
-                          <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-100">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Select Ocular Complaints</span>
-                            <button
-                              type="button"
-                              onClick={() => handleInputChange("complaint", "")}
-                              className="text-[10px] font-bold text-orange-600 hover:underline"
-                            >
-                              Clear All
-                            </button>
-                          </div>
-                          <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1">
-                            {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
-                              const currentVals = formData.complaint ? formData.complaint.split(", ").map(s => s.trim()) : [];
-                              const isSelected = currentVals.includes(comp);
-                              return (
-                                <button
-                                  key={comp}
-                                  type="button"
-                                  onClick={() => {
-                                    let nextVals;
-                                    if (isSelected) {
-                                      nextVals = currentVals.filter(v => v !== comp);
-                                    } else {
-                                      nextVals = [...currentVals, comp];
-                                    }
-                                    handleInputChange("complaint", nextVals.filter(Boolean).join(", "));
-                                  }}
-                                  className={cn(
-                                    "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
-                                    isSelected
-                                      ? "bg-orange-600 border-orange-600 text-white shadow-sm"
-                                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
-                                  )}
-                                >
-                                  {comp}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      <Label className="clinical-label text-slate-700">Reason for Visit</Label>
+                      <ReasonForVisitInput
+                        value={formData.complaint}
+                        onChange={(val) => handleInputChange("complaint", val)}
+                      />
                     </div>
 
                     <div className="flex flex-col sm:flex-row justify-center lg:justify-end gap-3 mt-4 w-full">
@@ -1650,61 +1688,11 @@ export function ReceptionStation() {
               </div>
 
               <div className="space-y-2 pt-4 border-t border-slate-100">
-                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Ocular Complaint(s)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <div className="relative cursor-pointer">
-                      <Input
-                        placeholder="Click to select ocular complaints..."
-                        value={returningComplaint || ""}
-                        onChange={(e) => setReturningComplaint(e.target.value)}
-                        className="h-9 pr-8 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none cursor-pointer"
-                      />
-                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[420px] p-4 rounded-none border border-slate-200 shadow-xl" align="start">
-                    <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-slate-100">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Select Ocular Complaints</span>
-                      <button
-                        type="button"
-                        onClick={() => setReturningComplaint("")}
-                        className="text-[10px] font-bold text-orange-600 hover:underline"
-                      >
-                        Clear All
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 max-h-[280px] overflow-y-auto pr-1">
-                      {["Blurred Vision", "Headache", "Irritation", "Dry Eyes", "Eye Pain", "Redness", "Watering", "Itching", "Double Vision", "Floaters", "Photophobia", "Discharge", "Burning Sensation", "Foreign Body Sensation", "Flashes of Light", "Lid Swelling", "Eye Strain"].map((comp) => {
-                        const currentVals = returningComplaint ? returningComplaint.split(", ").map(s => s.trim()) : [];
-                        const isSelected = currentVals.includes(comp);
-                        return (
-                          <button
-                            key={comp}
-                            type="button"
-                            onClick={() => {
-                              let nextVals;
-                              if (isSelected) {
-                                nextVals = currentVals.filter(v => v !== comp);
-                              } else {
-                                nextVals = [...currentVals, comp];
-                              }
-                              setReturningComplaint(nextVals.filter(Boolean).join(", "));
-                            }}
-                            className={cn(
-                              "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
-                              isSelected
-                                ? "bg-orange-600 border-orange-600 text-white shadow-sm"
-                                : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
-                            )}
-                          >
-                            {comp}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Reason for Visit</Label>
+                <ReasonForVisitInput
+                  value={returningComplaint}
+                  onChange={setReturningComplaint}
+                />
               </div>
             </div>
 
@@ -1922,12 +1910,10 @@ export function ReceptionStation() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-medium">Notes (Optional)</Label>
-                <Textarea
-                  placeholder="Any special instructions..."
-                  className="resize-none h-20 text-xs"
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Reason for Visit</Label>
+                <ReasonForVisitInput
                   value={appointmentNote}
-                  onChange={(e) => setAppointmentNote(e.target.value)}
+                  onChange={setAppointmentNote}
                 />
               </div>
             </div>
