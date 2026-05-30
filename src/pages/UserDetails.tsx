@@ -360,7 +360,7 @@ const UserDetails = () => {
                                 className="font-extrabold text-xl tracking-tight leading-none"
                             >
                                 <span style={{ color: "#0F172A" }}>Vision</span>
-                                <span style={{ color: "#2563EB" }}>Pulze</span>
+                                <span style={{ color: "#8b3d87" }}>Pulze</span>
                             </span>
                             <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
                                 Ophthalmic Ecosystem
