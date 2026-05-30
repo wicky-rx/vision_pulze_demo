@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer, Calendar, Phone, Network, GitFork, Users } from "lucide-react";
+import JsBarcode from "jsbarcode";
+import { createPortal } from "react-dom";
+import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer, Calendar, Phone, Network, GitFork, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,16 +16,87 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
-import { API_BASE_URL } from "@/config";
+import { usePharmacyInventory } from "@/hooks/usePharmacyInventory";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 import { RefractionSummaryView } from "./RefractionSummaryView";
-import { getPatientAgeString, getPatientAgeNumber, cn, calculateSessionSlot } from "@/lib/utils";
+import { ConsultationSummaryView } from "./ConsultationSummaryView";
+import { SharedPrintLayout, preparePrintData } from "./SharedPrintLayout";
+import BarcodeGenerator from "@/components/BarcodeGenerator";
+import { getPatientAgeString, getPatientAgeNumber, getPatientGenderString, cn, calculateSessionSlot, eyeMutedLabelClass, eyeValueClass } from "@/lib/utils";
 import { sanitizeOptometryInput, getFieldTypeFromName } from "@/lib/validation";
 import { ScanReportGallery } from "@/components/ScanReportGallery";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover";
 
-// --- Helper Components ---
+// --- Helper Components & Functions ---
+
+const formatRelationship = (relationship: string | undefined, gender: string | undefined) => {
+  if (!relationship) return "";
+  if (relationship.toLowerCase() === 'child') {
+    const g = (gender || '').toLowerCase();
+    if (g.startsWith('m')) return 'Son';
+    if (g.startsWith('f')) return 'Daughter';
+  }
+  return relationship;
+};
+
+const getFamilyLevels = (members: any[]) => {
+  if (members.length === 0) return { topLevel: [], bottomLevel: [] };
+  if (members.length === 1) return { topLevel: [members[0]], bottomLevel: [] };
+
+  const parsedMembers = members.map(m => {
+    const age = typeof m.age === 'number' ? m.age : parseInt(m.age) || 0;
+    const rel = (m.familyMaps?.[0]?.relationshipType || '').toLowerCase();
+    return { ...m, parsedAge: age, rel };
+  });
+
+  const maxAge = Math.max(...parsedMembers.map(m => m.parsedAge));
+
+  const topLevel: any[] = [];
+  const bottomLevel: any[] = [];
+
+  parsedMembers.forEach(m => {
+    const isElderRelation = ['parent', 'father', 'mother', 'grandparent', 'grandfather', 'grandmother', 'uncle', 'aunt'].includes(m.rel);
+    const isChildRelation = ['child', 'son', 'daughter', 'grandchild', 'grandson', 'granddaughter'].includes(m.rel);
+
+    if (isElderRelation) {
+      topLevel.push(m);
+    } else if (isChildRelation) {
+      bottomLevel.push(m);
+    } else {
+      if (maxAge > 0 && m.parsedAge >= Math.max(35, maxAge - 15)) {
+        topLevel.push(m);
+      } else {
+        bottomLevel.push(m);
+      }
+    }
+  });
+
+  if (topLevel.length === 0 && parsedMembers.length > 0) {
+    let eldestIndex = 0;
+    let maxA = -1;
+    parsedMembers.forEach((m, idx) => {
+      if (m.parsedAge > maxA) {
+        maxA = m.parsedAge;
+        eldestIndex = idx;
+      }
+    });
+    topLevel.push(parsedMembers[eldestIndex]);
+    parsedMembers.forEach((m, idx) => {
+      if (idx !== eldestIndex) {
+        bottomLevel.push(m);
+      }
+    });
+  }
+
+  topLevel.sort((a, b) => b.parsedAge - a.parsedAge);
+  bottomLevel.sort((a, b) => b.parsedAge - a.parsedAge);
+
+  return { topLevel, bottomLevel };
+};
+
+
 
 function SectionHeader({ icon: Icon, category, title }: { icon: any, category: string, title: string }) {
   return (
@@ -37,18 +110,20 @@ function SectionHeader({ icon: Icon, category, title }: { icon: any, category: s
   );
 }
 
-function EyeIndicator({ eye, compact }: { eye: "OD" | "OS", compact?: boolean }) {
+function EyeIndicator({ eye, compact, tableHeader }: { eye: "OD" | "OS", compact?: boolean, tableHeader?: boolean }) {
   const isOD = eye === "OD";
   return (
     <div className={cn(
       "flex items-center gap-3 w-full",
-      !compact && "border-b-2 border-slate-200 pb-2 mb-3"
+      !compact && !tableHeader && "border-b-2 border-slate-200 pb-2 mb-3",
+      tableHeader && "justify-center"
     )}>
       <div className={cn(
-        "w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center font-black text-[12px] sm:text-xs border-2 shrink-0 transition-colors",
+        "flex items-center justify-center font-black border-2 shrink-0 transition-colors bg-transparent",
+        tableHeader ? "w-9 h-9 text-xs" : "w-8 h-8 sm:w-9 sm:h-9 text-[12px] sm:text-xs",
         isOD
-          ? "border-blue-600 text-blue-600 bg-blue-50/10"
-          : "border-emerald-600 text-emerald-600 bg-emerald-50/10"
+          ? "border-blue-600 text-blue-600"
+          : "border-emerald-600 text-emerald-600"
       )}>{eye}</div>
       <div className="flex flex-col min-w-0 flex-1">
         <span className={cn(
@@ -71,13 +146,21 @@ function EyeIndicator({ eye, compact }: { eye: "OD" | "OS", compact?: boolean })
 const DIST_VISION_OPTIONS = ["6/6", "6/6(P)", "6/7.5", "6/7.5(P)", "6/9", "6/9(P)", "6/12", "6/12(P)", "6/18", "6/18(P)", "6/24", "6/24(P)", "6/36", "6/36(P)", "6/60", "6/60(P)", "5/60", "4/60", "3/60", "2/60", "1/60", "CF at 50", "HM(+)", "CFCC", "PLPR accurate", "PLPR inaccurate"] as const;
 const NEAR_VISION_OPTIONS = ["<N36", "N36", "N24", "N18", "N12", "N10", "N8", "N6"] as const;
 
+export const INVESTIGATION_MAP: Record<string, string> = {
+  "OCT": "Optical Coherence Tomography (OCT)",
+  "Fundus Photography": "Fundus Photography / Fundus Fluorescein Angiography (FFA)",
+  "HVFA": "Humphrey Visual Field Analysis (HVFA)",
+  "Topography": "Corneal Topography",
+  "Biometry": "A-Scan / Biometry"
+};
+
 interface PowerPaletteInputProps {
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
   label: string;
-  type: "sph" | "cyl" | "axis" | "add" | "dv" | "nv" | "iop" | "schiotz_scale";
+  type: "sph" | "cyl" | "axis" | "add" | "dv" | "nv" | "iop" | "schiotz_scale" | "pd";
   disabled?: boolean;
 }
 
@@ -109,6 +192,33 @@ const PowerPaletteInput = React.memo(({
     }
   }, [value]);
 
+  useEffect(() => {
+    if (open) {
+      const openTime = Date.now();
+      const handleScroll = (e: Event) => {
+        // Ignore scroll events for the first 800ms to allow smooth scroll to complete
+        if (Date.now() - openTime < 800) return;
+
+        // If the scroll event originated from inside the popover content, do not close it
+        const target = e.target as HTMLElement;
+        if (
+          target &&
+          (target.closest('[data-radix-popper-content-wrapper]') ||
+            target.closest('.shadow-xl') ||
+            target.closest('.rounded-xl'))
+        ) {
+          return;
+        }
+
+        setOpen(false);
+      };
+      window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll, { capture: true });
+      };
+    }
+  }, [open]);
+
   const powerValues = [
     "0.00", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00",
     "2.25", "2.50", "2.75", "3.00", "3.25", "3.50", "3.75", "4.00", "4.25",
@@ -119,8 +229,16 @@ const PowerPaletteInput = React.memo(({
     "90", "180", "45", "135", "30", "150", "60", "120", "0", "10", "20", "170", "160", "110", "100", "80", "70", "50"
   ];
 
+  const pdValues = [
+    "24", "24.5", "25", "25.5", "26", "26.5", "27", "27.5",
+    "28", "28.5", "29", "29.5", "30", "30.5", "31", "31.5",
+    "32", "32.5", "33", "33.5", "34", "34.5", "35", "35.5",
+    "36", "36.5", "37", "37.5", "38", "39", "40"
+  ];
+
   const focusNext = () => {
-    const inputs = Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[];
+    const inputs = (Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
     const idx = inputs.findIndex(el => el === inputRef.current);
     if (idx !== -1 && idx < inputs.length - 1) {
       setOpen(false);
@@ -132,7 +250,8 @@ const PowerPaletteInput = React.memo(({
   };
 
   const focusPrev = () => {
-    const inputs = Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[];
+    const inputs = (Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
     const idx = inputs.findIndex(el => el === inputRef.current);
     if (idx > 0) {
       setOpen(false);
@@ -145,16 +264,30 @@ const PowerPaletteInput = React.memo(({
 
   const handleSelect = (val: string) => {
     let finalVal = val;
-    if (type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && val !== "0.00") {
+    if (type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && type !== "pd" && val !== "0.00") {
       finalVal = sign + val;
     }
     onChange(finalVal);
+
+    // Auto-advance to next field after selecting a value
+    const inputs = (Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx !== -1 && idx < inputs.length - 1) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }, 50);
+    } else {
+      setOpen(false);
+    }
   };
 
   const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (type === "dv" || type === "nv") {
       const arr = (type === "dv" ? DIST_VISION_OPTIONS : NEAR_VISION_OPTIONS) as readonly string[];
       let idx = arr.indexOf(value);
@@ -170,8 +303,15 @@ const PowerPaletteInput = React.memo(({
       return;
     }
 
+    if (type === "pd") {
+      let num = parseFloat(value) || 30;
+      num = direction === "up" ? num + 0.5 : num - 0.5;
+      onChange(String(parseFloat(num.toFixed(1))));
+      return;
+    }
+
     let num = parseFloat(value) || 0;
-    
+
     if (type === "axis") {
       const step = 5;
       if (direction === "up") {
@@ -189,7 +329,7 @@ const PowerPaletteInput = React.memo(({
       } else {
         num = num - step;
       }
-      
+
       let signPrefix = "";
       if (num > 0) {
         signPrefix = "+";
@@ -223,6 +363,27 @@ const PowerPaletteInput = React.memo(({
                 setOpen(true);
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                const inputs = Array.from(document.querySelectorAll('.doctor-palette-input')) as HTMLInputElement[];
+                const idx = inputs.findIndex(el => el === inputRef.current);
+                if (e.shiftKey) {
+                  if (idx > 0) {
+                    e.preventDefault();
+                    focusPrev();
+                  } else {
+                    setOpen(false);
+                  }
+                } else {
+                  if (idx !== -1 && idx < inputs.length - 1) {
+                    e.preventDefault();
+                    focusNext();
+                  } else {
+                    setOpen(false);
+                  }
+                }
+              }
+            }}
             placeholder={placeholder}
             disabled={disabled}
           />
@@ -252,9 +413,10 @@ const PowerPaletteInput = React.memo(({
           </div>
         )}
       </div>
-      <PopoverContent 
+      <PopoverContent
         className="w-[340px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => {
           if (
             containerRef.current &&
@@ -266,6 +428,7 @@ const PowerPaletteInput = React.memo(({
       >
         <button
           type="button"
+          tabIndex={-1}
           onClick={() => setOpen(false)}
           className="absolute left-1/2 -translate-x-1/2 -top-4 w-7 h-7 flex items-center justify-center bg-[#4f6f96] hover:bg-slate-700 text-white rounded-full border-2 border-white shadow-md transition-colors"
         >
@@ -276,6 +439,7 @@ const PowerPaletteInput = React.memo(({
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <button
               type="button"
+              tabIndex={-1}
               onClick={focusPrev}
               className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
             >
@@ -286,6 +450,7 @@ const PowerPaletteInput = React.memo(({
             </span>
             <button
               type="button"
+              tabIndex={-1}
               onClick={focusNext}
               className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
             >
@@ -293,10 +458,12 @@ const PowerPaletteInput = React.memo(({
             </button>
           </div>
 
-          {type !== "axis" && type !== "dv" && type !== "nv" && (
+          {type !== "axis" && type !== "dv" && type !== "nv" && type !== "pd" && (
             <div className="flex justify-center bg-slate-50 p-1 rounded-lg">
               <button
                 type="button"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSign("+")}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
@@ -309,6 +476,8 @@ const PowerPaletteInput = React.memo(({
               </button>
               <button
                 type="button"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSign("-")}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
@@ -328,6 +497,8 @@ const PowerPaletteInput = React.memo(({
                 <button
                   key={val}
                   type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
                   className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md"
                 >
@@ -339,6 +510,8 @@ const PowerPaletteInput = React.memo(({
                 <button
                   key={val}
                   type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
                   className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md col-span-2"
                 >
@@ -350,8 +523,23 @@ const PowerPaletteInput = React.memo(({
                 <button
                   key={val}
                   type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
                   className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md col-span-2"
+                >
+                  {val}
+                </button>
+              ))
+            ) : type === "pd" ? (
+              pdValues.map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(val)}
+                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-blue-500 hover:text-blue-600 bg-slate-50 hover:bg-blue-50/30 transition-all rounded-md"
                 >
                   {val}
                 </button>
@@ -361,6 +549,8 @@ const PowerPaletteInput = React.memo(({
                 <button
                   key={val}
                   type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
                   className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md"
                 >
@@ -375,6 +565,228 @@ const PowerPaletteInput = React.memo(({
   );
 });
 
+interface InvestigationPaletteInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder?: string;
+  className?: string;
+  label: string;
+  disabled?: boolean;
+}
+
+const InvestigationPaletteInput = React.memo(({
+  value = "",
+  onChange,
+  options = [],
+  placeholder = "NAD",
+  className,
+  label,
+  disabled
+}: InvestigationPaletteInputProps) => {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      const openTime = Date.now();
+      const handleScroll = (e: Event) => {
+        // Ignore scroll events for the first 800ms to allow smooth scroll to complete
+        if (Date.now() - openTime < 800) return;
+
+        // If the scroll event originated from inside the popover content, do not close it
+        const target = e.target as HTMLElement;
+        if (
+          target &&
+          (target.closest('[data-radix-popper-content-wrapper]') ||
+            target.closest('.shadow-xl') ||
+            target.closest('.rounded-xl'))
+        ) {
+          return;
+        }
+
+        setOpen(false);
+      };
+      window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll, { capture: true });
+      };
+    }
+  }, [open]);
+
+  const focusNext = () => {
+    const inputs = (Array.from(document.querySelectorAll('.doctor-investigation-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx !== -1 && idx < inputs.length - 1) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }, 50);
+    }
+  };
+
+  const focusPrev = () => {
+    const inputs = (Array.from(document.querySelectorAll('.doctor-investigation-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx > 0) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx - 1].focus();
+        inputs[idx - 1].select();
+      }, 50);
+    }
+  };
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+
+    // Auto-advance to next field after selecting a value
+    const inputs = (Array.from(document.querySelectorAll('.doctor-investigation-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx !== -1 && idx < inputs.length - 1) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }, 50);
+    } else {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <Popover open={open && !disabled} onOpenChange={setOpen}>
+      <div ref={containerRef} className="relative flex items-center w-full max-w-xs group">
+        <PopoverAnchor asChild>
+          <Input
+            ref={inputRef}
+            className={cn(
+              "doctor-investigation-input h-10 text-sm font-bold rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm pr-3 w-full uppercase",
+              className
+            )}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => {
+              if (!disabled && !open) {
+                setOpen(true);
+              }
+            }}
+            onClick={() => {
+              if (!disabled && !open) {
+                setOpen(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                const inputs = (Array.from(document.querySelectorAll('.doctor-investigation-input')) as HTMLInputElement[])
+                  .filter(el => !el.disabled);
+                const idx = inputs.findIndex(el => el === inputRef.current);
+                if (e.shiftKey) {
+                  if (idx > 0) {
+                    e.preventDefault();
+                    focusPrev();
+                  } else {
+                    setOpen(false);
+                  }
+                } else {
+                  if (idx !== -1 && idx < inputs.length - 1) {
+                    e.preventDefault();
+                    focusNext();
+                  } else {
+                    setOpen(false);
+                  }
+                }
+              }
+            }}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
+        </PopoverAnchor>
+      </div>
+      <PopoverContent
+        className="w-[480px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          if (
+            containerRef.current &&
+            (containerRef.current === e.target || containerRef.current.contains(e.target as Node))
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setOpen(false)}
+          className="absolute left-1/2 -translate-x-1/2 -top-3.5 w-7 h-7 flex items-center justify-center bg-[#4f6f96] hover:bg-slate-700 text-white rounded-full border-2 border-white shadow-md transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={focusPrev}
+              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+              title="Previous Field"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest text-center truncate px-2 flex-1">
+              {label} Options
+            </span>
+            <button
+              type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={focusNext}
+              className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+              title="Next Field"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 max-h-[220px] overflow-y-auto pr-1">
+            {options.map((val) => {
+              const isSelected = value.toLowerCase() === val.toLowerCase();
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(val)}
+                  className={cn(
+                    "py-1.5 px-2 text-[10px] font-black uppercase tracking-wider text-slate-800 border rounded shadow-sm transition-all whitespace-normal break-words text-center leading-tight min-h-[36px]",
+                    isSelected
+                      ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                      : "bg-slate-50 border-slate-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                  )}
+                >
+                  {val}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+});
+
+
 // --- Types ---
 
 interface Medication {
@@ -385,26 +797,32 @@ interface Medication {
   frequency: string;
   duration: string;
   eye: string;
+  foodRelation?: string;
 }
 
 interface PrescriptionState {
   glassType?: string;
   clType?: string[];
+  lensDetails?: string;
+  instruction?: string;
   distance: {
-    OD: { sphere: string; cylinder: string; axis: string };
-    OS: { sphere: string; cylinder: string; axis: string };
+    OD: { sphere: string; cylinder: string; axis: string; vn?: string };
+    OS: { sphere: string; cylinder: string; axis: string; vn?: string };
   };
   near: {
-    OD: { sphere: string; cylinder: string; axis: string };
-    OS: { sphere: string; cylinder: string; axis: string };
+    OD: { sphere: string; cylinder: string; axis: string; vn?: string };
+    OS: { sphere: string; cylinder: string; axis: string; vn?: string };
   };
+  distPD?: { OD: string; OS: string };
+  nearPD?: { OD: string; OS: string };
 }
 
 export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | null, doctors?: any[] }) {
   const { toast } = useToast();
+  const { inventoryDrugs, loadingInventory } = usePharmacyInventory();
   const [localStatus, setLocalStatus] = useState<string | undefined>(patient?.status);
   const [isAttending, setIsAttending] = useState(false);
-  const isConsultationStarted = localStatus === "doctor" || localStatus === "consulted" || (patient?.status === "doctor" && localStatus !== "refraction_done");
+  const isConsultationStarted = localStatus === "doctor" || localStatus === "consulted" || (patient?.status === "doctor" && !["reception", "optometrist", "refraction_done"].includes(localStatus || ""));
   const isLocked = !isConsultationStarted;
   const [activeTab, setActiveTab] = useState("summary");
   const [visitHistory, setVisitHistory] = useState<any[]>([]);
@@ -421,14 +839,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   const [showLockedToast, setShowLockedToast] = useState(false);
 
   const [printType, setPrintType] = useState<'all' | 'glass' | 'medical' | null>(null);
+  const originalTitleRef = useRef(document.title);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleAfterPrint = () => {
       setPrintType(null);
+      document.title = originalTitleRef.current;
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
+
+  useSmoothScroll(scrollContainerRef, [patient?.id, activeTab]);
 
   useEffect(() => {
     if (!patient?.contactNumber) {
@@ -439,7 +862,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       setLoadingFamily(true);
       try {
         const data = await api.searchPatients(patient.contactNumber);
-        setFamilyMembers(data || []);
+        const sortedData = (data || []).sort((a: any, b: any) => {
+          const ageA = typeof a.age === 'number' ? a.age : parseInt(a.age) || 0;
+          const ageB = typeof b.age === 'number' ? b.age : parseInt(b.age) || 0;
+          return ageB - ageA;
+        });
+        setFamilyMembers(sortedData);
       } catch (e) {
         console.error("Failed to fetch family members:", e);
       } finally {
@@ -469,6 +897,25 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   }, [selectedFamilyPatient?.mrNumber]);
 
   const triggerPrint = (type: 'all' | 'glass' | 'medical') => {
+    originalTitleRef.current = document.title;
+
+    const sanitizeFilenameStr = (str: string) => {
+      return (str || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9\s-_]/g, '')
+        .replace(/\s+/g, '_')
+        .toUpperCase();
+    };
+
+    const namePart = sanitizeFilenameStr(printData?.patientName || patient?.name || 'PATIENT');
+    const mrnPart = sanitizeFilenameStr(printData?.mrNumber || patient?.mrNumber || 'MRN');
+
+    if (type === 'glass') {
+      document.title = `VPN_EYE_HOSPITAL_${namePart}_${mrnPart}_GP`;
+    } else {
+      document.title = `VPN_EYE_HOSPITAL_${namePart}_${mrnPart}_REPORT`;
+    }
+
     setPrintType(type);
     setTimeout(() => {
       window.print();
@@ -540,7 +987,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       "sec-retina-macula",
       "sec-optic-disc",
       "sec-required-investigations",
-      "sec-clinical-opinion",
       "sec-final-diagnosis"
     ];
     const observerOptions = {
@@ -656,24 +1102,29 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   ]);
 
   const [glassPrescription, setGlassPrescription] = useState<PrescriptionState>({
+    glassType: "SVN",
+    lensDetails: "Plastic, White",
+    instruction: "Constant Wear",
     distance: {
-      OD: { sphere: "", cylinder: "", axis: "" },
-      OS: { sphere: "", cylinder: "", axis: "" },
+      OD: { sphere: "", cylinder: "", axis: "", vn: "" },
+      OS: { sphere: "", cylinder: "", axis: "", vn: "" },
     },
     near: {
-      OD: { sphere: "", cylinder: "", axis: "" },
-      OS: { sphere: "", cylinder: "", axis: "" },
-    }
+      OD: { sphere: "", cylinder: "", axis: "", vn: "" },
+      OS: { sphere: "", cylinder: "", axis: "", vn: "" },
+    },
+    distPD: { OD: "", OS: "" },
+    nearPD: { OD: "", OS: "" },
   });
 
   const [contactLensPrescription, setContactLensPrescription] = useState<PrescriptionState>({
     distance: {
-      OD: { sphere: "", cylinder: "", axis: "" },
-      OS: { sphere: "", cylinder: "", axis: "" },
+      OD: { sphere: "", cylinder: "", axis: "", vn: "" },
+      OS: { sphere: "", cylinder: "", axis: "", vn: "" },
     },
     near: {
-      OD: { sphere: "", cylinder: "", axis: "" },
-      OS: { sphere: "", cylinder: "", axis: "" },
+      OD: { sphere: "", cylinder: "", axis: "", vn: "" },
+      OS: { sphere: "", cylinder: "", axis: "", vn: "" },
     }
   });
 
@@ -682,53 +1133,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
   const printData = useMemo(() => {
     if (selectedHistoricalVisit) {
-      const cons = selectedHistoricalVisit.consultation || {};
-      const rawGlass = cons.finalGlassPrescription;
-      const glassRx = typeof rawGlass === 'string' ? JSON.parse(rawGlass) : rawGlass;
-      const rawCL = cons.finalContactLensPrescription;
-      const clRx = typeof rawCL === 'string' ? JSON.parse(rawCL) : rawCL;
-      const rawMeds = cons.medicalPrescription || cons.medications;
-      const medicationsList = typeof rawMeds === 'string' ? JSON.parse(rawMeds) : (rawMeds || []);
-      const refData = selectedHistoricalVisit.refraction || {};
-
-      let slitLamp: any = null;
-      let eom: any = null;
-      try {
-        const parsed = typeof cons.anteriorSegment === 'string' ? JSON.parse(cons.anteriorSegment) : cons.anteriorSegment;
-        if (parsed) {
-          slitLamp = parsed.slitLamp || parsed;
-          eom = parsed.eom;
-        }
-      } catch (e) {}
-
-      let fundus: any = null;
-      try {
-        fundus = typeof cons.fundusObservation === 'string' ? JSON.parse(cons.fundusObservation) : cons.fundusObservation;
-      } catch (e) {}
-
-      let postSeg: any = null;
-      try {
-        postSeg = typeof cons.posteriorSegment === 'string' ? JSON.parse(cons.posteriorSegment) : cons.posteriorSegment;
-      } catch (e) {}
-
-      return {
-        patientName: selectedHistoricalVisit.name || patient?.name || "—",
-        ageGender: selectedHistoricalVisit.patient ? `${getPatientAgeString(selectedHistoricalVisit.patient)} / ${selectedHistoricalVisit.patient.gender || "—"}` : (patient ? `${getPatientAgeString(patient)} / ${patient.gender}` : "—"),
-        mrNumber: selectedHistoricalVisit.mrNumber || patient?.mrNumber || "—",
-        contactNumber: selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber || "—",
-        date: selectedHistoricalVisit.visitedAt ? new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        doctorName: cons.doctor?.name || cons.doctorName || selectedHistoricalVisit.doctor?.name || selectedHistoricalVisit.consultingDoctorName || "Dr. Gajendran MBBS DO",
-        glassRx,
-        clRx,
-        medications: medicationsList,
-        refraction: refData,
-        notes: cons.notes || "",
-        posteriorSegment: postSeg || {},
-        diagnosisText: cons.diagnosisText || "",
-        slitLamp,
-        eom,
-        fundus
-      };
+      return preparePrintData(selectedHistoricalVisit, patient);
     } else {
       // Current active consultation
       const generateDiagnosisText = (diagList: any, manual: string) => {
@@ -744,7 +1149,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
       return {
         patientName: patient?.name || "—",
-        ageGender: patient ? `${getPatientAgeString(patient)} / ${patient.gender}` : "—",
+        ageGender: patient ? `${getPatientAgeString(patient)} / ${getPatientGenderString(patient)}` : "—",
         mrNumber: patient?.mrNumber || "—",
         contactNumber: patient?.contactNumber || "—",
         date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -766,6 +1171,56 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       };
     }
   }, [selectedHistoricalVisit, patient, glassPrescription, contactLensPrescription, medications, refractionData, investigation, finalDiagnosis]);
+
+  const hasGlassRxData = useMemo(() => {
+    const rx = printData?.glassRx;
+    if (!rx) return false;
+    return !!(
+      rx.distance?.OD?.sphere ||
+      rx.distance?.OD?.cylinder ||
+      rx.distance?.OD?.axis ||
+      rx.distance?.OD?.vn ||
+      rx.distance?.OS?.sphere ||
+      rx.distance?.OS?.cylinder ||
+      rx.distance?.OS?.axis ||
+      rx.distance?.OS?.vn ||
+      rx.near?.OD?.sphere ||
+      rx.near?.OD?.cylinder ||
+      rx.near?.OD?.axis ||
+      rx.near?.OD?.vn ||
+      rx.near?.OS?.sphere ||
+      rx.near?.OS?.cylinder ||
+      rx.near?.OS?.axis ||
+      rx.near?.OS?.vn ||
+      rx.distPD?.OD ||
+      rx.distPD?.OS ||
+      rx.nearPD?.OD ||
+      rx.nearPD?.OS
+    );
+  }, [printData?.glassRx]);
+
+  const hasContactLensRxData = useMemo(() => {
+    const rx = printData?.clRx;
+    if (!rx) return false;
+    return !!(
+      rx.distance?.OD?.sphere ||
+      rx.distance?.OD?.cylinder ||
+      rx.distance?.OD?.axis ||
+      rx.distance?.OD?.vn ||
+      rx.distance?.OS?.sphere ||
+      rx.distance?.OS?.cylinder ||
+      rx.distance?.OS?.axis ||
+      rx.distance?.OS?.vn ||
+      rx.near?.OD?.sphere ||
+      rx.near?.OD?.cylinder ||
+      rx.near?.OD?.axis ||
+      rx.near?.OD?.vn ||
+      rx.near?.OS?.sphere ||
+      rx.near?.OS?.cylinder ||
+      rx.near?.OS?.axis ||
+      rx.near?.OS?.vn
+    );
+  }, [printData?.clRx]);
 
   // 1. Load Draft System
   useEffect(() => {
@@ -802,10 +1257,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           if (d.finalDiagnosis) setFinalDiagnosis(d.finalDiagnosis);
           if (d.medications && Array.isArray(d.medications) && d.medications.length > 0) {
             // Ensure medications have IDs for stable removal
-            const withIds = d.medications.map((m: any) => ({
-              ...m,
-              id: m.id || Math.random().toString(36).slice(2, 11)
-            }));
+            const withIds = d.medications.map((m: any) => normalizeMedicationRow(m));
             setMedications(withIds);
           }
           if (d.glassPrescription) setGlassPrescription(d.glassPrescription);
@@ -880,12 +1332,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     setFinalDiagnosis({ OD: "", OS: "" });
     setMedications([{ id: Math.random().toString(36).slice(2, 11), drug: "", dosage: "", route: "Topical", frequency: "", duration: "", eye: "Both" }]);
     setGlassPrescription({
-      distance: { OD: { sphere: "", cylinder: "", axis: "" }, OS: { sphere: "", cylinder: "", axis: "" } },
-      near: { OD: { sphere: "", cylinder: "", axis: "" }, OS: { sphere: "", cylinder: "", axis: "" } }
+      distance: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } },
+      near: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } },
+      distPD: { OD: "", OS: "" },
+      nearPD: { OD: "", OS: "" }
     });
     setContactLensPrescription({
-      distance: { OD: { sphere: "", cylinder: "", axis: "" }, OS: { sphere: "", cylinder: "", axis: "" } },
-      near: { OD: { sphere: "", cylinder: "", axis: "" }, OS: { sphere: "", cylinder: "", axis: "" } }
+      distance: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } },
+      near: { OD: { sphere: "", cylinder: "", axis: "", vn: "" }, OS: { sphere: "", cylinder: "", axis: "", vn: "" } }
     });
 
     // 2. Sync Status and Fetch New Data
@@ -1030,7 +1484,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             OS: manualTextsOS.join(', ')
           });
         }
-
         // Initialize glass prescription state from Refraction's final glass prescription, fallback to acceptance
         if (data?.glassPrescription?.OD?.sphere !== undefined || data?.acceptance?.distance) {
           setGlassPrescription(prev => {
@@ -1038,29 +1491,43 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             if (isEmpty || !isDraftLoaded) {
               return {
                 glassType: data?.glassPrescription?.glassType || data?.pgPower?.glass?.glassType || "SVN",
+                lensDetails: data?.glassPrescription?.lensDetails || "Plastic, White",
+                instruction: data?.glassPrescription?.instruction || "Constant Wear",
                 distance: {
                   OD: {
                     sphere: data?.glassPrescription?.OD?.sphere || data?.acceptance?.distance?.OD?.sphere || "",
                     cylinder: data?.glassPrescription?.OD?.cylinder || data?.acceptance?.distance?.OD?.cylinder || "",
-                    axis: data?.glassPrescription?.OD?.axis || data?.acceptance?.distance?.OD?.axis || ""
+                    axis: data?.glassPrescription?.OD?.axis || data?.acceptance?.distance?.OD?.axis || "",
+                    vn: data?.glassPrescription?.OD?.vn || data?.glassPrescription?.OD?.bcva || data?.acceptance?.distance?.OD?.vn || data?.visualAcuity?.OD?.aided || ""
                   },
                   OS: {
                     sphere: data?.glassPrescription?.OS?.sphere || data?.acceptance?.distance?.OS?.sphere || "",
                     cylinder: data?.glassPrescription?.OS?.cylinder || data?.acceptance?.distance?.OS?.cylinder || "",
-                    axis: data?.glassPrescription?.OS?.axis || data?.acceptance?.distance?.OS?.axis || ""
+                    axis: data?.glassPrescription?.OS?.axis || data?.acceptance?.distance?.OS?.axis || "",
+                    vn: data?.glassPrescription?.OS?.vn || data?.glassPrescription?.OS?.bcva || data?.acceptance?.distance?.OS?.vn || data?.visualAcuity?.OS?.aided || ""
                   },
                 },
                 near: {
                   OD: {
                     sphere: data?.glassPrescription?.OD?.nearDsph || data?.glassPrescription?.OD?.nearAdd || data?.acceptance?.near?.OD?.sphere || "",
                     cylinder: data?.glassPrescription?.OD?.nearCylinder || data?.acceptance?.near?.OD?.cylinder || "",
-                    axis: data?.glassPrescription?.OD?.nearAxis || data?.acceptance?.near?.OD?.axis || ""
+                    axis: data?.glassPrescription?.OD?.nearAxis || data?.acceptance?.near?.OD?.axis || "",
+                    vn: data?.glassPrescription?.OD?.nearVn || data?.glassPrescription?.OD?.nearBcva || data?.acceptance?.near?.OD?.vn || data?.visualAcuity?.OD?.nearVision || ""
                   },
                   OS: {
                     sphere: data?.glassPrescription?.OS?.nearDsph || data?.glassPrescription?.OS?.nearAdd || data?.acceptance?.near?.OS?.sphere || "",
                     cylinder: data?.glassPrescription?.OS?.nearCylinder || data?.acceptance?.near?.OS?.cylinder || "",
-                    axis: data?.glassPrescription?.OS?.nearAxis || data?.acceptance?.near?.OS?.axis || ""
+                    axis: data?.glassPrescription?.OS?.nearAxis || data?.acceptance?.near?.OS?.axis || "",
+                    vn: data?.glassPrescription?.OS?.nearVn || data?.glassPrescription?.OS?.nearBcva || data?.acceptance?.near?.OS?.vn || data?.visualAcuity?.OS?.nearVision || ""
                   },
+                },
+                distPD: {
+                  OD: data?.glassPrescription?.distPD?.OD || "",
+                  OS: data?.glassPrescription?.distPD?.OS || ""
+                },
+                nearPD: {
+                  OD: data?.glassPrescription?.nearPD?.OD || "",
+                  OS: data?.glassPrescription?.nearPD?.OS || ""
                 }
               };
             }
@@ -1079,24 +1546,28 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   OD: {
                     sphere: data.contactLensPrescription.OD?.sphere || "",
                     cylinder: data.contactLensPrescription.OD?.cylinder || "",
-                    axis: data.contactLensPrescription.OD?.axis || ""
+                    axis: data.contactLensPrescription.OD?.axis || "",
+                    vn: data.contactLensPrescription.OD?.vn || data?.visualAcuity?.OD?.aided || ""
                   },
                   OS: {
                     sphere: data.contactLensPrescription.OS?.sphere || "",
                     cylinder: data.contactLensPrescription.OS?.cylinder || "",
-                    axis: data.contactLensPrescription.OS?.axis || ""
+                    axis: data.contactLensPrescription.OS?.axis || "",
+                    vn: data.contactLensPrescription.OS?.vn || data?.visualAcuity?.OS?.aided || ""
                   },
                 },
                 near: {
                   OD: {
                     sphere: data.contactLensPrescription.OD?.nearDsph || data.contactLensPrescription.OD?.nearAdd || "",
                     cylinder: data.contactLensPrescription.OD?.nearCylinder || "",
-                    axis: data.contactLensPrescription.OD?.nearAxis || ""
+                    axis: data.contactLensPrescription.OD?.nearAxis || "",
+                    vn: data.contactLensPrescription.OD?.nearVn || data?.visualAcuity?.OD?.nearVision || ""
                   },
                   OS: {
                     sphere: data.contactLensPrescription.OS?.nearDsph || data.contactLensPrescription.OS?.nearAdd || "",
                     cylinder: data.contactLensPrescription.OS?.nearCylinder || "",
-                    axis: data.contactLensPrescription.OS?.nearAxis || ""
+                    axis: data.contactLensPrescription.OS?.nearAxis || "",
+                    vn: data.contactLensPrescription.OS?.nearVn || data?.visualAcuity?.OS?.nearVision || ""
                   },
                 }
               };
@@ -1141,174 +1612,146 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     try {
       const data = await api.getConsultation(patient.id);
       if (data) {
-          // If we have saved data in DB, it becomes the source of truth if the draft was empty or not loaded yet.
-          // Note: for safety, we only overwrite if the current fields are relatively empty.
+        // If we have saved data in DB, it becomes the source of truth if the draft was empty or not loaded yet.
+        // Note: for safety, we only overwrite if the current fields are relatively empty.
 
-          if (data.anteriorSegment) {
-            try {
-              const raw = data.anteriorSegment;
-              const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (data.anteriorSegment) {
+          try {
+            const raw = data.anteriorSegment;
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
-              setInvestigation(prev => {
-                // Determine if the current slitLamp state is effectively empty
-                const isSlitLampEmpty = Object.values(prev.slitLamp).every(v =>
-                  typeof v === 'object' && v !== null ? Object.values(v).every(x => !x) : !v
-                );
-
-                if (isSlitLampEmpty || !isDraftLoaded) {
-                  return {
-                    ...prev,
-                    slitLamp: parsed.slitLamp || parsed,
-                    eom: parsed.eom || prev.eom
-                  };
-                }
-                return prev;
-              });
-            } catch (e) { }
-          }
-
-          if (data.posteriorSegment) {
-            try {
-              const raw = data.posteriorSegment;
-              const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              setInvestigation(prev => {
-                if (((!prev.required || prev.required === "Nothing selected") && !prev.other && !prev.adminInstructions) || !isDraftLoaded) {
-                  return {
-                    ...prev,
-                    required: parsed.required || prev.required,
-                    other: parsed.other || prev.other,
-                    adminInstructions: parsed.adminInstructions || prev.adminInstructions
-                  };
-                }
-                return prev;
-              });
-            } catch (e) { }
-          }
-
-          if (data.fundusObservation) {
-            try {
-              const raw = data.fundusObservation;
-              const fundus = typeof raw === 'string' ? JSON.parse(raw) : raw;
-              setInvestigation(prev => {
-                const isFundusEmpty = !prev.fundus.vitreous.OD && !prev.fundus.vitreous.OS && !prev.fundus.retina.OD && !prev.fundus.retina.OS && !prev.fundus.disc.OD && !prev.fundus.disc.OS;
-                if ((isFundusEmpty || !isDraftLoaded) && fundus) {
-                  return {
-                    ...prev, fundus: {
-                      vitreous: fundus.vitreous || prev.fundus.vitreous,
-                      retina: fundus.retina || prev.fundus.retina,
-                      disc: fundus.disc || prev.fundus.disc
-                    }
-                  };
-                }
-                return prev;
-              });
-            } catch (e) { }
-          }
-
-          if (data.notes) {
             setInvestigation(prev => {
-              if (!prev.opinion || !isDraftLoaded) return { ...prev, opinion: data.notes };
-              return prev;
-            });
-          }
+              // Determine if the current slitLamp state is effectively empty
+              const isSlitLampEmpty = Object.values(prev.slitLamp).every(v =>
+                typeof v === 'object' && v !== null ? Object.values(v).every(x => !x) : !v
+              );
 
-          if (data.visit?.followUpDate || data.visit?.followUpTimeFrame) {
-            setInvestigation(prev => {
-              if ((!prev.followUpDate && !prev.followUpTimeFrame) || !isDraftLoaded) {
+              if (isSlitLampEmpty || !isDraftLoaded) {
                 return {
                   ...prev,
-                  followUpDate: data.visit.followUpDate ? data.visit.followUpDate.split('T')[0] : "",
-                  followUpTimeFrame: data.visit.followUpTimeFrame || ""
+                  slitLamp: parsed.slitLamp || parsed,
+                  eom: parsed.eom || prev.eom
                 };
               }
               return prev;
             });
-          }
-
-          if (data.diagnosisText) {
-            setFinalDiagnosis(prev => {
-              // Determine if current diagnosis is effectively empty
-              if ((!prev.OD && !prev.OS) || !isDraftLoaded) {
-                const text = data.diagnosisText;
-                // Case 1: Format "OD: ... | OS: ..."
-                if (text.includes(' | ')) {
-                  const parts = text.split(' | ');
-                  const od = parts[0]?.replace(/^OD:\s*/i, '') || "";
-                  const os = parts.length > 1 ? parts[1].replace(/^OS:\s*/i, '') : "";
-                  return { OD: od, OS: os };
-                }
-                // Case 2: Unified diagnosis or single eye
-                return { OD: text, OS: text };
-              }
-              return prev;
-            });
-          }
-
-          if (data.medicalPrescription && Array.isArray(data.medicalPrescription) && data.medicalPrescription.length > 0) {
-            setMedications(prev => {
-              // Only overwrite if current medications are mostly empty or if force loading from DB
-              const isDefaultMed = prev.length === 1 && !prev[0].drug;
-              if (isDefaultMed || !isDraftLoaded) {
-                // Ensure IDs are present
-                return data.medicalPrescription.map((m: any) => ({
-                  ...m,
-                  id: m.id || Math.random().toString(36).slice(2, 11)
-                }));
-              }
-              return prev;
-            });
-          }
-
-          if (data.finalGlassPrescription) {
-            setGlassPrescription(prev => {
-              const isGlassEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
-              if (isGlassEmpty || !isDraftLoaded) {
-                const raw = data.finalGlassPrescription;
-                // Normalize: if the saved data is a flat {OD, OS} format (legacy),
-                // or missing distance/near keys, wrap it safely.
-                const emptyEye = { sphere: '', cylinder: '', axis: '' };
-                const normalizedGlass: PrescriptionState = {
-                  glassType: raw.glassType,
-                  clType: raw.clType,
-                  distance: {
-                    OD: raw.distance?.OD ?? raw.OD ?? emptyEye,
-                    OS: raw.distance?.OS ?? raw.OS ?? emptyEye,
-                  },
-                  near: {
-                    OD: raw.near?.OD ?? emptyEye,
-                    OS: raw.near?.OS ?? emptyEye,
-                  },
-                };
-                return normalizedGlass;
-              }
-              return prev;
-            });
-          }
-
-          if (data.finalContactLensPrescription) {
-            setContactLensPrescription(prev => {
-              const isCLEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
-              if (isCLEmpty || !isDraftLoaded) {
-                const raw = data.finalContactLensPrescription;
-                const emptyEye = { sphere: '', cylinder: '', axis: '' };
-                const normalizedCL: PrescriptionState = {
-                  glassType: raw.glassType,
-                  clType: raw.clType,
-                  distance: {
-                    OD: raw.distance?.OD ?? raw.OD ?? emptyEye,
-                    OS: raw.distance?.OS ?? raw.OS ?? emptyEye,
-                  },
-                  near: {
-                    OD: raw.near?.OD ?? emptyEye,
-                    OS: raw.near?.OS ?? emptyEye,
-                  },
-                };
-                return normalizedCL;
-              }
-              return prev;
-            });
-          }
+          } catch (e) { }
         }
+
+        if (data.posteriorSegment) {
+          try {
+            const raw = data.posteriorSegment;
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            setInvestigation(prev => {
+              if (((!prev.required || prev.required === "Nothing selected") && !prev.other && !prev.adminInstructions) || !isDraftLoaded) {
+                return {
+                  ...prev,
+                  required: parsed.required || prev.required,
+                  other: parsed.other || prev.other,
+                  adminInstructions: parsed.adminInstructions || prev.adminInstructions
+                };
+              }
+              return prev;
+            });
+          } catch (e) { }
+        }
+
+        if (data.fundusObservation) {
+          try {
+            const raw = data.fundusObservation;
+            const fundus = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            setInvestigation(prev => {
+              const isFundusEmpty = !prev.fundus.vitreous.OD && !prev.fundus.vitreous.OS && !prev.fundus.retina.OD && !prev.fundus.retina.OS && !prev.fundus.disc.OD && !prev.fundus.disc.OS;
+              if ((isFundusEmpty || !isDraftLoaded) && fundus) {
+                return {
+                  ...prev, fundus: {
+                    vitreous: fundus.vitreous || prev.fundus.vitreous,
+                    retina: fundus.retina || prev.fundus.retina,
+                    disc: fundus.disc || prev.fundus.disc
+                  }
+                };
+              }
+              return prev;
+            });
+          } catch (e) { }
+        }
+
+        if (data.notes) {
+          setInvestigation(prev => {
+            if (!prev.opinion || !isDraftLoaded) return { ...prev, opinion: data.notes };
+            return prev;
+          });
+        }
+
+        if (data.visit?.followUpDate || data.visit?.followUpTimeFrame) {
+          setInvestigation(prev => {
+            if ((!prev.followUpDate && !prev.followUpTimeFrame) || !isDraftLoaded) {
+              return {
+                ...prev,
+                followUpDate: data.visit.followUpDate ? data.visit.followUpDate.split('T')[0] : "",
+                followUpTimeFrame: data.visit.followUpTimeFrame || ""
+              };
+            }
+            return prev;
+          });
+        }
+
+        if (data.diagnosisText) {
+          setFinalDiagnosis(prev => {
+            // Determine if current diagnosis is effectively empty
+            if ((!prev.OD && !prev.OS) || !isDraftLoaded) {
+              const text = data.diagnosisText;
+              // Case 1: Format "OD: ... | OS: ..."
+              if (text.includes(' | ')) {
+                const parts = text.split(' | ');
+                const od = parts[0]?.replace(/^OD:\s*/i, '') || "";
+                const os = parts.length > 1 ? parts[1].replace(/^OS:\s*/i, '') : "";
+                return { OD: od, OS: os };
+              }
+              // Case 2: Unified diagnosis or single eye
+              return { OD: text, OS: text };
+            }
+            return prev;
+          });
+        }
+
+        if (data.medicalPrescription && Array.isArray(data.medicalPrescription) && data.medicalPrescription.length > 0) {
+          setMedications(prev => {
+            // Only overwrite if current medications are mostly empty or if force loading from DB
+            const isDefaultMed = prev.length === 1 && !prev[0].drug;
+            if (isDefaultMed || !isDraftLoaded) {
+              // Ensure IDs are present
+              return data.medicalPrescription.map((m: any) => normalizeMedicationRow(m));
+            }
+            return prev;
+          });
+        }
+
+        if (data.finalGlassPrescription) {
+          setGlassPrescription(prev => {
+            const isGlassEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
+            if (isGlassEmpty || !isDraftLoaded) {
+              return {
+                glassType: "SVN",
+                lensDetails: "Plastic, White",
+                instruction: "Constant Wear",
+                ...data.finalGlassPrescription
+              };
+            }
+            return prev;
+          });
+        }
+
+        if (data.finalContactLensPrescription) {
+          setContactLensPrescription(prev => {
+            const isCLEmpty = !prev.distance.OD.sphere && !prev.distance.OS.sphere;
+            if (isCLEmpty || !isDraftLoaded) {
+              return data.finalContactLensPrescription;
+            }
+            return prev;
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch current consultation record:", error);
     }
@@ -1318,12 +1761,10 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     if (!patient?.id) return;
     try {
       setIsAttending(true);
-      const updatedVisit = await api.attendVisit(patient.id);
-      if (updatedVisit) {
-        toast({ title: "Started Consultation", description: `You are now attending to ${patient.name}.` });
-        setLocalStatus("doctor");
-        window.dispatchEvent(new Event("patientQueueUpdated"));
-      }
+      await api.attendVisit(patient.id);
+      toast({ title: "Started Consultation", description: `You are now attending to ${patient.name}.` });
+      setLocalStatus("doctor");
+      window.dispatchEvent(new Event("patientQueueUpdated"));
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
@@ -1332,16 +1773,124 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   };
 
   const addMedication = () => {
-    setMedications([...medications, { id: Math.random().toString(36).slice(2, 11), drug: "", dosage: "", route: "Topical", frequency: "", duration: "", eye: "Both" }]);
+    setMedications([...medications, { id: Math.random().toString(36).slice(2, 11), drug: "", dosage: "", route: "Topical", frequency: "", duration: "", eye: "Both", foodRelation: "After Food" }]);
   };
 
   const removeMedication = (id: string) => {
     setMedications(medications.filter(m => m.id !== id));
   };
 
+  const normalizeMedicationRow = (m: any): Medication => ({
+    id: m.id || Math.random().toString(36).slice(2, 11),
+    drug: (m.drug || m.medicine || "").trim(),
+    dosage: m.dosage || "",
+    route: m.route?.toLowerCase() === "oral" ? "Oral" : "Topical",
+    frequency: m.frequency || "",
+    duration: m.duration || "",
+    eye: m.eye || "Both",
+    foodRelation: m.foodRelation || "After Food",
+  });
+
   const updateMedication = (id: string, field: keyof Medication, value: string) => {
-    const sanitizedVal = sanitizeOptometryInput(value, 'notes');
-    setMedications(medications.map(m => m.id === id ? { ...m, [field]: sanitizedVal } : m));
+    const sanitizedVal = sanitizeOptometryInput(value, "notes");
+    setMedications((prev) =>
+      prev.map((m) => {
+        if (m.id === id) {
+          const updated = { ...m, [field]: sanitizedVal };
+          if (field === "route") {
+            if (sanitizedVal === "Oral") {
+              updated.dosage = "1 Tab";
+              updated.foodRelation = "After Food";
+            } else {
+              updated.dosage = "1 Drop";
+            }
+          }
+          return updated;
+        }
+        return m;
+      })
+    );
+  };
+
+  const selectMedicationDrug = (medId: string, drugName: string, route: "Topical" | "Oral" = "Topical") => {
+    const trimmed = drugName.trim();
+    if (!trimmed) return;
+    setMedications((prev) =>
+      prev.map((m) =>
+        m.id === medId
+          ? {
+            ...m,
+            drug: trimmed,
+            route,
+            dosage: route === "Oral" ? "1 Tab" : "1 Drop",
+            foodRelation: "After Food",
+          }
+          : m
+      )
+    );
+  };
+
+  const getDrugOptionsForRow = (medId: string, currentDrug: string) => {
+    const currentKey = currentDrug.trim().toLowerCase();
+    const usedByOthers = new Set(
+      medications
+        .filter((m) => m.id !== medId && m.drug.trim())
+        .map((m) => m.drug.trim().toLowerCase())
+    );
+    return inventoryDrugs.filter(
+      (p) =>
+        p.value.trim().toLowerCase() === currentKey ||
+        !usedByOthers.has(p.value.trim().toLowerCase())
+    );
+  };
+
+  const renderDrugInventoryChips = (medId: string, currentDrug: string, chipClassName?: string) => {
+    const options = getDrugOptionsForRow(medId, currentDrug);
+    return (
+      <div
+        className={cn(
+          "flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden group-hover:max-h-28 group-hover:opacity-100 group-hover:mt-1.5 group-hover:overflow-y-auto focus-within:max-h-28 focus-within:opacity-100 focus-within:mt-1.5 focus-within:overflow-y-auto transition-all duration-200 ease-out",
+          chipClassName
+        )}
+        role="listbox"
+        aria-label="Pharmacy catalog"
+      >
+        {loadingInventory ? (
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Loading pharmacy catalog…</span>
+        ) : options.length === 0 ? (
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            {inventoryDrugs.length === 0 ? "No active items in pharmacy inventory" : "All catalog drugs are used on other rows"}
+          </span>
+        ) : (
+          options.map((p) => {
+            const isSelected = currentDrug.trim().toLowerCase() === p.value.trim().toLowerCase();
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                title={`${p.value} (${p.category}) — ${p.route}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  selectMedicationDrug(medId, p.value, p.route);
+                }}
+                className={cn(
+                  "text-[9px] font-bold border px-1.5 py-0.5 transition-all cursor-pointer max-w-[200px] truncate",
+                  isSelected
+                    ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                    : "text-slate-800 hover:text-white bg-white hover:bg-slate-800 border-slate-300"
+                )}
+              >
+                {p.label}
+              </button>
+            );
+          })
+        )}
+      </div>
+    );
   };
 
   const updateGlassPrescription = (type: "distance" | "near", eye: "OD" | "OS", field: string, value: string) => {
@@ -1387,16 +1936,15 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       return newInv;
     });
   };
-
   const selectFollowUpTimeFrame = (timeFrame: string) => {
     if (timeFrame === "none") {
       setInvestigation(prev => ({ ...prev, followUpTimeFrame: "", followUpDate: "" }));
       return;
     }
-    
+
     const today = new Date();
     let futureDate = new Date();
-    
+
     const match = timeFrame.match(/^(\d+)\s+(Day|Days|Week|Weeks|Month|Months|Year|Years)$/i);
     if (match) {
       const val = parseInt(match[1]);
@@ -1411,11 +1959,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         futureDate.setFullYear(today.getFullYear() + val);
       }
     }
-    
+
     const yyyy = futureDate.getFullYear();
     const mm = String(futureDate.getMonth() + 1).padStart(2, '0');
     const dd = String(futureDate.getDate()).padStart(2, '0');
-    
+
     setInvestigation(prev => ({
       ...prev,
       followUpTimeFrame: timeFrame,
@@ -1439,7 +1987,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     };
 
     try {
-      const data = await api.saveConsultation(patient.id, {
+      await api.saveConsultation(patient.id, {
         anteriorSegment: { slitLamp: investigation.slitLamp, eom: investigation.eom, eyePain: (investigation.diagnosisList?.OD?.eyePain === 'Yes' || investigation.diagnosisList?.OS?.eyePain === 'Yes') ? 'Yes' : 'No' },
         fundusObservation: investigation.fundus,
         posteriorSegment: {
@@ -1466,11 +2014,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       const storageKey = `doctor_work_draft_${patient.mrNumber}`;
       localStorage.removeItem(storageKey);
 
-      // Determine local status from glass prescription
-      const hasGlasses = glassPrescription && 
-        ((glassPrescription.distance?.OD?.sphere && glassPrescription.distance.OD.sphere !== "0.00") || 
-         (glassPrescription.distance?.OS?.sphere && glassPrescription.distance.OS.sphere !== "0.00"));
-      setLocalStatus(hasGlasses ? "AT_OPTICAL" : "consulted");
+      setLocalStatus("consulted");
       fetchVisitHistory();
       fetchCurrentConsultation();
       window.dispatchEvent(new Event("patientQueueUpdated"));
@@ -1501,7 +2045,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30 relative" onKeyDown={handleContainerKeyDown}>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30 relative doctor-station-container" onKeyDown={handleContainerKeyDown}>
       {/* Premium Diagnostic Header */}
       <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-2 md:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
         <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
@@ -1518,7 +2062,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             </div>
             <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
               <User className="w-3 h-3 text-slate-400" />
-              <span>{patient.gender}</span>
+              <span>{getPatientGenderString(patient)}</span>
               <span className="text-slate-300">•</span>
               <span>{getPatientAgeString(patient)}</span>
               <span className="text-slate-300">•</span>
@@ -1534,19 +2078,31 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               Visit Completed
             </Badge>
           )}
-          {localStatus === "refraction_done" && (
+          {["reception", "optometrist", "refraction_done"].includes(localStatus || "") && (
             <div className="relative">
-              <Button
-                onClick={handleAttend}
-                disabled={isAttending}
-                className="h-8 md:h-10 bg-orange-600 hover:bg-black text-white px-5 md:px-6 font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px] rounded-none shadow-xl transition-all gap-2"
-              >
-                {isAttending ? "Accessing..." : (
-                  <>
-                    <UserCheck className="w-3.5 h-3.5" /> Begin Consultation
-                  </>
-                )}
-              </Button>
+              {(() => {
+                const isFollowUp = !!(patient?.complaint?.toLowerCase().includes("followup") || patient?.complaint?.toLowerCase().includes("follow up"));
+                const canAttend = localStatus === "refraction_done" || isFollowUp;
+                return (
+                  <Button
+                    onClick={handleAttend}
+                    disabled={isAttending || !canAttend}
+                    className={cn(
+                      "h-8 md:h-10 px-5 md:px-6 font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px] rounded-none shadow-xl transition-all gap-2",
+                      canAttend
+                        ? "bg-orange-600 hover:bg-black text-white"
+                        : "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none hover:bg-slate-300"
+                    )}
+                    title={!canAttend ? "Cannot begin consultation until Refraction is done (except for Follow-up patients)" : ""}
+                  >
+                    {isAttending ? "Accessing..." : (
+                      <>
+                        <UserCheck className="w-3.5 h-3.5" /> Begin Consultation
+                      </>
+                    )}
+                  </Button>
+                );
+              })()}
               {showLockedToast && (
                 <div
                   onClick={() => setShowLockedToast(false)}
@@ -1624,7 +2180,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   { id: "glass", icon: Glasses, label: "Glass Rx" },
                   { id: "medical", icon: Pill, label: "Medical Rx" },
                   { id: "followup", icon: Calendar, label: "Follow Up" },
-                  { id: "history", icon: History, label: "Records" },
+                  { id: "history", icon: History, label: "Past Reports" },
                 ].map((tab) => (
                   <TabsTrigger
                     key={tab.id}
@@ -1639,7 +2195,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent relative z-10 bg-orange-50/50">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent relative z-10 bg-orange-50/50">
             <TabsContent value="summary" className="p-4 sm:p-6 outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Demographics - col-span-3 */}
@@ -1660,7 +2216,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase text-slate-400 font-black tracking-wider">Gender & Age</label>
-                      <p className="font-bold text-base text-slate-700">{patient.gender}, {getPatientAgeString(patient)}</p>
+                      <p className="font-bold text-base text-slate-700">{getPatientGenderString(patient)}, {getPatientAgeString(patient)}</p>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase text-slate-400 font-black tracking-wider">Primary Contact</label>
@@ -1697,11 +2253,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       <div className="px-1">
                         <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phase</span>
                         <span className="text-xs font-black text-orange-600 uppercase tracking-wider">
-                          {(patient.complaint?.toLowerCase().includes("followup") || 
+                          {(patient.complaint?.toLowerCase().includes("followup") ||
                             patient.complaint?.toLowerCase().includes("review") ||
-                            refractionData?.ocularComplaint?.toLowerCase().includes("followup") || 
-                            refractionData?.ocularComplaint?.toLowerCase().includes("review")) 
-                            ? "Follow-up" 
+                            refractionData?.ocularComplaint?.toLowerCase().includes("followup") ||
+                            refractionData?.ocularComplaint?.toLowerCase().includes("review"))
+                            ? "Follow-up"
                             : "Clinical"}
                         </span>
                       </div>
@@ -1727,96 +2283,188 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       Shared Phone Number Network
                     </span>
                   </div>
-                  <div className="p-8 bg-slate-50/30">
-                    <div className="flex flex-col items-center">
-                      {/* Phone Number Hub */}
-                      <div className="relative flex flex-col items-center mb-6">
-                        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[11px] uppercase tracking-wider px-5 py-2.5 rounded-full shadow-lg shadow-orange-500/20 flex items-center gap-2 border-2 border-white z-10">
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>Primary Phone: {patient.contactNumber}</span>
-                        </div>
-                        {/* Vertical Connector Down */}
-                        <div className="w-0.5 h-8 bg-slate-300 mt-0.5" />
-                      </div>
+                  <div className="p-4 sm:p-5 bg-slate-50/30">
+                    {(() => {
+                      const { topLevel, bottomLevel } = getFamilyLevels(familyMembers);
+                      return (
+                        <div className="flex flex-col items-center">
+                          {/* Phone Number Hub */}
+                          <div className="relative flex flex-col items-center mb-3">
+                            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[11px] uppercase tracking-wider px-5 py-2 rounded-full shadow-md shadow-orange-500/10 flex items-center gap-2 border-2 border-white z-10">
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>Primary Phone: {patient.contactNumber}</span>
+                            </div>
+                            {/* Vertical Connector Down */}
+                            <div className="w-0.5 h-3 bg-slate-300 mt-0.5" />
+                          </div>
 
-                      {/* Flow Branches */}
-                      <div className="relative flex flex-wrap justify-center gap-8 w-full max-w-5xl px-4">
-                        {/* Horizontal Bridge Line */}
-                        {familyMembers.length > 1 && (
-                          <div 
-                            className="absolute top-0 h-0.5 bg-slate-300"
-                            style={{
-                              left: `${100 / (familyMembers.length * 2)}%`,
-                              right: `${100 / (familyMembers.length * 2)}%`
-                            }}
-                          />
-                        )}
-
-                        {familyMembers.map((member) => {
-                          const isCurrent = member.mrNumber === patient.mrNumber;
-                          const relationship = member.familyMaps?.[0]?.relationshipType || member.relationshipType;
-                          return (
-                            <div key={member.mrNumber} className="relative flex flex-col items-center flex-1 min-w-[220px] max-w-[280px]">
-                              {/* Vertical Branch Line */}
-                              <div className="w-0.5 h-6 bg-slate-300 mb-2" />
-
-                              {/* Member Card */}
+                          {/* Top Level Row (Parents/Elders) */}
+                          <div className="relative flex flex-wrap justify-center gap-6 w-full max-w-4xl px-4 mb-4">
+                            {/* Horizontal Bridge Line for Top Level */}
+                            {topLevel.length > 1 && (
                               <div
-                                onClick={() => {
-                                  if (!isCurrent) {
-                                    setSelectedFamilyPatient(member);
-                                  }
+                                className="absolute top-0 h-0.5 bg-slate-300"
+                                style={{
+                                  left: `${100 / (topLevel.length * 2)}%`,
+                                  right: `${100 / (topLevel.length * 2)}%`
                                 }}
-                                className={cn(
-                                  "w-full p-5 rounded-xl border transition-all text-center select-none",
-                                  isCurrent
-                                    ? "bg-orange-50/80 border-orange-500 shadow-md shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
-                                    : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-xl cursor-pointer group"
-                                )}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <div className={cn(
-                                    "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-transform group-hover:scale-110",
-                                    isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
-                                  )}>
-                                    {member.name.charAt(0).toUpperCase()}
-                                  </div>
-                                  
-                                  <div className="space-y-0.5">
-                                    <h4 className="font-black text-sm text-slate-800 uppercase tracking-tight truncate max-w-[200px]">
-                                      {member.name}
-                                    </h4>
-                                    <p className="text-[10px] font-mono font-bold text-slate-400">
-                                      MRN: {member.mrNumber}
-                                    </p>
-                                  </div>
+                              />
+                            )}
 
-                                  <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1">
-                                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-slate-200 text-slate-500 uppercase font-black">
-                                      {member.gender.charAt(0)} • {getPatientAgeString(member)}
-                                    </Badge>
-                                    {relationship && (
-                                      <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 font-black uppercase">
-                                        {relationship}
-                                      </Badge>
+                            {topLevel.map((member) => {
+                              const isCurrent = member.mrNumber === patient.mrNumber;
+                              const relationship = formatRelationship(member.familyMaps?.[0]?.relationshipType, member.gender);
+                              return (
+                                <div key={member.mrNumber} className="relative flex flex-col items-center flex-1 min-w-[210px] max-w-[260px]">
+                                  {/* Vertical Branch Line */}
+                                  <div className="w-0.5 h-3 bg-slate-300 mb-1" />
+
+                                  {/* Member Card */}
+                                  <div
+                                    onClick={() => {
+                                      if (!isCurrent) {
+                                        setSelectedFamilyPatient(member);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "w-full p-4 rounded-xl border transition-all text-center select-none",
+                                      isCurrent
+                                        ? "bg-orange-50/80 border-orange-500 shadow-sm shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
+                                        : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-md cursor-pointer group"
                                     )}
-                                    {isCurrent ? (
-                                      <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
-                                        Active Patient
-                                      </Badge>
-                                    ) : (
-                                      <Badge className="text-[8px] px-1.5 py-0 bg-slate-100 text-slate-600 border border-slate-200 font-black uppercase">
-                                        Linked
-                                      </Badge>
-                                    )}
+                                  >
+                                    <div className="flex flex-col items-center gap-1.5">
+                                      <div className={cn(
+                                        "w-9 h-9 rounded-full flex items-center justify-center font-black text-xs transition-transform group-hover:scale-110",
+                                        isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
+                                      )}>
+                                        {member.name.charAt(0).toUpperCase()}
+                                      </div>
+
+                                      <div className="space-y-0.5">
+                                        <h4 className="font-black text-xs text-slate-800 uppercase tracking-tight truncate max-w-[180px]">
+                                          {member.name}
+                                        </h4>
+                                        <p className="text-[9px] font-mono font-bold text-slate-400">
+                                          MRN: {member.mrNumber}
+                                        </p>
+                                      </div>
+
+                                      <div className="flex flex-wrap items-center justify-center gap-1 mt-0.5">
+                                        <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-slate-200 text-slate-500 uppercase font-black">
+                                          {member.gender.charAt(0)} • {getPatientAgeString(member)}
+                                        </Badge>
+                                        {relationship && (
+                                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 font-black uppercase">
+                                            {relationship}
+                                          </Badge>
+                                        )}
+                                        {isCurrent ? (
+                                          <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
+                                            Active Patient
+                                          </Badge>
+                                        ) : (
+                                          <Badge className="text-[8px] px-1.5 py-0 bg-slate-100 text-slate-600 border border-slate-200 font-black uppercase">
+                                            Linked
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Connection to Bottom Level */}
+                          {bottomLevel.length > 0 && (
+                            <div className="relative flex flex-col items-center w-full mb-2">
+                              <div className="w-0.5 h-4 bg-slate-300" />
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                          )}
+
+                          {/* Bottom Level Row (Children/Dependents) */}
+                          {bottomLevel.length > 0 && (
+                            <div className="relative flex flex-wrap justify-center gap-6 w-full max-w-5xl px-4">
+                              {/* Horizontal Bridge Line for Bottom Level */}
+                              {bottomLevel.length > 1 && (
+                                <div
+                                  className="absolute top-0 h-0.5 bg-slate-300"
+                                  style={{
+                                    left: `${100 / (bottomLevel.length * 2)}%`,
+                                    right: `${100 / (bottomLevel.length * 2)}%`
+                                  }}
+                                />
+                              )}
+
+                              {bottomLevel.map((member) => {
+                                const isCurrent = member.mrNumber === patient.mrNumber;
+                                const relationship = formatRelationship(member.familyMaps?.[0]?.relationshipType, member.gender);
+                                return (
+                                  <div key={member.mrNumber} className="relative flex flex-col items-center flex-1 min-w-[210px] max-w-[260px]">
+                                    {/* Vertical Branch Line */}
+                                    <div className="w-0.5 h-3 bg-slate-300 mb-1" />
+
+                                    {/* Member Card */}
+                                    <div
+                                      onClick={() => {
+                                        if (!isCurrent) {
+                                          setSelectedFamilyPatient(member);
+                                        }
+                                      }}
+                                      className={cn(
+                                        "w-full p-4 rounded-xl border transition-all text-center select-none",
+                                        isCurrent
+                                          ? "bg-orange-50/80 border-orange-500 shadow-sm shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
+                                          : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-md cursor-pointer group"
+                                      )}
+                                    >
+                                      <div className="flex flex-col items-center gap-1.5">
+                                        <div className={cn(
+                                          "w-9 h-9 rounded-full flex items-center justify-center font-black text-xs transition-transform group-hover:scale-110",
+                                          isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
+                                        )}>
+                                          {member.name.charAt(0).toUpperCase()}
+                                        </div>
+
+                                        <div className="space-y-0.5">
+                                          <h4 className="font-black text-xs text-slate-800 uppercase tracking-tight truncate max-w-[180px]">
+                                            {member.name}
+                                          </h4>
+                                          <p className="text-[9px] font-mono font-bold text-slate-400">
+                                            MRN: {member.mrNumber}
+                                          </p>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center justify-center gap-1 mt-0.5">
+                                          <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-slate-200 text-slate-500 uppercase font-black">
+                                            {member.gender.charAt(0)} • {getPatientAgeString(member)}
+                                          </Badge>
+                                          {relationship && (
+                                            <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 font-black uppercase">
+                                              {relationship}
+                                            </Badge>
+                                          )}
+                                          {isCurrent ? (
+                                            <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
+                                              Active Patient
+                                            </Badge>
+                                          ) : (
+                                            <Badge className="text-[8px] px-1.5 py-0 bg-slate-100 text-slate-600 border border-slate-200 font-black uppercase">
+                                              Linked
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Card>
               )}
@@ -1843,12 +2491,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           </span>
                         </div>
                         <div className="p-4 bg-gradient-to-br from-blue-50/40 to-sky-50/20 border-l-4 border-blue-500 shadow-sm text-sm font-bold text-slate-800 min-h-[70px] flex items-center">
-                          {refractionData?.ocularComplaint 
+                          {refractionData?.ocularComplaint
                             ? refractionData.ocularComplaint
-                                .split(',')
-                                .map((s: string) => s.trim())
-                                .filter((s: string) => !s.toLowerCase().includes("followup") && !s.toLowerCase().includes("review"))
-                                .join(', ') || "No primary complaints recorded."
+                              .split(',')
+                              .map((s: string) => s.trim())
+                              .filter((s: string) => !s.toLowerCase().includes("followup") && !s.toLowerCase().includes("review"))
+                              .join(', ') || "No primary complaints recorded."
                             : "No primary complaints recorded."}
                         </div>
                       </div>
@@ -2003,7 +2651,6 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             { id: "sec-retina-macula", label: "Retina & Macula" },
                             { id: "sec-optic-disc", label: "Optic Disc Profile" },
                             { id: "sec-required-investigations", label: "Required Labs" },
-                            { id: "sec-clinical-opinion", label: "Clinical Opinion" },
                             { id: "sec-final-diagnosis", label: "Final Diagnosis" },
                           ].map((sec) => (
                             <button
@@ -2048,660 +2695,446 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         </div>
                       </div>
                     )}
-                      <div className="space-y-12">
-                        <div id="sec-anterior" className="scroll-mt-6 space-y-6 bg-slate-50/60 p-4 sm:p-8 border border-slate-200 shadow-sm rounded-none">
-                          <SectionHeader icon={Eye} category="Slit Lamp & Specialized Profile" title="Anterior Segment" />
+                    <div className="space-y-12">
+                      <div id="sec-anterior" className="scroll-mt-6 space-y-6 bg-slate-50/60 p-4 sm:p-8 border border-slate-200 shadow-sm rounded-none">
+                        <SectionHeader icon={Eye} category="Slit Lamp & Specialized Profile" title="Anterior Segment" />
 
-                          <div className="space-y-6">
-                            {/* Group 1: Ocular Surface & Adnexa */}
-                            <div id="sec-surface-adnexa" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                              <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-orange-500" /> Ocular Surface & Adnexa</h4>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {[
-                                  { id: "lids", label: "Lids" },
-                                  { id: "conjunctiva", label: "Conjunctiva" },
-                                  { id: "sclera", label: "Sclera" },
-                                  { id: "cornea", label: "Cornea" },
-                                ].map((item) => (
-                                  <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
-                                    <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OD" />
-                                        {(() => {
-                                          const optionsMap: Record<string, string[]> = {
-                                            lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
-                                            conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
-                                            sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
-                                            cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
-                                          };
-                                          const opts = optionsMap[item.id];
-                                          if (opts) {
-                                            return (
-                                              <div className="flex flex-col gap-2 w-full">
-                                                <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
-                                                  {opts.map(opt => (
-                                                    <button
-                                                      key={opt}
-                                                      type="button"
-                                                      onClick={() => updateInvestigation(['slitLamp', item.id, 'OD'], opt)}
-                                                      className={cn(
-                                                        "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                        (investigation.slitLamp as any)[item.id].OD === opt
-                                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                      )}
-                                                    >
-                                                      {opt}
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OD} onChange={e => updateInvestigation(['slitLamp', item.id, 'OD'], e.target.value)} />
-                                          );
-                                        })()}
-                                      </div>
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OS" />
-                                        {(() => {
-                                          const optionsMap: Record<string, string[]> = {
-                                            lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
-                                            conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
-                                            sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
-                                            cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
-                                          };
-                                          const opts = optionsMap[item.id];
-                                          if (opts) {
-                                            return (
-                                              <div className="flex flex-col gap-2 w-full">
-                                                <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
-                                                  {opts.map(opt => (
-                                                    <button
-                                                      key={opt}
-                                                      type="button"
-                                                      onClick={() => updateInvestigation(['slitLamp', item.id, 'OS'], opt)}
-                                                      className={cn(
-                                                        "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                        (investigation.slitLamp as any)[item.id].OS === opt
-                                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                      )}
-                                                    >
-                                                      {opt}
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OS} onChange={e => updateInvestigation(['slitLamp', item.id, 'OS'], e.target.value)} />
-                                          );
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Group 2: Anterior Chamber & Lens */}
-                            <div id="sec-intraocular-pupil" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                              <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Microscope className="w-3.5 h-3.5 text-orange-500" /> Intraocular Structures & Pupil</h4>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {[
-                                  { id: "ac", label: "Anterior Chamber" },
-                                  { id: "iris", label: "Iris" },
-                                  { id: "pupil", label: "Pupil" },
-                                ].map((item) => (
-                                  <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
-                                    <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OD" />
-                                        {(() => {
-                                          const optionsMap: Record<string, string[]> = {
-                                            ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
-                                            iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
-                                            pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
-                                          };
-                                          const opts = optionsMap[item.id];
-                                          if (opts) {
-                                            return (
-                                              <div className="flex flex-col gap-2 w-full">
-                                                <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
-                                                  {opts.map(opt => (
-                                                    <button
-                                                      key={opt}
-                                                      type="button"
-                                                      onClick={() => updateInvestigation(['slitLamp', item.id, 'OD'], opt)}
-                                                      className={cn(
-                                                        "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                        (investigation.slitLamp as any)[item.id].OD === opt
-                                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                      )}
-                                                    >
-                                                      {opt}
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                                {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OD === "Dilated" && (
-                                                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 shadow-inner w-full">
-                                                    <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
-                                                    <div className="grid grid-cols-2 gap-1.5">
-                                                      {["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"].map(drug => (
-                                                        <button
-                                                          key={drug}
-                                                          type="button"
-                                                          onClick={() => updateInvestigation(['slitLamp', 'dilation', 'OD'], drug)}
-                                                          className={cn("p-1.5 min-h-[32px] text-[8px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight", typeof investigation.slitLamp.dilation === 'object' && investigation.slitLamp.dilation?.OD === drug ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:border-orange-300")}
-                                                        >
-                                                          {drug}
-                                                        </button>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OD} onChange={e => updateInvestigation(['slitLamp', item.id, 'OD'], e.target.value)} />
-                                          );
-                                        })()}
-                                      </div>
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OS" />
-                                        {(() => {
-                                          const optionsMap: Record<string, string[]> = {
-                                            ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
-                                            iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
-                                            pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
-                                          };
-                                          const opts = optionsMap[item.id];
-                                          if (opts) {
-                                            return (
-                                              <div className="flex flex-col gap-2 w-full">
-                                                <div className={cn("grid gap-2 mt-1", opts.length > 10 ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
-                                                  {opts.map(opt => (
-                                                    <button
-                                                      key={opt}
-                                                      type="button"
-                                                      onClick={() => updateInvestigation(['slitLamp', item.id, 'OS'], opt)}
-                                                      className={cn(
-                                                        "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                        (investigation.slitLamp as any)[item.id].OS === opt
-                                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                      )}
-                                                    >
-                                                      {opt}
-                                                    </button>
-                                                  ))}
-                                                </div>
-                                                {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OS === "Dilated" && (
-                                                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 shadow-inner w-full">
-                                                    <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
-                                                    <div className="grid grid-cols-2 gap-1.5">
-                                                      {["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"].map(drug => (
-                                                        <button
-                                                          key={drug}
-                                                          type="button"
-                                                          onClick={() => updateInvestigation(['slitLamp', 'dilation', 'OS'], drug)}
-                                                          className={cn("p-1.5 min-h-[32px] text-[8px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight", typeof investigation.slitLamp.dilation === 'object' && investigation.slitLamp.dilation?.OS === drug ? "bg-orange-500 text-white border-orange-500 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:border-orange-300")}
-                                                        >
-                                                          {drug}
-                                                        </button>
-                                                      ))}
-                                                    </div>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <Input placeholder="NAD" className="h-10 sm:h-12 text-sm sm:text-lg font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm" value={(investigation.slitLamp as any)[item.id].OS} onChange={e => updateInvestigation(['slitLamp', item.id, 'OS'], e.target.value)} />
-                                          );
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <div className="border-t border-slate-100 pt-6">
-                                {[
-                                  { id: "lens", label: "Lens" },
-                                ].map((item) => (
-                                  <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
-                                    <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OD" />
-                                        {(() => {
-                                          const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
-                                          return (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
-                                              {opts.map(opt => (
-                                                <button
-                                                  key={opt}
-                                                  type="button"
-                                                  onClick={() => updateInvestigation(['slitLamp', item.id, 'OD'], opt)}
-                                                  className={cn(
-                                                    "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                    (investigation.slitLamp as any)[item.id].OD === opt
-                                                      ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                      : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                  )}
-                                                >
-                                                  {opt}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OS" />
-                                        {(() => {
-                                          const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
-                                          return (
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mt-1">
-                                              {opts.map(opt => (
-                                                <button
-                                                  key={opt}
-                                                  type="button"
-                                                  onClick={() => updateInvestigation(['slitLamp', item.id, 'OS'], opt)}
-                                                  className={cn(
-                                                    "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                    (investigation.slitLamp as any)[item.id].OS === opt
-                                                      ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                      : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                                  )}
-                                                >
-                                                  {opt}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Group 3: Motility & Angles */}
-                            <div id="sec-motility-angles" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                              <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-orange-500" /> Motility & Angles</h4>
-                              <div className="grid grid-cols-1 gap-6">
-
-                                {/* EOM */}
-                                <div className="clinical-group bg-slate-50/50 border border-slate-200 p-3 sm:p-6 shadow-sm">
-                                  <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block mb-3">Extra Ocular Movements (EOM)</label>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div className="flex flex-col flex-1 group">
+                        <div className="space-y-6">
+                          {/* Group 1: Ocular Surface & Adnexa */}
+                          <div id="sec-surface-adnexa" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
+                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-orange-500" /> Ocular Surface & Adnexa</h4>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {[
+                                { id: "lids", label: "Lids" },
+                                { id: "conjunctiva", label: "Conjunctiva" },
+                                { id: "sclera", label: "Sclera" },
+                                { id: "cornea", label: "Cornea" },
+                              ].map((item) => (
+                                <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
+                                  <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col group w-full max-w-xs">
                                       <EyeIndicator eye="OD" />
-                                      <div className="grid grid-cols-2 gap-2 mt-1">
-                                        {["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"].map(opt => (
-                                          <button
-                                            key={opt}
-                                            type="button"
-                                            onClick={() => updateInvestigation(['eom', 'OD'], opt)}
-                                            className={cn(
-                                              "p-2 h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                              investigation.eom.OD === opt
-                                                ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                            )}
-                                          >
-                                            {opt}
-                                          </button>
-                                        ))}
-                                      </div>
+                                      {(() => {
+                                        const optionsMap: Record<string, string[]> = {
+                                          lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
+                                          conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
+                                          sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
+                                          cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
+                                        };
+                                        const opts = optionsMap[item.id];
+                                        return (
+                                          <InvestigationPaletteInput
+                                            value={(investigation.slitLamp as any)[item.id].OD}
+                                            onChange={val => updateInvestigation(['slitLamp', item.id, 'OD'], val)}
+                                            options={opts}
+                                            label={`OD ${item.label}`}
+                                            placeholder="NAD"
+                                          />
+                                        );
+                                      })()}
                                     </div>
-                                    <div className="flex flex-col flex-1 group">
+                                    <div className="flex flex-col group w-full max-w-xs">
                                       <EyeIndicator eye="OS" />
-                                      <div className="grid grid-cols-2 gap-2 mt-1">
-                                        {["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"].map(opt => (
-                                          <button
-                                            key={opt}
-                                            type="button"
-                                            onClick={() => updateInvestigation(['eom', 'OS'], opt)}
-                                            className={cn(
-                                              "p-2 h-12 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                              investigation.eom.OS === opt
-                                                ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                      {(() => {
+                                        const optionsMap: Record<string, string[]> = {
+                                          lids: ["Normal", "Ptosis (Partial)", "Ptosis (Complete)", "Hordeolum Internum", "Chalazion", "Lid Tear (Partial)", "Lid Tear (Complete)"],
+                                          conjunctiva: ["Normal", "Congestion", "Pterygium", "Pinguecula", "Tear", "Cyst", "Symblepharon", "Adhesion"],
+                                          sclera: ["Normal", "Scleritis", "Episcleritis", "Nodule", "Thinning", "Blue Sclera", "Staphyloma"],
+                                          cornea: ["Normal", "Edema", "Opacity", "Ulcer", "Foreign Body", "SPK", "Vascularization", "Keratoconus", "Arcus Senilis", "Abrasion"],
+                                        };
+                                        const opts = optionsMap[item.id];
+                                        return (
+                                          <InvestigationPaletteInput
+                                            value={(investigation.slitLamp as any)[item.id].OS}
+                                            onChange={val => updateInvestigation(['slitLamp', item.id, 'OS'], val)}
+                                            options={opts}
+                                            label={`OS ${item.label}`}
+                                            placeholder="NAD"
+                                          />
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Group 2: Anterior Chamber & Lens */}
+                          <div id="sec-intraocular-pupil" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
+                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Microscope className="w-3.5 h-3.5 text-orange-500" /> Intraocular Structures & Pupil</h4>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {[
+                                { id: "ac", label: "Anterior Chamber" },
+                                { id: "iris", label: "Iris" },
+                                { id: "pupil", label: "Pupil" },
+                              ].map((item) => (
+                                <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
+                                  <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OD" />
+                                      {(() => {
+                                        const optionsMap: Record<string, string[]> = {
+                                          ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
+                                          iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
+                                          pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
+                                        };
+                                        const opts = optionsMap[item.id];
+                                        return (
+                                          <div className="flex flex-col gap-2 w-full">
+                                            <InvestigationPaletteInput
+                                              value={(investigation.slitLamp as any)[item.id].OD}
+                                              onChange={val => updateInvestigation(['slitLamp', item.id, 'OD'], val)}
+                                              options={opts}
+                                              label={`OD ${item.label}`}
+                                              placeholder="NAD"
+                                            />
+                                            {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OD === "Dilated" && (
+                                              <div className="mt-2 p-2 bg-slate-50 border border-slate-200 shadow-inner w-full">
+                                                <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                                <InvestigationPaletteInput
+                                                  value={typeof investigation.slitLamp.dilation === 'object' ? investigation.slitLamp.dilation?.OD || "" : ""}
+                                                  onChange={val => updateInvestigation(['slitLamp', 'dilation', 'OD'], val)}
+                                                  options={["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"]}
+                                                  label="OD Dilation Agent"
+                                                  placeholder="Select Agent"
+                                                />
+                                              </div>
                                             )}
-                                          >
-                                            {opt}
-                                          </button>
-                                        ))}
-                                      </div>
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OS" />
+                                      {(() => {
+                                        const optionsMap: Record<string, string[]> = {
+                                          ac: ["Normal Depth", "Shallow", "Deep", "Cells", "Flare", "Hyphema", "Hypopyon", "Irregular"],
+                                          iris: ["Normal", "Synechiae", "Atrophy", "Nodule", "Coloboma", "Neovasc", "Iridodonesis", "PI Present"],
+                                          pupil: ["Normal", "Round", "Abnormal", "Dilated", "Constricted", "RAPD Positive", "Sluggish", "Non-Reactive"]
+                                        };
+                                        const opts = optionsMap[item.id];
+                                        return (
+                                          <div className="flex flex-col gap-2 w-full">
+                                            <InvestigationPaletteInput
+                                              value={(investigation.slitLamp as any)[item.id].OS}
+                                              onChange={val => updateInvestigation(['slitLamp', item.id, 'OS'], val)}
+                                              options={opts}
+                                              label={`OS ${item.label}`}
+                                              placeholder="NAD"
+                                            />
+                                            {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OS === "Dilated" && (
+                                              <div className="mt-2 p-2 bg-slate-50 border border-slate-200 shadow-inner w-full">
+                                                <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                                <InvestigationPaletteInput
+                                                  value={typeof investigation.slitLamp.dilation === 'object' ? investigation.slitLamp.dilation?.OS || "" : ""}
+                                                  onChange={val => updateInvestigation(['slitLamp', 'dilation', 'OS'], val)}
+                                                  options={["Tropicacyl", "Tropicacyl Plus", "Cyclopentolate", "Homatropine", "Atropine", "Phenylephrine 10%", "Already Dilated", "Poor Dilation"]}
+                                                  label="OS Dilation Agent"
+                                                  placeholder="Select Agent"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 </div>
-
-                                {/* Side-by-Side: Gonioscopy & Synaptophore */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                  <div className="space-y-4 border border-slate-200 p-4 bg-slate-50/50">
-                                    <label className="text-[11px] font-black uppercase !text-slate-700 !bg-slate-100 !border-slate-200 border px-3 py-1.5 inline-block tracking-widest">Gonioscopy Evaluation</label>
-                                    <div className="flex flex-col gap-4">
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OD" />
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                          {["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"].map(opt => (
-                                            <button
-                                              key={opt}
-                                              type="button"
-                                              onClick={() => updateInvestigation(['slitLamp', 'gonioscopy', 'OD'], opt)}
-                                              className={cn(
-                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                investigation.slitLamp.gonioscopy.OD === opt
-                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                              )}
-                                            >
-                                              {opt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OS" />
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                          {["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"].map(opt => (
-                                            <button
-                                              key={opt}
-                                              type="button"
-                                              onClick={() => updateInvestigation(['slitLamp', 'gonioscopy', 'OS'], opt)}
-                                              className={cn(
-                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                investigation.slitLamp.gonioscopy.OS === opt
-                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                              )}
-                                            >
-                                              {opt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-4 border border-slate-200 p-4 bg-slate-50/50">
-                                    <label className="text-[11px] font-black uppercase !text-slate-700 !bg-slate-100 !border-slate-200 border px-3 py-1.5 inline-block tracking-widest">Synaptophore Profile</label>
-                                    <div className="flex flex-col gap-4">
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OD" />
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                          {["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"].map(opt => (
-                                            <button
-                                              key={opt}
-                                              type="button"
-                                              onClick={() => updateInvestigation(['slitLamp', 'synaptophore', 'OD'], opt)}
-                                              className={cn(
-                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                investigation.slitLamp.synaptophore.OD === opt
-                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                              )}
-                                            >
-                                              {opt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-col group">
-                                        <EyeIndicator eye="OS" />
-                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                          {["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"].map(opt => (
-                                            <button
-                                              key={opt}
-                                              type="button"
-                                              onClick={() => updateInvestigation(['slitLamp', 'synaptophore', 'OS'], opt)}
-                                              className={cn(
-                                                "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                                investigation.slitLamp.synaptophore.OS === opt
-                                                  ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                                  : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                              )}
-                                            >
-                                              {opt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                              </div>
+                              ))}
                             </div>
 
-                          </div>    </div>
-
-                        <Separator className="!my-8 opacity-25" />
-
-                        <div id="sec-posterior" className="scroll-mt-6 space-y-6 bg-orange-50/50 p-3 sm:p-8 border-2 border-orange-200/70 rounded-none">
-                          <SectionHeader icon={Activity} category="Retinal Analysis" title="Posterior Segment" />
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div id="sec-vitreous" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                              <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OD" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'vitreous', 'OD'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.vitreous.OD === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
+                            <div className="border-t border-slate-100 pt-6">
+                              {[
+                                { id: "lens", label: "Lens" },
+                              ].map((item) => (
+                                <div key={item.id} className="clinical-group bg-white border border-slate-300/80 p-2 sm:p-4 space-y-4 shadow-sm">
+                                  <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block">{item.label}</label>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OD" />
+                                      {(() => {
+                                        const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
+                                        return (
+                                          <InvestigationPaletteInput
+                                            value={(investigation.slitLamp as any)[item.id].OD}
+                                            onChange={val => updateInvestigation(['slitLamp', item.id, 'OD'], val)}
+                                            options={opts}
+                                            label={`OD ${item.label}`}
+                                            placeholder="NAD"
+                                          />
+                                        );
+                                      })()}
+                                    </div>
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OS" />
+                                      {(() => {
+                                        const opts = ["Normal", "Immature Cataract (1)", "Immature Cataract (2)", "Immature Cataract (3)", "Immature Cataract (4)", "Nuclear Cataract (G1)", "Nuclear Cataract (G2)", "Nuclear Cataract (G3)", "Nuclear Cataract (G4)", "Mature Cataract", "Posterior Subcapsular", "Traumatic Cataract", "Liquified Morgagnian", "Cortical Cataract", "Hypermature Cataract"];
+                                        return (
+                                          <InvestigationPaletteInput
+                                            value={(investigation.slitLamp as any)[item.id].OS}
+                                            onChange={val => updateInvestigation(['slitLamp', item.id, 'OS'], val)}
+                                            options={opts}
+                                            label={`OS ${item.label}`}
+                                            placeholder="NAD"
+                                          />
+                                        );
+                                      })()}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OS" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'vitreous', 'OS'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.vitreous.OS === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Group 3: Motility & Angles */}
+                          <div id="sec-motility-angles" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
+                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-orange-500" /> Motility & Angles</h4>
+                            <div className="grid grid-cols-1 gap-6">
+
+                              {/* EOM */}
+                              <div className="clinical-group bg-slate-50/50 border border-slate-200 p-3 sm:p-6 shadow-sm">
+                                <label className="clinical-label !bg-slate-100 !text-slate-700 !border-slate-200 border px-2 py-1 text-[11px] font-black uppercase tracking-wider inline-block mb-3">Extra Ocular Movements (EOM)</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                  <div className="flex flex-col flex-1 group w-full max-w-xs">
+                                    <EyeIndicator eye="OD" />
+                                    <InvestigationPaletteInput
+                                      value={investigation.eom.OD}
+                                      onChange={val => updateInvestigation(['eom', 'OD'], val)}
+                                      options={["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"]}
+                                      label="OD EOM"
+                                      placeholder="NAD"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col flex-1 group w-full max-w-xs">
+                                    <EyeIndicator eye="OS" />
+                                    <InvestigationPaletteInput
+                                      value={investigation.eom.OS}
+                                      onChange={val => updateInvestigation(['eom', 'OS'], val)}
+                                      options={["Normal", "Restricted", "Sixth Nerve Palsy", "Third Nerve Palsy"]}
+                                      label="OS EOM"
+                                      placeholder="NAD"
+                                    />
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Gonioscopy Evaluation & Synaptophore Profile Stacked */}
+                              <div className="space-y-6">
+                                <div className="clinical-group bg-slate-50/50 border border-slate-200 p-3 sm:p-6 shadow-sm space-y-4">
+                                  <label className="text-[11px] font-black uppercase !text-slate-700 !bg-slate-100 !border-slate-200 border px-3 py-1.5 inline-block tracking-widest">Gonioscopy Evaluation</label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OD" />
+                                      <InvestigationPaletteInput
+                                        value={investigation.slitLamp.gonioscopy.OD}
+                                        onChange={val => updateInvestigation(['slitLamp', 'gonioscopy', 'OD'], val)}
+                                        options={["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"]}
+                                        label="OD Gonioscopy"
+                                        placeholder="NAD"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OS" />
+                                      <InvestigationPaletteInput
+                                        value={investigation.slitLamp.gonioscopy.OS}
+                                        onChange={val => updateInvestigation(['slitLamp', 'gonioscopy', 'OS'], val)}
+                                        options={["Normal", "Grade 4 (Wide Open)", "Grade 3 (Open)", "Grade 2 (Narrow)", "Grade 1 (Very Narrow)", "Grade 0 (Closed)"]}
+                                        label="OS Gonioscopy"
+                                        placeholder="NAD"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="clinical-group bg-slate-50/50 border border-slate-200 p-3 sm:p-6 shadow-sm space-y-4">
+                                  <label className="text-[11px] font-black uppercase !text-slate-700 !bg-slate-100 !border-slate-200 border px-3 py-1.5 inline-block tracking-widest">Synaptophore Profile</label>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OD" />
+                                      <InvestigationPaletteInput
+                                        value={investigation.slitLamp.synaptophore.OD}
+                                        onChange={val => updateInvestigation(['slitLamp', 'synaptophore', 'OD'], val)}
+                                        options={["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"]}
+                                        label="OD Synaptophore"
+                                        placeholder="NAD"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col group w-full max-w-xs">
+                                      <EyeIndicator eye="OS" />
+                                      <InvestigationPaletteInput
+                                        value={investigation.slitLamp.synaptophore.OS}
+                                        onChange={val => updateInvestigation(['slitLamp', 'synaptophore', 'OS'], val)}
+                                        options={["Normal BSV", "SMP Present", "Fusion", "Stereopsis", "Suppression", "ARC", "NRC"]}
+                                        label="OS Synaptophore"
+                                        placeholder="NAD"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
                             </div>
-                            <div id="sec-retina-macula" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                              <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OD" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'retina', 'OD'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.retina.OD === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OS" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'retina', 'OS'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.retina.OS === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
+                          </div>
+
+                        </div>    </div>
+
+                      <Separator className="!my-8 opacity-25" />
+
+                      <div id="sec-posterior" className="scroll-mt-6 space-y-6 bg-slate-50/60 p-4 sm:p-8 border border-slate-200 shadow-sm rounded-none">
+                        <SectionHeader icon={Activity} category="Retinal Analysis" title="Posterior Segment" />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div id="sec-vitreous" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
+                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col group w-full max-w-xs">
+                                <EyeIndicator eye="OD" />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.vitreous.OD}
+                                  onChange={val => updateInvestigation(['fundus', 'vitreous', 'OD'], val)}
+                                  options={["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"]}
+                                  label="OD Vitreous"
+                                  placeholder="NAD"
+                                />
+                              </div>
+                              <div className="flex flex-col group w-full max-w-xs">
+                                <EyeIndicator eye="OS" />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.vitreous.OS}
+                                  onChange={val => updateInvestigation(['fundus', 'vitreous', 'OS'], val)}
+                                  options={["Normal", "Hemorrhage", "PVD", "Schaffer's Sign", "Inflammation"]}
+                                  label="OS Vitreous"
+                                  placeholder="NAD"
+                                />
                               </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                            <div id="sec-optic-disc" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                              <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Optic Disc Profile</label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OD" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'disc', 'OD'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.disc.OD === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col group">
-                                  <EyeIndicator eye="OS" />
-                                  <div className="grid grid-cols-2 gap-2 mt-1">
-                                    {["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"].map(opt => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateInvestigation(['fundus', 'disc', 'OS'], opt)}
-                                        className={cn(
-                                          "p-2 min-h-[40px] text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none leading-tight",
-                                          investigation.fundus.disc.OS === opt
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
+                          <div id="sec-retina-macula" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
+                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col group w-full max-w-xs">
+                                <EyeIndicator eye="OD" />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.retina.OD}
+                                  onChange={val => updateInvestigation(['fundus', 'retina', 'OD'], val)}
+                                  options={["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"]}
+                                  label="OD Retina"
+                                  placeholder="NAD"
+                                />
+                              </div>
+                              <div className="flex flex-col group w-full max-w-xs">
+                                <EyeIndicator eye="OS" />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.retina.OS}
+                                  onChange={val => updateInvestigation(['fundus', 'retina', 'OS'], val)}
+                                  options={["Normal", "Detached", "Diabetic Retinopathy", "Hypertensive Retinopathy", "CSR", "BRVO / CRVO / CRAO / BRAO"]}
+                                  label="OS Retina"
+                                  placeholder="NAD"
+                                />
                               </div>
                             </div>
                           </div>
                         </div>
-
-                        <Separator className="!my-8 opacity-25" />
-
-                        <div className="space-y-6">
-                          <div id="sec-required-investigations" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-5 shadow-sm">
-                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-end">
-                              <div className="space-y-2 w-full sm:w-1/3 transition-all duration-300">
-                                <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Required Investigations</Label>
-                                <Select value={investigation.required} onValueChange={v => {
-                                  setInvestigation({ ...investigation, required: v, other: v === "Other" ? investigation.other : "" });
-                                }}>
-                                  <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-orange-600"><SelectValue placeholder="Select type..." /></SelectTrigger>
-                                  <SelectContent className="rounded-none font-bold">
-                                    <SelectItem value="Nothing selected">Nothing selected</SelectItem>
-                                    <SelectItem value="OCT">OCT: Optical Coherence Tomography</SelectItem>
-                                    <SelectItem value="Fundus Photography">Fundus Photography / FFA</SelectItem>
-                                    <SelectItem value="HVFA">HVFA: Humphrey Fields</SelectItem>
-                                    <SelectItem value="Topography">Corneal Topography</SelectItem>
-                                    <SelectItem value="Biometry">A-Scan / Biometry</SelectItem>
-                                    <SelectItem value="Other">Other</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              {investigation.required === "Other" && (
-                                <div className="flex-1 space-y-2 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
-                                  <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Other / Specification</Label>
-                                  <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div id="sec-final-diagnosis" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-8 space-y-4 shadow-md">
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-slate-100 pb-4">
-                              <Label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                              <div className="flex flex-col flex-1 group gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                          <div id="sec-optic-disc" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
+                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Optic Disc Profile</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col group w-full max-w-xs">
                                 <EyeIndicator eye="OD" />
-                                <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
-                                  {OCULAR_COMPLAINTS.map((c) => (
-                                    <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
-                                      <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
-                                      <div className="flex gap-1.5 shrink-0">
-                                        <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
-                                        <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'No' || !investigation.diagnosisList?.OD?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.disc.OD}
+                                  onChange={val => updateInvestigation(['fundus', 'disc', 'OD'], val)}
+                                  options={["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"]}
+                                  label="OD Optic Disc"
+                                  placeholder="NAD"
+                                />
                               </div>
-                              <div className="flex flex-col flex-1 group gap-4">
+                              <div className="flex flex-col group w-full max-w-xs">
                                 <EyeIndicator eye="OS" />
-                                <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
-                                  {OCULAR_COMPLAINTS.map((c) => (
-                                    <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
-                                      <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
-                                      <div className="flex gap-1.5 shrink-0">
-                                        <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
-                                        <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'No' || !investigation.diagnosisList?.OS?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                                <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                                <InvestigationPaletteInput
+                                  value={investigation.fundus.disc.OS}
+                                  onChange={val => updateInvestigation(['fundus', 'disc', 'OS'], val)}
+                                  options={["Healthy Disc", "Disc Vessels Normal", "Disc Edema", "Papilledema"]}
+                                  label="OS Optic Disc"
+                                  placeholder="NAD"
+                                />
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
+
+                      <Separator className="!my-8 opacity-25" />
+
+                      <div className="space-y-6">
+                        <div id="sec-required-investigations" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-5 shadow-sm">
+                          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-end">
+                            <div className="space-y-2 w-full sm:w-1/3 transition-all duration-300">
+                              <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Required Investigations</Label>
+                              <Select value={investigation.required} onValueChange={v => {
+                                setInvestigation({ ...investigation, required: v, other: v === "Other" ? investigation.other : "" });
+                              }}>
+                                <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-orange-600"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                                <SelectContent className="rounded-none font-bold">
+                                  <SelectItem value="Nothing selected">Nothing selected</SelectItem>
+                                  <SelectItem value="OCT">OCT: Optical Coherence Tomography</SelectItem>
+                                  <SelectItem value="Fundus Photography">Fundus Photography / FFA</SelectItem>
+                                  <SelectItem value="HVFA">HVFA: Humphrey Fields</SelectItem>
+                                  <SelectItem value="Topography">Corneal Topography</SelectItem>
+                                  <SelectItem value="Biometry">A-Scan / Biometry</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {investigation.required === "Other" && (
+                              <div className="flex-1 space-y-2 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
+                                <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Other / Specification</Label>
+                                <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div id="sec-final-diagnosis" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-8 space-y-4 shadow-md">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-slate-100 pb-4">
+                            <Label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                            <div className="flex flex-col flex-1 group gap-4">
+                              <EyeIndicator eye="OD" />
+                              <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
+                                {OCULAR_COMPLAINTS.map((c) => (
+                                  <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
+                                    <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
+                                    <div className="flex gap-1.5 shrink-0">
+                                      <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
+                                      <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OD: { ...prev.diagnosisList?.OD, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OD?.[c.key] === 'No' || !investigation.diagnosisList?.OD?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                            </div>
+                            <div className="flex flex-col flex-1 group gap-4">
+                              <EyeIndicator eye="OS" />
+                              <div className="space-y-1 bg-white p-3 border border-slate-200 shadow-sm">
+                                {OCULAR_COMPLAINTS.map((c) => (
+                                  <div key={c.key} className="flex items-center justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-2 transition-colors">
+                                    <span className="text-xs font-black text-slate-600 uppercase tracking-wider">{c.label}</span>
+                                    <div className="flex gap-1.5 shrink-0">
+                                      <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'Yes' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'Yes' ? "bg-red-500 text-white border-red-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-red-400 hover:text-red-500")}>Yes</button>
+                                      <button type="button" onClick={() => setInvestigation(prev => ({ ...prev, diagnosisList: { ...prev.diagnosisList, OS: { ...prev.diagnosisList?.OS, [c.key]: 'No' } } }))} className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest transition-all border rounded-none", investigation.diagnosisList?.OS?.[c.key] === 'No' || !investigation.diagnosisList?.OS?.[c.key] ? "bg-emerald-500 text-white border-emerald-500 shadow-sm" : "bg-slate-50 text-slate-400 border-slate-200 hover:border-emerald-400 hover:text-emerald-500")}>No</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </fieldset>
@@ -2709,7 +3142,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             {/* 5. Glass Prescription */}
             <TabsContent value="glass" className=" p-8 outline-none">
               <fieldset disabled={isLocked} className="contents">
-                <div className="max-w-5xl mx-auto space-y-10 mb-12">
+                <div className="max-w-7xl mx-auto space-y-10 mb-12">
                   {isLocked && (
                     <div className="bg-orange-100 border-l-4 border-orange-500 p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
                       <AlertCircle className="w-6 h-6 text-orange-600" />
@@ -2730,33 +3163,33 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           <label className="text-[11px] font-black uppercase tracking-[0.15em] text-orange-600">Refraction Acceptance Data (Read-Only)</label>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-orange-200/50">
-                          <div className="p-5 flex flex-col gap-1.5">
-                            <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">OD - DISTANCE</span>
-                            <span className="text-lg font-black text-orange-600 font-mono tracking-tighter">
+                          <div className="p-5 flex flex-col gap-1.5 bg-blue-50/30">
+                            <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeMutedLabelClass("OD"))}>OD - DISTANCE</span>
+                            <span className={cn("text-lg font-black font-mono tracking-tighter", eyeValueClass("OD"))}>
                               {refractionData?.acceptance?.distance?.OD ?
                                 `${refractionData.acceptance.distance.OD.sphere || '0.00'} / ${refractionData.acceptance.distance.OD.cylinder || '0.00'} @ ${refractionData.acceptance.distance.OD.axis || '0'}°`
                                 : "No Data"}
                             </span>
                           </div>
-                          <div className="p-5 flex flex-col gap-1.5">
-                            <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">OS - DISTANCE</span>
-                            <span className="text-lg font-black text-orange-600 font-mono tracking-tighter">
+                          <div className="p-5 flex flex-col gap-1.5 bg-emerald-50/30">
+                            <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeMutedLabelClass("OS"))}>OS - DISTANCE</span>
+                            <span className={cn("text-lg font-black font-mono tracking-tighter", eyeValueClass("OS"))}>
                               {refractionData?.acceptance?.distance?.OS ?
                                 `${refractionData.acceptance.distance.OS.sphere || '0.00'} / ${refractionData.acceptance.distance.OS.cylinder || '0.00'} @ ${refractionData.acceptance.distance.OS.axis || '0'}°`
                                 : "No Data"}
                             </span>
                           </div>
-                          <div className="p-5 flex flex-col gap-1.5">
-                            <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">OD - NEAR</span>
-                            <span className="text-lg font-black text-orange-600 font-mono tracking-tighter">
+                          <div className="p-5 flex flex-col gap-1.5 bg-blue-50/30">
+                            <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeMutedLabelClass("OD"))}>OD - NEAR</span>
+                            <span className={cn("text-lg font-black font-mono tracking-tighter", eyeValueClass("OD"))}>
                               {refractionData?.acceptance?.near?.OD ?
                                 `${refractionData.acceptance.near.OD.sphere || '+0.00'} / ${refractionData.acceptance.near.OD.cylinder || '0.00'} @ ${refractionData.acceptance.near.OD.axis || '0'}°`
                                 : "No Data"}
                             </span>
                           </div>
-                          <div className="p-5 flex flex-col gap-1.5">
-                            <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">OS - NEAR</span>
-                            <span className="text-lg font-black text-orange-600 font-mono tracking-tighter">
+                          <div className="p-5 flex flex-col gap-1.5 bg-emerald-50/30">
+                            <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeMutedLabelClass("OS"))}>OS - NEAR</span>
+                            <span className={cn("text-lg font-black font-mono tracking-tighter", eyeValueClass("OS"))}>
                               {refractionData?.acceptance?.near?.OS ?
                                 `${refractionData.acceptance.near.OS.sphere || '+0.00'} / ${refractionData.acceptance.near.OS.cylinder || '0.00'} @ ${refractionData.acceptance.near.OS.axis || '0'}°`
                                 : "No Data"}
@@ -2769,12 +3202,22 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                   {/* Editable Spectacles Power Table (Desktop) */}
                   <Card className="clinical-card group overflow-hidden mt-6">
-                    <div className="p-5 sm:p-6 bg-white border-b border-slate-100 flex items-center gap-4">
-                      <div className="p-3 bg-orange-600 text-white shadow-lg"><Glasses className="w-6 h-6 shrink-0" /></div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Clinical Optics</span>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">Final Spectacles RX</h3>
+                    <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Glasses className="w-5 h-5 shrink-0" /></div>
+                        <div className="flex flex-col">
+                          <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">Clinical Optics</span>
+                          <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">Final Spectacles RX</h3>
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        onClick={() => triggerPrint('glass')}
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        Print RX
+                      </Button>
                     </div>
                     <div className="p-6">
                       <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
@@ -2784,7 +3227,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             {[
                               { label: "Single Vision (SVN)", value: "SVN" },
                               { label: "Bifocals (KBF)", value: "KBF" },
-                              { label: "Progressive (PAL)", value: "PAL" }
+                              { label: "Progressive (PAL)", value: "PAL" },
+                              { label: "Double D Bifocal (DBF)", value: "DBF" },
+                              { label: "Reading Glass", value: "READING" }
                             ].map((opt) => {
                               const isSelected = (glassPrescription.glassType || "SVN") === opt.value;
                               return (
@@ -2805,84 +3250,103 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             })}
                           </div>
                         </div>
+
+
+                        <div className="space-y-2 mt-4">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Usage Instruction</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {[
+                              { label: "Constant Wear", value: "Constant Wear" },
+                              { label: "Near Wear Only", value: "Near Wear Only" },
+                              { label: "Distance Wear Only", value: "Distance Wear Only" },
+                              { label: "Reading Only", value: "Reading Only" },
+                              { label: "Constant Wear for DV, Reading Only for NV", value: "Constant Wear for DV, Reading Only for NV" }
+                            ].map((opt) => {
+                              const isSelected = (glassPrescription.instruction || "Constant Wear") === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => setGlassPrescription(p => ({ ...p, instruction: opt.value }))}
+                                  className={cn(
+                                    "px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all border border-slate-250 rounded-none",
+                                    isSelected
+                                      ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                                      : "bg-white text-slate-500 hover:border-orange-200 hover:text-orange-600"
+                                  )}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                       <div className="hidden md:block space-y-6">
                         <div className="overflow-hidden border border-slate-200">
                           <Table className="font-mono">
-                            <TableHeader className="bg-orange-600">
-                              <TableRow className="hover:bg-orange-600">
-                                <TableHead className="w-[120px] text-white font-black uppercase text-[12px] tracking-widest h-14">EYE</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (SPH)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (CYL)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (AXIS)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80">NV (SPH)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80 border-l border-orange-500/30">NV (CYL)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80">NV (AXIS)</TableHead>
+                            <TableHeader>
+                              <TableRow className="hover:bg-transparent border-b border-slate-200 bg-white">
+                                <TableHead rowSpan={2} className="w-[90px] align-middle border-r border-slate-200 bg-white text-center text-[11px] font-black uppercase tracking-widest text-slate-600">Vision</TableHead>
+                                <TableHead className="h-12 border-r border-slate-200 bg-white px-3" colSpan={4}>
+                                  <EyeIndicator eye="OD" compact tableHeader />
+                                </TableHead>
+                                <TableHead className="h-12 bg-white px-3" colSpan={4}>
+                                  <EyeIndicator eye="OS" compact tableHeader />
+                                </TableHead>
+                              </TableRow>
+                              <TableRow className="hover:bg-orange-600 border-b border-orange-500/40 bg-orange-600">
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-orange-600">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-orange-500/40 bg-orange-600">VA</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">VA</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {["OD", "OS"].map((eye, idx) => (
-                                <TableRow key={eye} className={cn("h-20", idx === 0 ? "bg-orange-50/50" : "bg-white")}>
-                                  <TableCell className="pl-6">
-                                    <EyeIndicator eye={eye as "OD" | "OS"} compact />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].sphere}
-                                      onChange={val => updateGlassPrescription('distance', eye as any, 'sphere', val)}
-                                      label={`${eye} DV (SPH)`}
-                                      type="sph"
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].cylinder}
-                                      onChange={val => updateGlassPrescription('distance', eye as any, 'cylinder', val)}
-                                      label={`${eye} DV (CYL)`}
-                                      type="cyl"
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(glassPrescription.distance as any)[eye].axis}
-                                      onChange={val => updateGlassPrescription('distance', eye as any, 'axis', val)}
-                                      label={`${eye} DV (AXIS)`}
-                                      type="axis"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].sphere}
-                                      onChange={val => updateGlassPrescription('near', eye as any, 'sphere', val)}
-                                      placeholder="+"
-                                      label={`${eye} NV (SPH)`}
-                                      type="sph"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20 border-l border-slate-200">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].cylinder}
-                                      onChange={val => updateGlassPrescription('near', eye as any, 'cylinder', val)}
-                                      label={`${eye} NV (CYL)`}
-                                      type="cyl"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(glassPrescription.near as any)[eye].axis}
-                                      onChange={val => updateGlassPrescription('near', eye as any, 'axis', val)}
-                                      label={`${eye} NV (AXIS)`}
-                                      type="axis"
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              <TableRow className="h-16 bg-white">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">DV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.sphere} onChange={val => updateGlassPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.cylinder} onChange={val => updateGlassPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.axis} onChange={val => updateGlassPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.distance.OD.vn || ""} onChange={val => updateGlassPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.sphere} onChange={val => updateGlassPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.cylinder} onChange={val => updateGlassPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.axis} onChange={val => updateGlassPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={glassPrescription.distance.OS.vn || ""} onChange={val => updateGlassPrescription('distance', 'OS', 'vn', val)} placeholder="6/6" label="OS DV VA" type="dv" /></TableCell>
+                              </TableRow>
+                              <TableRow className="h-16 bg-orange-50/30">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-orange-600">NV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.sphere} onChange={val => updateGlassPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.cylinder} onChange={val => updateGlassPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.axis} onChange={val => updateGlassPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.near.OD.vn || ""} onChange={val => updateGlassPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.sphere} onChange={val => updateGlassPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.cylinder} onChange={val => updateGlassPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.axis} onChange={val => updateGlassPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={glassPrescription.near.OS.vn || ""} onChange={val => updateGlassPrescription('near', 'OS', 'vn', val)} placeholder="N6" label="OS NV VA" type="nv" /></TableCell>
+                              </TableRow>
+                              <TableRow className="h-14 bg-slate-50/60">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Dist PD</span></TableCell>
+                                <TableCell colSpan={2}><PowerPaletteInput className="h-10 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-blue-600 focus:ring-0 transition-all" value={glassPrescription.distPD?.OD || ""} onChange={val => setGlassPrescription(p => ({ ...p, distPD: { OD: val, OS: p.distPD?.OS || "" } }))} placeholder="32" label="OD Dist PD" type="pd" /></TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-blue-500 uppercase tracking-widest">mm</TableCell>
+                                <TableCell className="border-r border-slate-200"></TableCell>
+                                <TableCell colSpan={2}><PowerPaletteInput className="h-10 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-emerald-600 focus:ring-0 transition-all" value={glassPrescription.distPD?.OS || ""} onChange={val => setGlassPrescription(p => ({ ...p, distPD: { OD: p.distPD?.OD || "", OS: val } }))} placeholder="32" label="OS Dist PD" type="pd" /></TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-emerald-500 uppercase tracking-widest">mm</TableCell>
+                                <TableCell></TableCell>
+                              </TableRow>
+                              <TableRow className="h-14 bg-slate-50/60">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Near PD</span></TableCell>
+                                <TableCell colSpan={2}><PowerPaletteInput className="h-10 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-blue-600 focus:ring-0 transition-all" value={glassPrescription.nearPD?.OD || ""} onChange={val => setGlassPrescription(p => ({ ...p, nearPD: { OD: val, OS: p.nearPD?.OS || "" } }))} placeholder="30" label="OD Near PD" type="pd" /></TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-blue-500 uppercase tracking-widest">mm</TableCell>
+                                <TableCell className="border-r border-slate-200"></TableCell>
+                                <TableCell colSpan={2}><PowerPaletteInput className="h-10 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-emerald-600 focus:ring-0 transition-all" value={glassPrescription.nearPD?.OS || ""} onChange={val => setGlassPrescription(p => ({ ...p, nearPD: { OD: p.nearPD?.OD || "", OS: val } }))} placeholder="30" label="OS Near PD" type="pd" /></TableCell>
+                                <TableCell className="text-center text-[10px] font-black text-emerald-500 uppercase tracking-widest">mm</TableCell>
+                                <TableCell></TableCell>
+                              </TableRow>
                             </TableBody>
                           </Table>
                         </div>
@@ -2894,7 +3358,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           <div key={eye} className="space-y-4">
                             <EyeIndicator eye={eye as "OD" | "OS"} />
 
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (SPH)</label>
                                 <PowerPaletteInput
@@ -2925,15 +3389,31 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   type="axis"
                                 />
                               </div>
+                              <div className="space-y-1.5">
+                                <label className={cn("text-[10px] font-black uppercase", eye === "OD" ? "text-blue-600" : "text-emerald-600")}>DV (VA)</label>
+                                <PowerPaletteInput
+                                  className={cn(
+                                    "h-11 text-center text-sm font-black rounded-none",
+                                    eye === "OD"
+                                      ? "bg-blue-50/30 border-blue-100 text-blue-700"
+                                      : "bg-emerald-50/30 border-emerald-100 text-emerald-700"
+                                  )}
+                                  value={(glassPrescription.distance as any)[eye].vn || ""}
+                                  onChange={val => updateGlassPrescription('distance', eye as any, 'vn', val)}
+                                  placeholder="6/6"
+                                  label={`${eye} DV (VA)`}
+                                  type="dv"
+                                />
+                              </div>
                             </div>
-                            <div className="pt-2 grid grid-cols-3 gap-3">
+                            <div className="pt-2 grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(glassPrescription.near as any)[eye].sphere}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'sphere', val)}
-                                  placeholder="+"
+                                  placeholder="0.00"
                                   label={`${eye} NV (SPH)`}
                                   type="sph"
                                 />
@@ -2958,6 +3438,46 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   type="axis"
                                 />
                               </div>
+                              <div className="space-y-1.5">
+                                <label className={cn("text-[10px] font-black uppercase", eye === "OD" ? "text-blue-600" : "text-emerald-600")}>NV (VA)</label>
+                                <PowerPaletteInput
+                                  className={cn(
+                                    "h-11 text-center font-black rounded-none",
+                                    eye === "OD"
+                                      ? "bg-blue-50/30 border-blue-100 text-blue-700"
+                                      : "bg-emerald-50/30 border-emerald-100 text-emerald-700"
+                                  )}
+                                  value={(glassPrescription.near as any)[eye].vn || ""}
+                                  onChange={val => updateGlassPrescription('near', eye as any, 'vn', val)}
+                                  placeholder="N6"
+                                  label={`${eye} NV (VA)`}
+                                  type="nv"
+                                />
+                              </div>
+                            </div>
+                            <div className="pt-2 grid grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase text-slate-400">Dist PD (mm)</label>
+                                <PowerPaletteInput
+                                  className="h-11 text-center font-black bg-white rounded-none border-slate-200"
+                                  value={glassPrescription.distPD?.[eye as "OD" | "OS"] || ""}
+                                  onChange={val => setGlassPrescription(p => ({ ...p, distPD: { OD: p.distPD?.OD || "", OS: p.distPD?.OS || "", [eye]: val } }))}
+                                  placeholder="32"
+                                  label={`${eye} Dist PD`}
+                                  type="iop"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase text-slate-400">Near PD (mm)</label>
+                                <PowerPaletteInput
+                                  className="h-11 text-center font-black bg-white rounded-none border-slate-200"
+                                  value={glassPrescription.nearPD?.[eye as "OD" | "OS"] || ""}
+                                  onChange={val => setGlassPrescription(p => ({ ...p, nearPD: { OD: p.nearPD?.OD || "", OS: p.nearPD?.OS || "", [eye]: val } }))}
+                                  placeholder="30"
+                                  label={`${eye} Near PD`}
+                                  type="iop"
+                                />
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2973,12 +3493,22 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                   {/* Editable Contact Lens Power Table (Desktop) */}
                   <Card className="clinical-card group overflow-hidden mt-6">
-                    <div className="p-5 sm:p-6 bg-white border-b border-slate-100 flex items-center gap-4">
-                      <div className="p-3 bg-orange-600 text-white shadow-lg"><Eye className="w-6 h-6 shrink-0" /></div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Clinical Optics</span>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">Final Contact Lens RX</h3>
+                    <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Eye className="w-5 h-5 shrink-0" /></div>
+                        <div className="flex flex-col">
+                          <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">Clinical Optics</span>
+                          <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">Final Contact Lens RX</h3>
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        onClick={() => triggerPrint('glass')}
+                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        Print RX
+                      </Button>
                     </div>
                     <div className="p-6">
                       <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
@@ -3003,80 +3533,50 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       <div className="hidden md:block space-y-6">
                         <div className="overflow-hidden border border-slate-200">
                           <Table className="font-mono">
-                            <TableHeader className="bg-orange-600">
-                              <TableRow className="hover:bg-orange-600">
-                                <TableHead className="w-[120px] text-white font-black uppercase text-[12px] tracking-widest h-14">EYE</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (SPH)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (CYL)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest">DV (AXIS)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80">NV (SPH)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80 border-l border-orange-500/30">NV (CYL)</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[12px] tracking-widest bg-orange-600/80">NV (AXIS)</TableHead>
+                            <TableHeader>
+                              <TableRow className="hover:bg-transparent border-b border-slate-200 bg-white">
+                                <TableHead rowSpan={2} className="w-[90px] align-middle border-r border-slate-200 bg-white text-center text-[11px] font-black uppercase tracking-widest text-slate-600">Vision</TableHead>
+                                <TableHead className="h-12 border-r border-slate-200 bg-white px-3" colSpan={4}>
+                                  <EyeIndicator eye="OD" compact tableHeader />
+                                </TableHead>
+                                <TableHead className="h-12 bg-white px-3" colSpan={4}>
+                                  <EyeIndicator eye="OS" compact tableHeader />
+                                </TableHead>
+                              </TableRow>
+                              <TableRow className="hover:bg-orange-600 border-b border-orange-500/40 bg-orange-600">
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-orange-600">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-orange-500/40 bg-orange-600">VA</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">VA</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {["OD", "OS"].map((eye, idx) => (
-                                <TableRow key={eye} className={cn("h-20", idx === 0 ? "bg-orange-50/50" : "bg-white")}>
-                                  <TableCell className="pl-6">
-                                    <EyeIndicator eye={eye as "OD" | "OS"} compact />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].sphere}
-                                      onChange={val => updateContactLensPrescription('distance', eye as any, 'sphere', val)}
-                                      label={`${eye} DV (SPH)`}
-                                      type="sph"
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].cylinder}
-                                      onChange={val => updateContactLensPrescription('distance', eye as any, 'cylinder', val)}
-                                      label={`${eye} DV (CYL)`}
-                                      type="cyl"
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all"
-                                      value={(contactLensPrescription.distance as any)[eye].axis}
-                                      onChange={val => updateContactLensPrescription('distance', eye as any, 'axis', val)}
-                                      label={`${eye} DV (AXIS)`}
-                                      type="axis"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].sphere}
-                                      onChange={val => updateContactLensPrescription('near', eye as any, 'sphere', val)}
-                                      placeholder="+"
-                                      label={`${eye} NV (SPH)`}
-                                      type="sph"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20 border-l border-slate-200">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].cylinder}
-                                      onChange={val => updateContactLensPrescription('near', eye as any, 'cylinder', val)}
-                                      label={`${eye} NV (CYL)`}
-                                      type="cyl"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="bg-orange-50/20">
-                                    <PowerPaletteInput
-                                      className="h-12 text-center text-lg font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all"
-                                      value={(contactLensPrescription.near as any)[eye].axis}
-                                      onChange={val => updateContactLensPrescription('near', eye as any, 'axis', val)}
-                                      label={`${eye} NV (AXIS)`}
-                                      type="axis"
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              <TableRow className="h-16 bg-white">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">DV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.sphere} onChange={val => updateContactLensPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.cylinder} onChange={val => updateContactLensPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.axis} onChange={val => updateContactLensPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.distance.OD.vn || ""} onChange={val => updateContactLensPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.sphere} onChange={val => updateContactLensPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.cylinder} onChange={val => updateContactLensPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.axis} onChange={val => updateContactLensPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={contactLensPrescription.distance.OS.vn || ""} onChange={val => updateContactLensPrescription('distance', 'OS', 'vn', val)} placeholder="6/6" label="OS DV VA" type="dv" /></TableCell>
+                              </TableRow>
+                              <TableRow className="h-16 bg-orange-50/30">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-orange-600">NV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.sphere} onChange={val => updateContactLensPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.cylinder} onChange={val => updateContactLensPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.axis} onChange={val => updateContactLensPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.near.OD.vn || ""} onChange={val => updateContactLensPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.sphere} onChange={val => updateContactLensPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.cylinder} onChange={val => updateContactLensPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.axis} onChange={val => updateContactLensPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={contactLensPrescription.near.OS.vn || ""} onChange={val => updateContactLensPrescription('near', 'OS', 'vn', val)} placeholder="N6" label="OS NV VA" type="nv" /></TableCell>
+                              </TableRow>
                             </TableBody>
                           </Table>
                         </div>
@@ -3088,7 +3588,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           <div key={eye} className="space-y-4">
                             <EyeIndicator eye={eye as "OD" | "OS"} />
 
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-slate-400">DV (SPH)</label>
                                 <PowerPaletteInput
@@ -3119,15 +3619,31 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   type="axis"
                                 />
                               </div>
+                              <div className="space-y-1.5">
+                                <label className={cn("text-[10px] font-black uppercase", eye === "OD" ? "text-blue-600" : "text-emerald-600")}>DV (VA)</label>
+                                <PowerPaletteInput
+                                  className={cn(
+                                    "h-11 text-center text-sm font-black rounded-none",
+                                    eye === "OD"
+                                      ? "bg-blue-50/30 border-blue-100 text-blue-700"
+                                      : "bg-emerald-50/30 border-emerald-100 text-emerald-700"
+                                  )}
+                                  value={(contactLensPrescription.distance as any)[eye].vn || ""}
+                                  onChange={val => updateContactLensPrescription('distance', eye as any, 'vn', val)}
+                                  placeholder="6/6"
+                                  label={`${eye} DV (VA)`}
+                                  type="dv"
+                                />
+                              </div>
                             </div>
-                            <div className="pt-2 grid grid-cols-3 gap-3">
+                            <div className="pt-2 grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
                                 <PowerPaletteInput
                                   className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
                                   value={(contactLensPrescription.near as any)[eye].sphere}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'sphere', val)}
-                                  placeholder="+"
+                                  placeholder="0.00"
                                   label={`${eye} NV (SPH)`}
                                   type="sph"
                                 />
@@ -3150,6 +3666,22 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'axis', val)}
                                   label={`${eye} NV (AXIS)`}
                                   type="axis"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className={cn("text-[10px] font-black uppercase", eye === "OD" ? "text-blue-600" : "text-emerald-600")}>NV (VA)</label>
+                                <PowerPaletteInput
+                                  className={cn(
+                                    "h-11 text-center font-black rounded-none",
+                                    eye === "OD"
+                                      ? "bg-blue-50/30 border-blue-100 text-blue-700"
+                                      : "bg-emerald-50/30 border-emerald-100 text-emerald-700"
+                                  )}
+                                  value={(contactLensPrescription.near as any)[eye].vn || ""}
+                                  onChange={val => updateContactLensPrescription('near', eye as any, 'vn', val)}
+                                  placeholder="N6"
+                                  label={`${eye} NV (VA)`}
+                                  type="nv"
                                 />
                               </div>
                             </div>
@@ -3195,7 +3727,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Route</TableHead>
                               <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Frequency</TableHead>
                               <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Duration</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Eye</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Eye / Food Timing</TableHead>
                               <TableHead className="w-20"></TableHead>
                             </TableRow>
                           </TableHeader>
@@ -3213,25 +3745,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <TableRow key={med.id} className="group hover:bg-orange-50/50 transition-colors">
                                 <TableCell className="text-center font-black text-slate-300 py-4 align-top">{index + 1}</TableCell>
                                 <TableCell className="py-4 align-top">
-                                  <Input className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:bg-yellow-50/30 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={med.drug} onChange={e => updateMedication(med.id, "drug", e.target.value)} placeholder="e.g. Moxifloxacin Eye Drops" />
-                                  <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden group-hover:max-h-20 group-hover:opacity-100 group-hover:mt-1.5 focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1.5 transition-all duration-200 ease-out max-w-[280px]">
-                                    {[
-                                      { label: "Moxifloxacin", value: "Moxifloxacin Eye Drops" },
-                                      { label: "CMC 0.5%", value: "Carboxymethylcellulose 0.5%" },
-                                      { label: "Prednisolone", value: "Prednisolone Acetate 1%" },
-                                      { label: "Homatropine", value: "Homatropine Eye Drops" },
-                                      { label: "Diamox", value: "Tab. Acetazolamide 250mg" },
-                                    ].map(p => (
-                                      <button
-                                        key={p.label}
-                                        type="button"
-                                        onClick={() => updateMedication(med.id, "drug", p.value)}
-                                        className="text-[9px] font-bold text-orange-600 hover:text-white bg-orange-50/60 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
-                                      >
-                                        {p.label}
-                                      </button>
-                                    ))}
-                                  </div>
+                                  <Input
+                                    readOnly
+                                    className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:bg-yellow-50/30 cursor-pointer transition-all"
+                                    value={med.drug}
+                                    placeholder="Hover row to select from catalog"
+                                  />
+                                  {renderDrugInventoryChips(med.id, med.drug, "max-w-[280px]")}
                                 </TableCell>
                                 <TableCell className="py-4 align-top">
                                   <Input className="h-12 text-sm font-bold border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.dosage} onChange={e => updateMedication(med.id, "dosage", e.target.value)} placeholder="1 Drop" />
@@ -3241,7 +3761,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "dosage", p)}
-                                        className="text-[9px] font-bold text-orange-600 hover:text-white bg-orange-50/60 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
+                                        className="text-[9px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1.5 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p}
                                       </button>
@@ -3290,7 +3810,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p.label}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "frequency", p.value)}
-                                        className="text-[9px] font-bold text-orange-600 hover:text-white bg-orange-50/60 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
+                                        className="text-[9px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1.5 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p.label}
                                       </button>
@@ -3305,7 +3825,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "duration", p)}
-                                        className="text-[9px] font-bold text-orange-600 hover:text-white bg-orange-50/60 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
+                                        className="text-[9px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1.5 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p}
                                       </button>
@@ -3313,28 +3833,51 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 </TableCell>
                                 <TableCell className="py-4 align-top">
-                                  <div className="flex items-center gap-1.5 min-w-[140px]">
-                                    {[
-                                      { label: "RE", value: "Right", title: "Right Eye (OD)" },
-                                      { label: "LE", value: "Left", title: "Left Eye (OS)" },
-                                      { label: "BE", value: "Both", title: "Both Eyes (OU)" },
-                                    ].map(p => (
-                                      <button
-                                        key={p.value}
-                                        type="button"
-                                        title={p.title}
-                                        onClick={() => updateMedication(med.id, "eye", p.value)}
-                                        className={cn(
-                                          "px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
-                                          med.eye === p.value
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
-                                        )}
-                                      >
-                                        {p.label}
-                                      </button>
-                                    ))}
-                                  </div>
+                                  {med.route === "Oral" ? (
+                                    <div className="flex items-center gap-1.5 min-w-[160px]">
+                                      {[
+                                        { label: "Before Food", value: "Before Food" },
+                                        { label: "After Food", value: "After Food" },
+                                      ].map(p => (
+                                        <button
+                                          key={p.value}
+                                          type="button"
+                                          onClick={() => updateMedication(med.id, "foodRelation", p.value)}
+                                          className={cn(
+                                            "px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
+                                            med.foodRelation === p.value
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          )}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5 min-w-[140px]">
+                                      {[
+                                        { label: "RE", value: "Right", title: "Right Eye (OD)" },
+                                        { label: "LE", value: "Left", title: "Left Eye (OS)" },
+                                        { label: "BE", value: "Both", title: "Both Eyes (OU)" },
+                                      ].map(p => (
+                                        <button
+                                          key={p.value}
+                                          type="button"
+                                          title={p.title}
+                                          onClick={() => updateMedication(med.id, "eye", p.value)}
+                                          className={cn(
+                                            "px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
+                                            med.eye === p.value
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          )}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   <Button variant="ghost" size="icon" className="h-12 w-12 text-slate-300 hover:text-red-600 hover:bg-orange-50 transition-all" onClick={() => removeMedication(med.id)}>
@@ -3363,26 +3906,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               </Button>
                             </div>
                             <div className="space-y-3">
-                              <div className="group/mobilefield">
-                                <Input className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-slate-50/30" value={med.drug} onChange={e => updateMedication(med.id, "drug", e.target.value)} placeholder="Drug Name" />
-                                <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1.5 transition-all duration-200 ease-out">
-                                  {[
-                                    { label: "Moxifloxacin", value: "Moxifloxacin Eye Drops" },
-                                    { label: "CMC 0.5%", value: "Carboxymethylcellulose 0.5%" },
-                                    { label: "Prednisolone", value: "Prednisolone Acetate 1%" },
-                                    { label: "Homatropine", value: "Homatropine Eye Drops" },
-                                    { label: "Diamox", value: "Tab. Acetazolamide 250mg" },
-                                  ].map(p => (
-                                    <button
-                                      key={p.label}
-                                      type="button"
-                                      onClick={() => updateMedication(med.id, "drug", p.value)}
-                                      className="text-[8px] font-bold text-orange-600 hover:text-white bg-orange-50 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
-                                    >
-                                      {p.label}
-                                    </button>
-                                  ))}
-                                </div>
+                              <div className="group">
+                                <Input
+                                  readOnly
+                                  className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-slate-50/30 cursor-pointer"
+                                  value={med.drug}
+                                  placeholder="Tap field to select from catalog"
+                                />
+                                {renderDrugInventoryChips(med.id, med.drug)}
                               </div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
@@ -3394,7 +3925,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "dosage", p)}
-                                        className="text-[8px] font-bold text-orange-600 hover:text-white bg-orange-50 hover:bg-orange-600 border border-orange-200/50 px-1 py-0.5 transition-all cursor-pointer"
+                                        className="text-[8px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p}
                                       </button>
@@ -3410,7 +3941,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "duration", p)}
-                                        className="text-[8px] font-bold text-orange-600 hover:text-white bg-orange-50 hover:bg-orange-600 border border-orange-200/50 px-1 py-0.5 transition-all cursor-pointer"
+                                        className="text-[8px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p}
                                       </button>
@@ -3434,7 +3965,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                         key={p.label}
                                         type="button"
                                         onClick={() => updateMedication(med.id, "frequency", p.value)}
-                                        className="text-[8px] font-bold text-orange-600 hover:text-white bg-orange-50 hover:bg-orange-600 border border-orange-200/50 px-1.5 py-0.5 transition-all cursor-pointer"
+                                        className="text-[8px] font-bold text-slate-800 hover:text-white bg-white hover:bg-slate-800 border border-slate-300 px-1.5 py-0.5 transition-all cursor-pointer"
                                       >
                                         {p.label}
                                       </button>
@@ -3442,27 +3973,50 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                  <label className="text-[10px] font-black uppercase text-slate-400">Eye</label>
+                                  <label className="text-[10px] font-black uppercase text-slate-400">
+                                    {med.route === "Oral" ? "Food Timing" : "Eye"}
+                                  </label>
                                   <div className="flex items-center gap-1.5">
-                                    {[
-                                      { label: "RE", value: "Right" },
-                                      { label: "LE", value: "Left" },
-                                      { label: "BE", value: "Both" },
-                                    ].map(p => (
-                                      <button
-                                        key={p.value}
-                                        type="button"
-                                        onClick={() => updateMedication(med.id, "eye", p.value)}
-                                        className={cn(
-                                          "px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
-                                          med.eye === p.value
-                                            ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                            : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
-                                        )}
-                                      >
-                                        {p.label}
-                                      </button>
-                                    ))}
+                                    {med.route === "Oral" ? (
+                                      [
+                                        { label: "Before", value: "Before Food" },
+                                        { label: "After", value: "After Food" },
+                                      ].map(p => (
+                                        <button
+                                          key={p.value}
+                                          type="button"
+                                          onClick={() => updateMedication(med.id, "foodRelation", p.value)}
+                                          className={cn(
+                                            "px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
+                                            med.foodRelation === p.value
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                          )}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))
+                                    ) : (
+                                      [
+                                        { label: "RE", value: "Right" },
+                                        { label: "LE", value: "Left" },
+                                        { label: "BE", value: "Both" },
+                                      ].map(p => (
+                                        <button
+                                          key={p.value}
+                                          type="button"
+                                          onClick={() => updateMedication(med.id, "eye", p.value)}
+                                          className={cn(
+                                            "px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
+                                            med.eye === p.value
+                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                          )}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -3545,7 +4099,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <div className="p-4 sm:p-5 border-b border-slate-100 bg-white">
                     <SectionHeader icon={Calendar} category="Review & Scheduler" title="Follow-up Configuration" />
                   </div>
-                  
+
                   <div className="p-4 sm:p-6 space-y-6">
                     {/* Section 1: Current Status */}
                     <div className="bg-orange-50/40 border border-orange-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3582,66 +4136,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       )}
                     </div>
 
-                    {/* Section 2: Timeframe Picker */}
-                    <div className="space-y-3">
-                      <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">Assign Follow-up Interval</Label>
-                      
-                      {/* Standard Presets */}
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Quick Presets</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                          {[
-                            { name: "3 Days", value: "3 Days" },
-                            { name: "5 Days", value: "5 Days" },
-                            { name: "1 Week", value: "1 Week" },
-                            { name: "2 Weeks", value: "2 Weeks" },
-                            { name: "3 Weeks", value: "3 Weeks" },
-                            { name: "1 Month", value: "1 Month" },
-                            { name: "3 Months", value: "3 Months" },
-                            { name: "6 Months", value: "6 Months" }
-                          ].map(option => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => selectFollowUpTimeFrame(option.value)}
-                              className={cn(
-                                "px-3 py-2 text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 rounded-none text-center",
-                                investigation.followUpTimeFrame === option.value
-                                  ? "bg-orange-600 border-orange-600 text-white shadow-sm"
-                                  : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
-                              )}
-                            >
-                              {option.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Custom Value Builder */}
-                      <div className="pt-2 max-w-xs">
-                        <div className="space-y-2 bg-slate-50/50 p-4 border border-slate-200/60">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Specific Date Picker</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="date"
-                              value={investigation.followUpDate || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setInvestigation(prev => ({
-                                  ...prev,
-                                  followUpDate: val,
-                                  followUpTimeFrame: val ? "Custom Date" : ""
-                                }));
-                              }}
-                              className="h-9 px-3 border border-slate-200 text-xs font-bold text-slate-700 bg-white focus:outline-none focus:border-orange-600 w-full"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 3: Review Details & Templates */}
-                    <div className="pt-4 border-t border-slate-100 space-y-4">
+                    {/* Section 2: Review Details & Templates */}
+                    <div className="space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">Review Details & Instructions</Label>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select templates to pre-fill</span>
@@ -3683,6 +4179,60 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         onChange={e => updateInvestigation(['opinion'], e.target.value)}
                       />
                     </div>
+
+                    {/* Section 3: Timeframe Picker */}
+                    <div className="pt-4 border-t border-slate-100 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">Assign Follow-up Interval</Label>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest shrink-0">Specific Date Picker</span>
+                          <input
+                            type="date"
+                            value={investigation.followUpDate || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setInvestigation(prev => ({
+                                ...prev,
+                                followUpDate: val,
+                                followUpTimeFrame: val ? "Custom Date" : ""
+                              }));
+                            }}
+                            className="h-9 px-3 border border-slate-200 text-xs font-bold text-slate-700 bg-white focus:outline-none focus:border-orange-600"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Standard Presets */}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Quick Presets</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                          {[
+                            { name: "3 Days", value: "3 Days" },
+                            { name: "5 Days", value: "5 Days" },
+                            { name: "1 Week", value: "1 Week" },
+                            { name: "2 Weeks", value: "2 Weeks" },
+                            { name: "3 Weeks", value: "3 Weeks" },
+                            { name: "1 Month", value: "1 Month" },
+                            { name: "3 Months", value: "3 Months" },
+                            { name: "6 Months", value: "6 Months" }
+                          ].map(option => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => selectFollowUpTimeFrame(option.value)}
+                              className={cn(
+                                "px-3 py-2 text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 rounded-none text-center",
+                                investigation.followUpTimeFrame === option.value
+                                  ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                                  : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                              )}
+                            >
+                              {option.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </Card>
               </div>
@@ -3693,10 +4243,10 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <div className="max-w-5xl mx-auto space-y-12 mb-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-lg sm:text-2xl font-black text-orange-600 uppercase tracking-tighter flex items-center gap-3">
-                      <History className="w-6 h-6 sm:w-8 sm:h-8 opacity-40 shrink-0" /> Patient Longitudinal Profile
+                    <h3 className="text-sm sm:text-base font-black text-orange-600 uppercase tracking-normal flex items-center gap-2">
+                      <History className="w-5 h-5 opacity-50 shrink-0" /> Patient Longitudinal Profile
                     </h3>
-                    <p className="text-xs sm:text-sm font-bold text-slate-400 pl-9 sm:pl-11">Total Clinical Footprint: {visitHistory.length} Comprehensive Visits</p>
+                    <p className="text-xs font-bold text-slate-400 pl-7">Total Clinical Footprint: {visitHistory.length} Comprehensive Visits</p>
                   </div>
                 </div>
 
@@ -3774,1054 +4324,27 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         setIsHistoryDetailsOpen(open);
         if (!open) setSelectedHistoricalVisit(null);
       }}>
-        <DialogContent className="max-w-[95vw] w-[1200px] h-[85vh] p-0 overflow-hidden bg-slate-50 flex flex-col rounded-xl border border-slate-200 shadow-2xl">
+        <DialogContent className="print:hidden no-print max-w-[95vw] w-[1200px] h-[85vh] p-0 overflow-hidden bg-slate-50 flex flex-col rounded-xl border border-slate-200 shadow-2xl">
+          <DialogTitle className="sr-only">Doctor Report</DialogTitle>
+          {selectedHistoricalVisit && (
+            <ConsultationSummaryView 
+              selectedHistoricalVisit={selectedHistoricalVisit} 
+              patient={patient} 
+              triggerPrint={triggerPrint} 
+            />
+          )}
           {selectedHistoricalVisit && (() => {
-            const structureLabels: Record<string, string> = {
-              lids: "Lids",
-              conjunctiva: "Conjunctiva",
-              sclera: "Sclera",
-              cornea: "Cornea",
-              ac: "Anterior Chamber",
-              iris: "Iris",
-              pupil: "Pupil",
-              lens: "Lens",
-              tonometry: "Tonometry",
-              gonioscopy: "Gonioscopy",
-              synaptophore: "Synaptophore",
-            };
-            const fundusLabels: Record<string, string> = {
-              vitreous: "Vitreous",
-              retina: "Retina & Macula",
-              disc: "Optic Disc"
-            };
-            const patientName = selectedHistoricalVisit.patient?.name || patient?.name || "UNNAMED PATIENT";
-            const patientMRN = selectedHistoricalVisit.patient?.mrNumber || selectedHistoricalVisit.mrNumber || patient?.mrNumber || "0000";
-            const patientGender = selectedHistoricalVisit.patient?.gender || patient?.gender || "—";
-            const patientAge = selectedHistoricalVisit.patient
-              ? getPatientAgeString(selectedHistoricalVisit.patient)
-              : patient
-                ? getPatientAgeString(patient)
-                : "—";
-
-
-
-            return (
-              <>
-                <DialogHeader className="bg-white border-b border-slate-200 p-5 sm:p-6 shrink-0 print:hidden">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                    {/* Branding Group */}
-                    <div className="flex flex-col gap-0.5 leading-none shrink-0">
-                      <span
-                        style={{ fontFamily: "'Outfit', sans-serif" }}
-                        className="font-extrabold text-xl tracking-tight leading-none"
-                      >
-                        <span style={{ color: "#0F172A" }}>Vision</span>
-                        <span style={{ color: "#2563EB" }}>Pulze</span>
-                      </span>
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
-                        Ophthalmic Ecosystem
-                      </span>
-                    </div>
-
-                    {/* Metadata Group */}
-                    <div className="flex flex-row items-center gap-6">
-                      <div className="text-right">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Consulting Lead</span>
-                        <span className="text-sm font-black text-slate-800 uppercase">
-                          {selectedHistoricalVisit.consultation?.doctorName || selectedHistoricalVisit.consultingDoctorName || "Dr. Clinical Lead"}
-                        </span>
-                      </div>
-                      <div className="h-8 w-px bg-slate-200" />
-                      <div className="text-right">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Visit Date</span>
-                        <span className="text-sm font-black text-orange-600 uppercase">
-                          {new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <div className="h-8 w-px bg-slate-200 no-print" />
-                      <Button
-                        onClick={() => window.print()}
-                        className="no-print bg-orange-600 hover:bg-orange-700 text-white rounded-none font-bold uppercase text-xs tracking-wider flex items-center gap-2 h-9"
-                      >
-                        <Printer className="w-4 h-4" />
-                        Print Report
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Patient Info Bar */}
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-x-8 gap-y-3">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-slate-400" />
-                      <div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Patient Name</span>
-                        <span className="text-xs font-black text-slate-800 uppercase">{patientName}</span>
-                      </div>
-                    </div>
-                    <div className="h-8 w-px bg-slate-200" />
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Age / Gender</span>
-                      <span className="text-xs font-bold text-slate-700 uppercase">{patientAge} / {patientGender}</span>
-                    </div>
-                    <div className="h-8 w-px bg-slate-200" />
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">MR Number</span>
-                      <Badge className="bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-mono px-2.5 py-0.5 rounded-none font-black">MR-{patientMRN}</Badge>
-                    </div>
-                    {(selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber) && (
-                      <>
-                        <div className="h-8 w-px bg-slate-200" />
-                        <div>
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Contact Number</span>
-                          <span className="text-xs font-bold text-slate-700">{selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </DialogHeader>
-
-                <ScrollArea className="flex-1 overflow-y-auto w-full bg-white p-0 print:hidden">
-                  <div className="w-full max-w-none bg-white p-6 sm:p-10 space-y-6 rounded-none">
-                    {/* 1. Optometry Evaluation */}
-                    <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                      <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                        <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Eye className="w-4 h-4" /></div>
-                        <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Optometry Evaluation</h4>
-                      </div>
-                      <div className="p-6">
-                        {selectedHistoricalVisit.refraction ? (
-                          <RefractionSummaryView data={selectedHistoricalVisit.refraction} patient={selectedHistoricalVisit} />
-                        ) : (
-                          <div className="text-center py-6 text-sm text-slate-400 italic font-medium">No refraction data documented.</div>
-                        )}
-                      </div>
-                    </Card>
-
-                    {/* 2. Doctor Consultation Details */}
-                    {selectedHistoricalVisit.consultation ? (
-                      <>
-
-                          {/* Clinical Investigation Findings */}
-                          <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                            <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Microscope className="w-4 h-4" /></div>
-                              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Ocular Examination Findings</h4>
-                            </div>
-                            <div className="p-6 space-y-6">
-                              {/* Slit Lamp Profile */}
-                              {(() => {
-                                try {
-                                  const raw = selectedHistoricalVisit.consultation?.anteriorSegment;
-                                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                                  if (!parsed) return null;
-
-                                  const slitLamp = parsed.slitLamp || parsed;
-                                  const eom = parsed.eom;
-
-                                  // Filter to only keys that have findings
-                                  const activeKeys = Object.keys(slitLamp).filter(key => key !== 'dilation' && (slitLamp[key]?.OD || slitLamp[key]?.OS));
-
-                                  return (
-                                    <div className="space-y-4">
-                                      <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block border-b border-slate-200 pb-1">Anterior Segment (Slit Lamp)</span>
-
-                                      {activeKeys.length > 0 ? (
-                                        <div className="border border-slate-300 overflow-hidden rounded-none">
-                                          <div className="grid grid-cols-3 pb-2 border-b border-slate-300 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-600 p-3">
-                                            <span>Structure</span>
-                                            <span>Right Eye (OD)</span>
-                                            <span>Left Eye (OS)</span>
-                                          </div>
-                                          <div className="divide-y divide-slate-300">
-                                            {activeKeys.map((key) => (
-                                              <div key={key} className="grid grid-cols-3 py-3 text-xs divide-x divide-slate-200 p-3 hover:bg-slate-50/50">
-                                                <span className="font-bold text-slate-500 uppercase tracking-tight pr-2">{structureLabels[key] || key}</span>
-                                                <span className="text-slate-800 font-semibold px-3 whitespace-pre-wrap">{slitLamp[key]?.OD || "—"}</span>
-                                                <span className="text-slate-800 font-semibold px-3 whitespace-pre-wrap">{slitLamp[key]?.OS || "—"}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <p className="text-xs font-bold text-slate-400 italic py-2">No anterior segment defects noted.</p>
-                                      )}
-
-                                      {/* Dilation response */}
-                                      {slitLamp.dilation && (
-                                        <div className="p-3 bg-white border border-slate-300 rounded-none flex flex-row items-center justify-between text-xs">
-                                          <span className="font-bold text-orange-600 uppercase tracking-wider">Pupillary Dilation</span>
-                                          <span className="font-black text-slate-700">
-                                            {typeof slitLamp.dilation === 'string' ? slitLamp.dilation : (
-                                              `OD: ${slitLamp.dilation?.OD || "—"}  |  OS: ${slitLamp.dilation?.OS || "—"}`
-                                            )}
-                                          </span>
-                                        </div>
-                                      )}
-
-                                      {/* EOM */}
-                                      {eom && (eom.OD || eom.OS) && (
-                                        <div className="p-3 bg-white border border-slate-300 rounded-none flex flex-row items-center justify-between text-xs">
-                                          <span className="font-bold text-slate-500 uppercase tracking-wider">Extra Ocular Movements</span>
-                                          <span className="font-black text-slate-700">
-                                            OD: {eom.OD || "—"}  |  OS: {eom.OS || "—"}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                } catch (e) { return null; }
-                              })()}
-
-                              {/* Fundus Observation */}
-                              {(() => {
-                                try {
-                                  const raw = selectedHistoricalVisit.consultation?.fundusObservation;
-                                  const fundus = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                                  if (!fundus) return null;
-
-                                  const activeKeys = Object.keys(fundus).filter(key => fundus[key]?.OD || fundus[key]?.OS);
-
-                                  return (
-                                    <div className="space-y-4 pt-4 border-t border-slate-300">
-                                      <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block border-b border-slate-200 pb-1">Posterior Segment (Fundus)</span>
-
-                                      {activeKeys.length > 0 ? (
-                                        <div className="border border-slate-300 overflow-hidden rounded-none">
-                                          <div className="grid grid-cols-3 pb-2 border-b border-slate-300 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-600 p-3">
-                                            <span>Structure</span>
-                                            <span>Right Eye (OD)</span>
-                                            <span>Left Eye (OS)</span>
-                                          </div>
-                                          <div className="divide-y divide-slate-300">
-                                            {activeKeys.map((key) => (
-                                              <div key={key} className="grid grid-cols-3 py-3 text-xs divide-x divide-slate-200 p-3 hover:bg-slate-50/50">
-                                                <span className="font-bold text-slate-500 uppercase tracking-tight pr-2">{fundusLabels[key] || key}</span>
-                                                <span className="text-slate-800 font-semibold px-3 whitespace-pre-wrap">{fundus[key]?.OD || "—"}</span>
-                                                <span className="text-slate-800 font-semibold px-3 whitespace-pre-wrap">{fundus[key]?.OS || "—"}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <p className="text-xs font-bold text-slate-400 italic py-2">No fundus anomalies observed.</p>
-                                      )}
-                                    </div>
-                                  );
-                                } catch (e) { return null; }
-                              })()}
-                            </div>
-                          </Card>
-
-                          {/* Clinical Diagnosis Card */}
-                          <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                            <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Activity className="w-4 h-4" /></div>
-                              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Clinical Diagnosis</h4>
-                            </div>
-                            <div className="p-6">
-                              {(() => {
-                                const parts = selectedHistoricalVisit.consultation?.diagnosisText?.split(' | ') || [];
-                                const od = parts[0]?.replace('OD: ', '') || "—";
-                                const os = parts.length > 1 ? parts[1].replace('OS: ', '') : "—";
-                                return (
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="p-4 bg-white border border-slate-300 rounded-none">
-                                      <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest block mb-1">Right Eye (OD)</span>
-                                      <p className="text-sm font-black text-slate-800 uppercase leading-snug">{od}</p>
-                                    </div>
-                                    <div className="p-4 bg-white border border-slate-300 rounded-none">
-                                      <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest block mb-1">Left Eye (OS)</span>
-                                      <p className="text-sm font-black text-slate-800 uppercase leading-snug">{os}</p>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </Card>
-
-                          {/* Medical Prescriptions Card */}
-                          <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                            <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Pill className="w-4 h-4" /></div>
-                              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Medical Prescription</h4>
-                            </div>
-                            <div className="p-0 bg-white">
-                              {(() => {
-                                const rawMeds = selectedHistoricalVisit.consultation?.medicalPrescription || (selectedHistoricalVisit.consultation as any)?.medications;
-                                const meds = typeof rawMeds === 'string' ? JSON.parse(rawMeds) : rawMeds;
-                                if (meds && Array.isArray(meds) && meds.length > 0) {
-                                  return (
-                                    <div className="overflow-x-auto border-t border-slate-300">
-                                      <Table className="w-full border-collapse">
-                                        <TableHeader className="bg-slate-50 border-b border-slate-300">
-                                          <TableRow className="hover:bg-transparent">
-                                            <TableHead className="text-[10px] font-black uppercase tracking-wider text-slate-600 pl-4 py-3 border-r border-slate-200">Medicine</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase tracking-wider text-slate-600 py-3 border-r border-slate-200">Dose / Route</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase tracking-wider text-slate-600 py-3 border-r border-slate-200">Frequency</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase tracking-wider text-slate-600 py-3 border-r border-slate-200">Duration</TableHead>
-                                            <TableHead className="text-[10px] font-black uppercase tracking-wider text-slate-600 pr-4 py-3 text-right">Eye</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {meds.map((m: any, idx: number) => (
-                                            <TableRow key={idx} className="hover:bg-slate-50/30 border-b border-slate-200 last:border-0">
-                                              <TableCell className="pl-4 py-3 border-r border-slate-200">
-                                                <span className="text-xs font-black text-slate-800 uppercase block">{m.drug || m.name || "—"}</span>
-                                              </TableCell>
-                                              <TableCell className="py-3 border-r border-slate-200">
-                                                <span className="text-xs text-slate-600 font-bold block">{m.dosage || m.dose || "—"}</span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{m.route || "Topical"}</span>
-                                              </TableCell>
-                                              <TableCell className="py-3 text-xs font-medium text-slate-600 border-r border-slate-200">{m.frequency || "—"}</TableCell>
-                                              <TableCell className="py-3 text-xs font-medium text-slate-600 border-r border-slate-200">{m.duration || "—"}</TableCell>
-                                              <TableCell className="pr-4 py-3 text-right">
-                                                <Badge className="bg-orange-50 text-orange-600 border border-orange-100/50 text-[9px] rounded-none px-2 font-black uppercase">
-                                                  {m.eye || "Both"}
-                                                </Badge>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  );
-                                }
-                                return <p className="text-xs font-bold text-slate-400 italic text-center py-8 uppercase tracking-widest border-t border-slate-300">No medications prescribed</p>;
-                              })()}
-                            </div>
-                          </Card>
-
-                          {/* Glass Prescription Card */}
-                          <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                            <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Glasses className="w-4 h-4" /></div>
-                              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Glass RX</h4>
-                            </div>
-                            <div className="p-6 bg-white">
-                              {(() => {
-                                const rawGlass = selectedHistoricalVisit.consultation?.finalGlassPrescription;
-                                const glassRx = typeof rawGlass === 'string' ? JSON.parse(rawGlass) : rawGlass;
-                                if (glassRx) {
-                                  return (
-                                    <div className="space-y-6">
-                                      {['distance', 'near'].map((part) => {
-                                        const hasData = ['OD', 'OS'].some(eye => glassRx[part]?.[eye]?.sphere || glassRx[part]?.[eye]?.cylinder || glassRx[part]?.[eye]?.axis);
-                                        if (!hasData) return null;
-                                        return (
-                                          <div key={part} className="space-y-2">
-                                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">{part === 'distance' ? 'Distance Vision (DV)' : 'Near Vision (NV)'}</span>
-                                            <div className="border border-slate-300 overflow-hidden rounded-none">
-                                              <Table className="w-full border-collapse">
-                                                <TableHeader className="bg-slate-50 border-b border-slate-300">
-                                                  <TableRow className="hover:bg-transparent">
-                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 py-2.5 text-center border-r border-slate-200">EYE</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 py-2.5 text-center border-r border-slate-200">SPH</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 py-2.5 text-center border-r border-slate-200">CYL</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-slate-600 py-2.5 text-center">AXIS</TableHead>
-                                                  </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                  {['OD', 'OS'].map((eye) => (
-                                                    <TableRow key={eye} className="border-b border-slate-200 last:border-0 hover:bg-slate-50/50">
-                                                      <TableCell className="text-center text-xs font-black border-r border-slate-200">{eye}</TableCell>
-                                                      <TableCell className="text-center text-xs font-semibold border-r border-slate-200">{glassRx[part]?.[eye]?.sphere || "0.00"}</TableCell>
-                                                      <TableCell className="text-center text-xs font-semibold border-r border-slate-200">{glassRx[part]?.[eye]?.cylinder || "0.00"}</TableCell>
-                                                      <TableCell className="text-center text-xs font-semibold">{glassRx[part]?.[eye]?.axis || "0"}°</TableCell>
-                                                    </TableRow>
-                                                  ))}
-                                                </TableBody>
-                                              </Table>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  );
-                                }
-                                return <p className="text-xs font-bold text-slate-400 italic text-center py-6 uppercase tracking-widest">No glass RX documented</p>;
-                              })()}
-                            </div>
-                          </Card>
-
-                          {/* Remarks & Clinical Instructions Card */}
-                          <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
-                            <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><FileText className="w-4 h-4" /></div>
-                              <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Clinical Remarks & Directions</h4>
-                            </div>
-                            <div className="p-6 space-y-6">
-                              <div className="space-y-2">
-                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Doctor's Clinical Notes</span>
-                                <p className="text-sm font-medium text-slate-700 leading-relaxed bg-slate-50 p-4 border-l-4 border-slate-400 rounded-none">
-                                  {selectedHistoricalVisit.consultation?.notes || "No clinical remarks documented."}
-                                </p>
-                              </div>
-                              {(() => {
-                                try {
-                                  const raw = selectedHistoricalVisit.consultation?.posteriorSegment;
-                                  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                                  if (!parsed) return null;
-                                  const hasInvestigations = parsed.required && parsed.required !== "Nothing selected";
-                                  const hasAdmin = parsed.adminInstructions && parsed.adminInstructions !== "Standard administration";
-                                  if (!hasInvestigations && !hasAdmin) return null;
-                                  return (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-300">
-                                      {hasInvestigations && (
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Required Investigations</span>
-                                          <p className="text-xs font-bold text-slate-700 bg-slate-50 p-2 border border-slate-300 rounded-none">
-                                            {typeof parsed.required === 'object' ? (Array.isArray(parsed.required) ? parsed.required.join(", ") : "—") : parsed.required}
-                                          </p>
-                                          {parsed.other && <p className="text-[11px] text-slate-500 font-medium italic">Specs: {parsed.other}</p>}
-                                        </div>
-                                      )}
-                                      {hasAdmin && (
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Admin Instructions</span>
-                                          <p className="text-xs font-bold text-slate-700 bg-slate-50 p-2 border border-slate-300 rounded-none">{parsed.adminInstructions}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                } catch { return null; }
-                              })()}
-                            </div>
-                          </Card>
-                      </>
-                    ) : (
-                      <div className="p-8 bg-white border border-slate-300 rounded-none text-center opacity-60 italic font-bold text-slate-400">
-                        No doctor's consultation data available for this visit.
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </>
-            );
+            // Print layout is handled by the portal-based print section below.
+            // This block intentionally renders nothing for print.
+            return null;
           })()}
-          {selectedHistoricalVisit && (() => {
-        const structureLabels: Record<string, string> = {
-          lids: "Lids",
-          conjunctiva: "Conjunctiva",
-          sclera: "Sclera",
-          cornea: "Cornea",
-          ac: "Anterior Chamber",
-          iris: "Iris",
-          pupil: "Pupil",
-          lens: "Lens",
-          tonometry: "Tonometry",
-          gonioscopy: "Gonioscopy",
-          synaptophore: "Synaptophore",
-        };
-        const fundusLabels: Record<string, string> = {
-          vitreous: "Vitreous",
-          retina: "Retina & Macula",
-          disc: "Optic Disc"
-        };
-        const patientName = selectedHistoricalVisit.patient?.name || patient?.name || "UNNAMED PATIENT";
-        const patientMRN = selectedHistoricalVisit.patient?.mrNumber || selectedHistoricalVisit.mrNumber || patient?.mrNumber || "0000";
-        const patientGender = selectedHistoricalVisit.patient?.gender || patient?.gender || "—";
-        const patientAge = selectedHistoricalVisit.patient
-          ? getPatientAgeString(selectedHistoricalVisit.patient)
-          : patient
-            ? getPatientAgeString(patient)
-            : "—";
-
-        return (
-          <div id="print-section" className="hidden print:block w-full bg-white text-black text-[9px] font-sans p-4 space-y-4 leading-tight">
-                  {/* Hospital Header in the style of Vision Xpress */}
-                  <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
-                    <img 
-                      src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
-                      alt="VPN Logo" 
-                      className="h-10 w-auto object-contain shrink-0"
-                    />
-                    <div className="flex-1 text-center pr-10">
-                      <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
-                      <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
-                      <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
-                    </div>
-                  </div>
-                  <div className="text-center my-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Optometrist Clinical Summary</span>
-                  </div>
-
-                  {/* Outer report container with double borders */}
-                  <div className="report-print-container space-y-4">
-                    {/* Patient Info Block structured as a clean 1px border table */}
-                    <table className="w-full text-[8.5px]">
-                      <tbody>
-                        <tr>
-                          <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
-                          <td className="p-1 w-[30%]">{patientName}</td>
-                          <td className="p-1 font-bold bg-gray-50 w-[20%]">Age / Gender:</td>
-                          <td className="p-1 w-[30%]">{patientAge} / {patientGender}</td>
-                        </tr>
-                        <tr>
-                          <td className="p-1 font-bold bg-gray-50">MR Number:</td>
-                          <td className="p-1">MR-{patientMRN}</td>
-                          <td className="p-1 font-bold bg-gray-50">Contact Number:</td>
-                          <td className="p-1">{selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber || "—"}</td>
-                        </tr>
-                        <tr>
-                          <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
-                          <td className="p-1">{selectedHistoricalVisit.consultation?.doctorName || selectedHistoricalVisit.consultingDoctorName || "Dr. Clinical Lead"}</td>
-                          <td className="p-1 font-bold bg-gray-50">Visit Date:</td>
-                          <td className="p-1">{new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                  {/* Optometry & Refraction */}
-                  {selectedHistoricalVisit.refraction && (() => {
-                    const rd = selectedHistoricalVisit.refraction;
-                    return (
-                      <div className="space-y-3">
-                        <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">1. Optometry & Refraction</h2>
-                        
-                        {/* Visual Acuity Table */}
-                        {rd.visualAcuity && (
-                          <div className="space-y-1">
-                            <span className="text-[7.5px] font-bold uppercase text-gray-500">Visual Acuity</span>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black text-center">
-                                  <th className="border-r border-black p-0.5 text-left font-bold w-[120px]">Modality</th>
-                                  <th className="border-r border-black p-0.5 font-bold">OD (Right Eye)</th>
-                                  <th className="border-r border-black p-0.5 font-bold">OS (Left Eye)</th>
-                                  <th className="p-0.5 font-bold">OU (Both Eyes)</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-center">
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Unaided DV</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.unaided)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.unaided)}</td>
-                                  <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.unaided)}</td>
-                                </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Unaided NV</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.nearVision)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.nearVision)}</td>
-                                  <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.nearVision)}</td>
-                                </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Aided DV</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.aided)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.aided)}</td>
-                                  <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.aided)}</td>
-                                </tr>
-                                <tr>
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Pinhole Potential</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.pinhole)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.pinhole)}</td>
-                                  <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.pinhole)}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Objective Measurements */}
-                          <div className="space-y-1">
-                            <span className="text-[7.5px] font-bold uppercase text-gray-500">Objective Measurements</span>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-left font-bold">Method</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">OD</th>
-                                  <th className="p-0.5 text-center font-bold">OS</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-center">
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Autoref (AR)</td>
-                                  <td className="border-r border-black p-0.5">
-                                    {rd.autoRef?.OD?.sphere1 ? `${fmtLens(rd.autoRef.OD.sphere1)} / ${fmtLens(rd.autoRef.OD.cylinder1)} × ${rd.autoRef.OD.axis1}°` : "—"}
-                                  </td>
-                                  <td className="p-0.5">
-                                    {rd.autoRef?.OS?.sphere1 ? `${fmtLens(rd.autoRef.OS.sphere1)} / ${fmtLens(rd.autoRef.OS.cylinder1)} × ${fmtLens(rd.autoRef.OS.axis1)}°` : "—"}
-                                  </td>
-                                </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">Clinical Retinoscopy</td>
-                                  <td className="border-r border-black p-0.5">
-                                    {rd.objectiveRefraction?.OD?.sphere || rd.retinoscopy?.OD?.sphere ? `${fmtLens(rd.objectiveRefraction?.OD?.sphere || rd.retinoscopy?.OD?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OD?.cylinder || rd.retinoscopy?.OD?.cylinder)} × ${rd.objectiveRefraction?.OD?.axis || rd.retinoscopy?.OD?.axis}°` : "—"}
-                                  </td>
-                                  <td className="p-0.5">
-                                    {rd.objectiveRefraction?.OS?.sphere || rd.retinoscopy?.OS?.sphere ? `${fmtLens(rd.objectiveRefraction?.OS?.sphere || rd.retinoscopy?.OS?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OS?.cylinder || rd.retinoscopy?.OS?.cylinder)} × ${rd.objectiveRefraction?.OS?.axis || rd.retinoscopy?.OS?.axis}°` : "—"}
-                                  </td>
-                                </tr>
-                                {(rd.cycloplegic || rd.objectiveRefraction?.OD?.cycloSphere) && (
-                                  <tr>
-                                    <td className="border-r border-black p-0.5 text-left font-semibold">Cyclo / Dilated</td>
-                                    <td className="border-r border-black p-0.5">
-                                      {rd.objectiveRefraction?.OD?.cycloSphere || rd.cycloplegic?.OD?.sphere ? `${fmtLens(rd.objectiveRefraction?.OD?.cycloSphere || rd.cycloplegic?.OD?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OD?.cycloCylinder || rd.cycloplegic?.OD?.cylinder)} × ${rd.objectiveRefraction?.OD?.cycloAxis || rd.cycloplegic?.OD?.axis}°` : "—"}
-                                    </td>
-                                    <td className="p-0.5">
-                                      {rd.objectiveRefraction?.OS?.cycloSphere || rd.cycloplegic?.OS?.sphere ? `${fmtLens(rd.objectiveRefraction?.OS?.cycloSphere || rd.cycloplegic?.OS?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OS?.cycloCylinder || rd.cycloplegic?.OS?.cylinder)} × ${rd.objectiveRefraction?.OS?.cycloAxis || rd.cycloplegic?.OS?.axis}°` : "—"}
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {/* Subjective Acceptance */}
-                          <div className="space-y-1">
-                            <span className="text-[7.5px] font-bold uppercase text-gray-500">Subjective Acceptance</span>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-left font-bold">Eye</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">SPH</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">CYL</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">AXIS</th>
-                                  <th className="p-0.5 text-center font-bold">BCVA</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-center">
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">OD (DV)</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OD?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OD?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.acceptance?.distance?.OD?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.acceptance?.distance?.OD?.vn)}</td>
-                                </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">OD (NV)</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OD?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OD?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.acceptance?.near?.OD?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.acceptance?.near?.OD?.vn)}</td>
-                                </tr>
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">OS (DV)</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OS?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OS?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.acceptance?.distance?.OS?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.acceptance?.distance?.OS?.vn)}</td>
-                                </tr>
-                                <tr>
-                                  <td className="border-r border-black p-0.5 text-left font-semibold">OS (NV)</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OS?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OS?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.acceptance?.near?.OS?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.acceptance?.near?.OS?.vn)}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-
-                        {/* Final Spectacles & Contact Lens Recommendations */}
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Spectacles RX */}
-                          <div className="space-y-1">
-                            <span className="text-[7.5px] font-bold uppercase text-gray-500">Final Spectacles RX {rd.glassPrescription?.glassType ? `(${rd.glassPrescription.glassType})` : ""}</span>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-center font-bold">Eye</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">SPH</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">CYL</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">AXIS</th>
-                                  <th className="p-0.5 text-center font-bold">ADD</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-center">
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 font-semibold">OD</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.glassPrescription?.OD?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.glassPrescription?.OD?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.glassPrescription?.OD?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtLens(rd.glassPrescription?.OD?.nearAdd)}</td>
-                                </tr>
-                                <tr>
-                                  <td className="border-r border-black p-0.5 font-semibold">OS</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.glassPrescription?.OS?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.glassPrescription?.OS?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.glassPrescription?.OS?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtLens(rd.glassPrescription?.OS?.nearAdd)}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {/* Contact Lens RX */}
-                          <div className="space-y-1">
-                            <span className="text-[7.5px] font-bold uppercase text-gray-500">Final Contact Lens RX {rd.contactLensPrescription?.clType && Array.isArray(rd.contactLensPrescription.clType) && rd.contactLensPrescription.clType.length > 0 ? `(${rd.contactLensPrescription.clType.join(", ")})` : ""}</span>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-center font-bold">Eye</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">SPH</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">CYL</th>
-                                  <th className="border-r border-black p-0.5 text-center font-bold">AXIS</th>
-                                  <th className="p-0.5 text-center font-bold">BCVA</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-center">
-                                <tr className="border-b border-black">
-                                  <td className="border-r border-black p-0.5 font-semibold">OD</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.contactLensPrescription?.OD?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.contactLensPrescription?.OD?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.contactLensPrescription?.OD?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.contactLensPrescription?.OD?.bcva)}</td>
-                                </tr>
-                                <tr>
-                                  <td className="border-r border-black p-0.5 font-semibold">OS</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.contactLensPrescription?.OS?.sphere)}</td>
-                                  <td className="border-r border-black p-0.5">{fmtLens(rd.contactLensPrescription?.OS?.cylinder)}</td>
-                                  <td className="border-r border-black p-0.5">{rd.contactLensPrescription?.OS?.axis || "—"}</td>
-                                  <td className="p-0.5">{fmtVA(rd.contactLensPrescription?.OS?.bcva)}</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-
-                        {/* Tonometry & Other Tests */}
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* Tonometry */}
-                          {rd.tonometryDetails && (
-                            <div className="space-y-1">
-                              <span className="text-[7.5px] font-bold uppercase text-gray-500">Tonometry</span>
-                              <table className="w-full border-collapse border border-black text-[8px]">
-                                <thead>
-                                  <tr className="bg-gray-100 border-b border-black">
-                                    <th className="border-r border-black p-0.5 text-left font-bold">Method</th>
-                                    <th className="border-r border-black p-0.5 text-center font-bold">OD</th>
-                                    <th className="p-0.5 text-center font-bold">OS</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="text-center">
-                                  <tr className="border-b border-black">
-                                    <td className="border-r border-black p-0.5 text-left font-semibold">NCT (Air-Puff)</td>
-                                    <td className="border-r border-black p-0.5">
-                                      {(() => {
-                                        const vals = Array.isArray(rd.tonometryDetails.nct?.OD?.mean) ? rd.tonometryDetails.nct.OD.mean : (rd.tonometryDetails.nct?.OD?.mean ? [rd.tonometryDetails.nct.OD.mean] : []);
-                                        return vals.length > 0 ? vals.join(", ") : "—";
-                                      })()}
-                                    </td>
-                                    <td className="p-0.5">
-                                      {(() => {
-                                        const vals = Array.isArray(rd.tonometryDetails.nct?.OS?.mean) ? rd.tonometryDetails.nct.OS.mean : (rd.tonometryDetails.nct?.OS?.mean ? [rd.tonometryDetails.nct.OS.mean] : []);
-                                        return vals.length > 0 ? vals.join(", ") : "—";
-                                      })()}
-                                    </td>
-                                  </tr>
-                                  <tr className="border-b border-black">
-                                    <td className="border-r border-black p-0.5 text-left font-semibold">GAT (Goldmann)</td>
-                                    <td className="border-r border-black p-0.5">
-                                      {(() => {
-                                        const vals = Array.isArray(rd.tonometryDetails.gat?.OD?.reading) ? rd.tonometryDetails.gat.OD.reading : (rd.tonometryDetails.gat?.OD?.reading ? [rd.tonometryDetails.gat.OD.reading] : []);
-                                        return vals.length > 0 ? vals.join(", ") : "—";
-                                      })()}
-                                    </td>
-                                    <td className="p-0.5">
-                                      {(() => {
-                                        const vals = Array.isArray(rd.tonometryDetails.gat?.OS?.reading) ? rd.tonometryDetails.gat.OS.reading : (rd.tonometryDetails.gat?.OS?.reading ? [rd.tonometryDetails.gat.OS.reading] : []);
-                                        return vals.length > 0 ? vals.join(", ") : "—";
-                                      })()}
-                                    </td>
-                                  </tr>
-                                  {rd.tonometryDetails.schiotz && (
-                                    <tr>
-                                      <td className="border-r border-black p-0.5 text-left font-semibold">Schiotz</td>
-                                      <td className="border-r border-black p-0.5">
-                                        {rd.tonometryDetails.schiotz.OD?.reading ? `${rd.tonometryDetails.schiotz.OD.reading} / ${rd.tonometryDetails.schiotz.OD.weight}g${rd.tonometryDetails.schiotz.OD.iop ? ` (${rd.tonometryDetails.schiotz.OD.iop} mmHg)` : ""}` : "—"}
-                                      </td>
-                                      <td className="p-0.5">
-                                        {rd.tonometryDetails.schiotz.OS?.reading ? `${rd.tonometryDetails.schiotz.OS.reading} / ${rd.tonometryDetails.schiotz.OS.weight}g${rd.tonometryDetails.schiotz.OS.iop ? ` (${rd.tonometryDetails.schiotz.OS.iop} mmHg)` : ""}` : "—"}
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-
-                          {/* Supplementary Tests */}
-                          {(rd.ishiharaTest || rd.schirmerTest || rd.keratometry) && (
-                            <div className="space-y-1">
-                              <span className="text-[7.5px] font-bold uppercase text-gray-500">Ophthalmic Tests</span>
-                              <table className="w-full border-collapse border border-black text-[8px]">
-                                <tbody>
-                                  {rd.ishiharaTest && (
-                                    <tr className="border-b border-black">
-                                      <td className="border-r border-black p-0.5 font-semibold text-left">Color Vision (Ishihara)</td>
-                                      <td className="p-0.5">{rd.ishiharaTest.status || "—"} {rd.ishiharaTest.notes ? `(${rd.ishiharaTest.notes})` : ""}</td>
-                                    </tr>
-                                  )}
-                                  {rd.schirmerTest && (
-                                    <tr className="border-b border-black">
-                                      <td className="border-r border-black p-0.5 font-semibold text-left">Schirmer's Test</td>
-                                      <td className="p-0.5">OD: {rd.schirmerTest.OD ? `${rd.schirmerTest.OD} mm` : "—"} / OS: {rd.schirmerTest.OS ? `${rd.schirmerTest.OS} mm` : "—"}</td>
-                                    </tr>
-                                  )}
-                                  {rd.keratometry && (
-                                    <tr>
-                                      <td className="border-r border-black p-0.5 font-semibold text-left">Keratometry</td>
-                                      <td className="p-0.5">
-                                        OD: {Array.isArray(rd.keratometry.OD) ? rd.keratometry.OD.join(", ") : (rd.keratometry.OD || "—")} / 
-                                        OS: {Array.isArray(rd.keratometry.OS) ? rd.keratometry.OS.join(", ") : (rd.keratometry.OS || "—")}
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Doctor Consultation Details */}
-                  {selectedHistoricalVisit.consultation && (() => {
-                    const cons = selectedHistoricalVisit.consultation;
-                    let slitLamp: any = null;
-                    let eom: any = null;
-                    try {
-                      const parsed = typeof cons.anteriorSegment === 'string' ? JSON.parse(cons.anteriorSegment) : cons.anteriorSegment;
-                      if (parsed) {
-                        slitLamp = parsed.slitLamp || parsed;
-                        eom = parsed.eom;
-                      }
-                    } catch (e) {}
-
-                    let fundus: any = null;
-                    try {
-                      fundus = typeof cons.fundusObservation === 'string' ? JSON.parse(cons.fundusObservation) : cons.fundusObservation;
-                    } catch (e) {}
-
-                    const activeSlitLamp = slitLamp ? Object.keys(slitLamp).filter(k => k !== 'dilation' && (slitLamp[k]?.OD || slitLamp[k]?.OS)) : [];
-                    const activeFundus = fundus ? Object.keys(fundus).filter(k => fundus[k]?.OD || fundus[k]?.OS) : [];
-
-                    return (
-                      <div className="space-y-3">
-                        {/* Anterior Segment Findings */}
-                        {activeSlitLamp.length > 0 && (
-                          <div className="space-y-1">
-                            <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">2. Anterior Segment (Slit Lamp)</h2>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-left font-bold w-[120px]">Structure</th>
-                                  <th className="border-r border-black p-0.5 text-left font-bold">Right Eye (OD)</th>
-                                  <th className="p-0.5 text-left font-bold">Left Eye (OS)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {activeSlitLamp.map((key) => (
-                                  <tr key={key} className="border-b border-black last:border-b-0">
-                                    <td className="border-r border-black p-0.5 font-semibold">{structureLabels[key] || key}</td>
-                                    <td className="border-r border-black p-0.5">{slitLamp[key]?.OD || "—"}</td>
-                                    <td className="p-0.5">{slitLamp[key]?.OS || "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {/* Pupillary Dilation & EOM */}
-                        {((slitLamp && slitLamp.dilation) || (eom && (eom.OD || eom.OS))) && (
-                          <div className="grid grid-cols-2 gap-4 text-[8px] border border-black p-1 bg-gray-50">
-                            {slitLamp && slitLamp.dilation && (
-                              <div><strong>Pupillary Dilation:</strong> {typeof slitLamp.dilation === 'string' ? slitLamp.dilation : `OD: ${slitLamp.dilation?.OD || "—"} | OS: ${slitLamp.dilation?.OS || "—"}`}</div>
-                            )}
-                            {eom && (eom.OD || eom.OS) && (
-                              <div><strong>Extra Ocular Movements (EOM):</strong> OD: {eom.OD || "—"} | OS: {eom.OS || "—"}</div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Posterior Segment (Fundus) */}
-                        {activeFundus.length > 0 && (
-                          <div className="space-y-1">
-                            <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">3. Posterior Segment (Fundus)</h2>
-                            <table className="w-full border-collapse border border-black text-[8px]">
-                              <thead>
-                                <tr className="bg-gray-100 border-b border-black">
-                                  <th className="border-r border-black p-0.5 text-left font-bold w-[120px]">Structure</th>
-                                  <th className="border-r border-black p-0.5 text-left font-bold">Right Eye (OD)</th>
-                                  <th className="p-0.5 text-left font-bold">Left Eye (OS)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {activeFundus.map((key) => (
-                                  <tr key={key} className="border-b border-black last:border-b-0">
-                                    <td className="border-r border-black p-0.5 font-semibold">{fundusLabels[key] || key}</td>
-                                    <td className="border-r border-black p-0.5">{fundus[key]?.OD || "—"}</td>
-                                    <td className="p-0.5">{fundus[key]?.OS || "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {/* Clinical Diagnosis */}
-                        {cons.diagnosisText && (
-                          <div className="space-y-1">
-                            <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">4. Clinical Diagnosis</h2>
-                            {(() => {
-                              const parts = cons.diagnosisText.split(' | ') || [];
-                              const od = parts[0]?.replace('OD: ', '') || "—";
-                              const os = parts.length > 1 ? parts[1].replace('OS: ', '') : "—";
-                              return (
-                                <div className="grid grid-cols-2 gap-4 text-[8px] border border-black p-1.5 bg-gray-50">
-                                  <div><strong>Right Eye (OD):</strong> {od}</div>
-                                  <div><strong>Left Eye (OS):</strong> {os}</div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
-
-                        {/* Medical Prescriptions */}
-                        {(() => {
-                          const rawMeds = cons.medicalPrescription || (cons as any).medications;
-                          const meds = typeof rawMeds === 'string' ? JSON.parse(rawMeds) : rawMeds;
-                          if (meds && Array.isArray(meds) && meds.length > 0) {
-                            return (
-                              <div className="space-y-1">
-                                <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">5. Medical Prescriptions</h2>
-                                <table className="w-full border-collapse border border-black text-[8px]">
-                                  <thead>
-                                    <tr className="bg-gray-100 border-b border-black text-left">
-                                      <th className="border-r border-black p-0.5 font-bold">Medicine</th>
-                                      <th className="border-r border-black p-0.5 font-bold">Dose / Route</th>
-                                      <th className="border-r border-black p-0.5 font-bold">Frequency</th>
-                                      <th className="border-r border-black p-0.5 font-bold">Duration</th>
-                                      <th className="p-0.5 font-bold text-center">Eye</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {meds.map((m: any, idx: number) => (
-                                      <tr key={idx} className="border-b border-black last:border-b-0">
-                                        <td className="border-r border-black p-0.5 font-bold">{m.drug || m.name || "—"}</td>
-                                        <td className="border-r border-black p-0.5">{m.dosage || m.dose || "—"} ({m.route || "Topical"})</td>
-                                        <td className="border-r border-black p-0.5">{m.frequency || "—"}</td>
-                                        <td className="border-r border-black p-0.5">{m.duration || "—"}</td>
-                                        <td className="p-0.5 text-center font-semibold">{m.eye || "Both"}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-
-                        {/* Doctor Glass RX */}
-                        {(() => {
-                          const rawGlass = cons.finalGlassPrescription;
-                          const glassRx = typeof rawGlass === 'string' ? JSON.parse(rawGlass) : rawGlass;
-                          if (glassRx) {
-                            const hasDistance = ['OD', 'OS'].some(eye => glassRx.distance?.[eye]?.sphere || glassRx.distance?.[eye]?.cylinder || glassRx.distance?.[eye]?.axis);
-                            const hasNear = ['OD', 'OS'].some(eye => glassRx.near?.[eye]?.sphere || glassRx.near?.[eye]?.cylinder || glassRx.near?.[eye]?.axis);
-                            if (hasDistance || hasNear) {
-                              return (
-                                <div className="space-y-1">
-                                  <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">6. Final Glass RX</h2>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    {hasDistance && (
-                                      <div className="space-y-1">
-                                        <span className="text-[7.5px] font-bold uppercase text-gray-500">Distance Vision (DV)</span>
-                                        <table className="w-full border-collapse border border-black text-[8px]">
-                                          <thead>
-                                            <tr className="bg-gray-100 border-b border-black text-center">
-                                              <th className="border-r border-black p-0.5 font-bold">Eye</th>
-                                              <th className="border-r border-black p-0.5 font-bold">SPH</th>
-                                              <th className="border-r border-black p-0.5 font-bold">CYL</th>
-                                              <th className="p-0.5 font-bold">AXIS</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="text-center">
-                                            {['OD', 'OS'].map((eye) => (
-                                              <tr key={eye} className="border-b border-black last:border-b-0">
-                                                <td className="border-r border-black p-0.5 font-semibold">{eye}</td>
-                                                <td className="border-r border-black p-0.5">{glassRx.distance?.[eye]?.sphere || "0.00"}</td>
-                                                <td className="border-r border-black p-0.5">{glassRx.distance?.[eye]?.cylinder || "0.00"}</td>
-                                                <td className="p-0.5">{glassRx.distance?.[eye]?.axis || "0"}°</td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    )}
-                                    {hasNear && (
-                                      <div className="space-y-1">
-                                        <span className="text-[7.5px] font-bold uppercase text-gray-500">Near Vision (NV)</span>
-                                        <table className="w-full border-collapse border border-black text-[8px]">
-                                          <thead>
-                                            <tr className="bg-gray-100 border-b border-black text-center">
-                                              <th className="border-r border-black p-0.5 font-bold">Eye</th>
-                                              <th className="border-r border-black p-0.5 font-bold">SPH</th>
-                                              <th className="border-r border-black p-0.5 font-bold">CYL</th>
-                                              <th className="p-0.5 font-bold">AXIS</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="text-center">
-                                            {['OD', 'OS'].map((eye) => (
-                                              <tr key={eye} className="border-b border-black last:border-b-0">
-                                                <td className="border-r border-black p-0.5 font-semibold">{eye}</td>
-                                                <td className="border-r border-black p-0.5">{glassRx.near?.[eye]?.sphere || "0.00"}</td>
-                                                <td className="border-r border-black p-0.5">{glassRx.near?.[eye]?.cylinder || "0.00"}</td>
-                                                <td className="p-0.5">{glassRx.near?.[eye]?.axis || "0"}°</td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            }
-                          }
-                          return null;
-                        })()}
-
-                        {/* Remarks & Notes */}
-                        {(cons.notes || cons.posteriorSegment) && (() => {
-                          let postSeg: any = null;
-                          try {
-                            postSeg = typeof cons.posteriorSegment === 'string' ? JSON.parse(cons.posteriorSegment) : cons.posteriorSegment;
-                          } catch (e) {}
-
-                          const required = postSeg?.required && postSeg.required !== "Nothing selected" ? postSeg.required : null;
-                          const adminInstructions = postSeg?.adminInstructions && postSeg.adminInstructions !== "Standard administration" ? postSeg.adminInstructions : null;
-
-                          return (
-                            <div className="space-y-1.5">
-                              <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">7. Remarks & Instructions</h2>
-                              {cons.notes && <p className="text-[8px]"><strong>Clinical Notes:</strong> {cons.notes}</p>}
-                              {required && (
-                                <p className="text-[8px]"><strong>Investigations Required:</strong> {typeof required === 'object' ? (Array.isArray(required) ? required.join(", ") : "—") : required} {postSeg.other ? `(${postSeg.other})` : ""}</p>
-                              )}
-                              {adminInstructions && <p className="text-[8px]"><strong>Administration Directions:</strong> {adminInstructions}</p>}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })()}
-          </div>
-        </div>
-      );
-    })()}
 
         </DialogContent>
       </Dialog>
 
       {/* 4. Family Patient Longitudinal Profile Dialog */}
-      <Dialog 
-        open={!!selectedFamilyPatient} 
+      <Dialog
+        open={!!selectedFamilyPatient}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedFamilyPatient(null);
@@ -4829,7 +4352,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
           }
         }}
       >
-        <DialogContent className="no-print max-w-[95vw] w-[1100px] h-[80vh] p-0 overflow-hidden bg-slate-50 flex flex-col rounded-xl border border-slate-200 shadow-2xl">
+        <DialogContent className="print:hidden no-print max-w-[95vw] w-[1100px] h-[80vh] p-0 overflow-hidden bg-slate-50 flex flex-col rounded-xl border border-slate-200 shadow-2xl">
+          <DialogTitle className="sr-only">Family Patient Profile</DialogTitle>
           {selectedFamilyPatient && (
             <>
               <DialogHeader className="bg-white border-b border-slate-200 p-5 shrink-0 flex flex-row items-center justify-between">
@@ -4843,14 +4367,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       <Badge className="bg-orange-600 text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
                         MRN: {selectedFamilyPatient.mrNumber}
                       </Badge>
-                      {(selectedFamilyPatient.familyMaps?.[0]?.relationshipType || selectedFamilyPatient.relationshipType) && (
+                      {selectedFamilyPatient.familyMaps?.[0]?.relationshipType && (
                         <Badge className="bg-blue-600 text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
-                          {selectedFamilyPatient.familyMaps?.[0]?.relationshipType || selectedFamilyPatient.relationshipType}
+                          {formatRelationship(selectedFamilyPatient.familyMaps[0].relationshipType, selectedFamilyPatient.gender)}
                         </Badge>
                       )}
                     </h2>
                     <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                      {selectedFamilyPatient.gender} • {getPatientAgeString(selectedFamilyPatient)} • Contact: {selectedFamilyPatient.contactNumber}
+                      {getPatientGenderString(selectedFamilyPatient)} • {getPatientAgeString(selectedFamilyPatient)} • Contact: {selectedFamilyPatient.contactNumber}
                     </p>
                   </div>
                 </div>
@@ -4915,11 +4439,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
                     <FileText className="w-3.5 h-3.5 text-slate-400" /> Scanned Reports
                   </h3>
-                  <ScanReportGallery 
-                    mrNumber={selectedFamilyPatient.mrNumber?.toString()} 
-                    variant="compact" 
-                    showButton={false} 
-                    allowUpload={false} 
+                  <ScanReportGallery
+                    mrNumber={selectedFamilyPatient.mrNumber?.toString()}
+                    variant="compact"
+                    showButton={false}
+                    allowUpload={false}
                     wrapInCard={true}
                     forceShow={true}
                   />
@@ -4930,694 +4454,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         </DialogContent>
       </Dialog>
 
-        <div id="print-section" className="hidden print:block w-full bg-white text-black text-[9px] font-sans p-4 space-y-4 leading-tight">
-          {printType === 'glass' && (
-            <div className="space-y-4">
-              {/* Hospital Header in the style of Vision Xpress */}
-              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white">
-                <img 
-                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
-                  alt="VPN Logo" 
-                  className="h-10 w-auto object-contain shrink-0"
-                />
-                <div className="flex-1 text-center pr-10">
-                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
-                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
-                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
-                </div>
-              </div>
-              <div className="text-center my-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Glass Prescription</span>
-              </div>
-
-              {/* Outer report container with double borders */}
-              <div className="report-print-container space-y-4">
-                {/* Patient Info Block structured as a clean 1px border table */}
-                <table className="w-full text-[8.5px]">
-                  <tbody>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
-                      <td className="p-1 w-[30%]">{printData.patientName}</td>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">UIN / MRN:</td>
-                      <td className="p-1 w-[30%]">MR-{printData.mrNumber}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">Age / Gender:</td>
-                      <td className="p-1">{printData.ageGender}</td>
-                      <td className="p-1 font-bold bg-gray-50">Prescription Date:</td>
-                      <td className="p-1">{printData.date}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">Contact No:</td>
-                      <td className="p-1">{printData.contactNumber || "—"}</td>
-                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
-                      <td className="p-1">{printData.doctorName}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-              {/* Glass prescription table */}
-              <table className="w-full border-collapse border border-black text-center text-[9px] my-3">
-                <thead>
-                  <tr className="border-b border-black bg-gray-100">
-                    <th rowSpan={2} className="border-r border-black p-1 w-[12%]"></th>
-                    <th colSpan={4} className="border-r border-black p-1 font-black uppercase text-[8px]">RE (Right Eye)</th>
-                    <th colSpan={4} className="p-1 font-black uppercase text-[8px]">LE (Left Eye)</th>
-                  </tr>
-                  <tr className="border-b border-black bg-gray-50 text-[8px]">
-                    <th className="border-r border-black p-1 font-bold w-[11%]">SPH</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">CYL</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">AXIS</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">V/A</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">SPH</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">CYL</th>
-                    <th className="border-r border-black p-1 font-bold w-[11%]">AXIS</th>
-                    <th className="p-1 font-bold w-[11%]">V/A</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-black text-[9px]">
-                    <td className="border-r border-black p-1.5 font-bold text-left bg-gray-50">DV</td>
-                    <td className="border-r border-black p-1.5 font-mono font-bold">{fmtLens(printData.glassRx?.distance?.OD?.sphere)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{fmtLens(printData.glassRx?.distance?.OD?.cylinder)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{printData.glassRx?.distance?.OD?.axis ? `${printData.glassRx.distance.OD.axis}°` : "—"}</td>
-                    <td className="border-r border-black p-1.5 font-semibold">{printData.refraction?.acceptance?.distance?.OD?.vn || printData.refraction?.visualAcuity?.OD?.aided || "—"}</td>
-                    <td className="border-r border-black p-1.5 font-mono font-bold">{fmtLens(printData.glassRx?.distance?.OS?.sphere)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{fmtLens(printData.glassRx?.distance?.OS?.cylinder)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{printData.glassRx?.distance?.OS?.axis ? `${printData.glassRx.distance.OS.axis}°` : "—"}</td>
-                    <td className="p-1.5 font-semibold">{printData.refraction?.acceptance?.distance?.OS?.vn || printData.refraction?.visualAcuity?.OS?.aided || "—"}</td>
-                  </tr>
-                  <tr className="border-b border-black text-[9px]">
-                    <td className="border-r border-black p-1.5 font-bold text-left bg-gray-50">NV</td>
-                    <td className="border-r border-black p-1.5 font-mono font-bold">{fmtLens(printData.glassRx?.near?.OD?.sphere)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{fmtLens(printData.glassRx?.near?.OD?.cylinder)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{printData.glassRx?.near?.OD?.axis ? `${printData.glassRx.near.OD.axis}°` : "—"}</td>
-                    <td className="border-r border-black p-1.5 font-semibold">{printData.refraction?.acceptance?.near?.OD?.vn || printData.refraction?.visualAcuity?.OD?.nearVision || "—"}</td>
-                    <td className="border-r border-black p-1.5 font-mono font-bold">{fmtLens(printData.glassRx?.near?.OS?.sphere)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{fmtLens(printData.glassRx?.near?.OS?.cylinder)}</td>
-                    <td className="border-r border-black p-1.5 font-mono">{printData.glassRx?.near?.OS?.axis ? `${printData.glassRx.near.OS.axis}°` : "—"}</td>
-                    <td className="p-1.5 font-semibold">{printData.refraction?.acceptance?.near?.OS?.vn || printData.refraction?.visualAcuity?.OS?.nearVision || "—"}</td>
-                  </tr>
-                  <tr className="border-b border-black text-[9px]">
-                    <td className="border-r border-black p-1.5 font-bold text-left bg-gray-50">Dist PD</td>
-                    <td colSpan={4} className="border-r border-black p-1.5 text-center font-semibold">{printData.refraction?.pd || printData.refraction?.autoRef?.pd || "—"} mm</td>
-                    <td colSpan={4} className="p-1.5 text-center font-semibold">{printData.refraction?.pd || printData.refraction?.autoRef?.pd || "—"} mm</td>
-                  </tr>
-                  <tr className="text-[9px]">
-                    <td className="border-r border-black p-1.5 font-bold text-left bg-gray-50">Near PD</td>
-                    <td colSpan={4} className="border-r border-black p-1.5 text-center font-semibold">{printData.refraction?.pdNear || "—"} mm</td>
-                    <td colSpan={4} className="p-1.5 text-center font-semibold">{printData.refraction?.pdNear || "—"} mm</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Details and Signatures Layout */}
-              <div className="grid grid-cols-2 gap-6 my-4 text-[9px] leading-relaxed">
-                {/* Left Side: Lens parameters */}
-                <div className="space-y-2 border-r border-gray-300 pr-4">
-                  {(() => {
-                    const isPAL = printData.glassRx?.glassType === 'PAL';
-                    const isKryptok = printData.glassRx?.glassType === 'KBF';
-                    const isSVN = printData.glassRx?.glassType === 'SVN';
-                    return (
-                      <div className="flex gap-4 items-center">
-                        <span className="font-bold w-[70px]">Lens types:</span>
-                        <div className="flex gap-3">
-                          <div className="flex items-center gap-1">
-                            <span className={`w-3.5 h-3.5 rounded-full border border-black flex items-center justify-center font-bold text-[8px] ${isPAL ? 'bg-black text-white' : ''}`}>{isPAL ? '✓' : ''}</span>
-                            <span>PAL</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className={`w-3.5 h-3.5 rounded-full border border-black flex items-center justify-center font-bold text-[8px] ${isKryptok ? 'bg-black text-white' : ''}`}>{isKryptok ? '✓' : ''}</span>
-                            <span>Kryptok</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className={`w-3.5 h-3.5 rounded-full border border-black flex items-center justify-center font-bold text-[8px] ${isSVN ? 'bg-black text-white' : ''}`}>{isSVN ? '✓' : ''}</span>
-                            <span>Univis - D</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="w-3.5 h-3.5 rounded-full border border-black flex items-center justify-center font-bold text-[8px]"></span>
-                            <span>Executive</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  <div><strong>Lens details:</strong> Plastic, White</div>
-                  <div><strong>Instruction:</strong> Constant Wear</div>
-                  <div><strong>Remarks:</strong> {printData.notes || "For Regular Use"}</div>
-                </div>
-
-                {/* Right Side: Doctor and Refractionist Info */}
-                <div className="flex flex-col justify-between pl-2">
-                  <div className="space-y-4">
-                    <div className="flex flex-col text-right">
-                      <span className="text-[8px] uppercase text-gray-500 font-bold">Ophthalmologist</span>
-                      <span className="font-black text-slate-800 text-[10px]">{printData.doctorName}</span>
-                      <span className="text-[7.5px] text-gray-400">Reg No: 120/09</span>
-                      <div className="mt-1 border-t border-dotted border-gray-400 w-36 ml-auto pt-0.5 text-[7px] text-gray-400">Signature</div>
-                    </div>
-                    <div className="flex flex-col text-right">
-                      <span className="text-[8px] uppercase text-gray-500 font-bold">Refraction done by</span>
-                      <span className="font-black text-slate-800 text-[9px]">{printData.refraction?.optometristName || printData.refraction?.refractionist?.name || "Sr. Muppudathi K S"}</span>
-                      <div className="mt-1 border-t border-dotted border-gray-400 w-36 ml-auto pt-0.5 text-[7px] text-gray-400">Signature</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Glass Handling Tips */}
-              <div className="border-t border-black pt-2 mt-4">
-                <h3 className="font-bold text-[9px] uppercase mb-1">Glass Handling Tips / கண்ணாடி கையாளும் குறிப்புகள்:</h3>
-                <div className="grid grid-cols-2 gap-4 text-[7.5px] leading-tight">
-                  <div className="space-y-1.5">
-                    <p><strong>1. Use the spectacles after washing with normal water.</strong><br/><span className="text-gray-500">தண்ணீரில் கழுவிய பின் கண்ணாடியை அணிய வேண்டும்.</span></p>
-                    <p><strong>2. Use only a soft cloth for cleaning spectacles.</strong><br/><span className="text-gray-500">மென்மையான துணி கொண்டு கண்ணாடியை சுத்தம் செய்ய வேண்டும்.</span></p>
-                    <p><strong>3. Store the spectacles in the box when not in use.</strong><br/><span className="text-gray-500">கண்ணாடியைக் கழற்றிய பின் அதற்குரிய பெட்டியில் வைக்கவும்.</span></p>
-                    <p><strong>4. Spectacles with coated lenses should not be kept on the car dashboard.</strong><br/><span className="text-gray-500">வெப்பநிலை அதிகமாக உள்ள இடத்தில் கண்ணாடியை வைப்பதைத் தவிர்க்கவும் (கார் Dashboard, சமையலறை).</span></p>
-                    <p><strong>5. Change the nose pad and check the frame alignment every 3 months.</strong><br/><span className="text-gray-500">மூன்று மாதங்களுக்கு ஒருமுறை மூக்குப்பட்டையை மாற்ற வேண்டும், கண்ணாடி நிலையை சரிபார்க்க வேண்டும்.</span></p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p><strong>6. Avoid contact with any chemical solutions for special coated lenses.</strong><br/><span className="text-gray-500">கோட்டிங் செய்த கண்ணாடிகளில் ரசாயன திரவங்கள் படக்கூடாது.</span></p>
-                    <p><strong>7. Wear and remove the spectacles with both hands.</strong><br/><span className="text-gray-500">கண் கண்ணாடியை இரண்டு கைகளால் அணிந்து இரண்டு கைகளால் அகற்ற வேண்டும்.</span></p>
-                    <p><strong>8. Change your spectacles if there is any variation in the power.</strong><br/><span className="text-gray-500">பார்வையில் மாற்றம் இருந்தால் கண்ணாடியை மாற்ற வேண்டும்.</span></p>
-                    <p><strong>9. Do not use the spectacles with scratches.</strong><br/><span className="text-gray-500">கீறல் விழுந்த கண்ணாடியை உபயோகப்படுத்தாதீர்கள்.</span></p>
-                    <p><strong>10. Adapt to first-time glass usage or new lenses takes time.</strong><br/><span className="text-gray-500">முதல் முறை கண்ணாடி அணியும் போதும் அல்லது புதிய லென்ஸ்களைப் பயன்படுத்தும் போதும் நம் கண்களோடு பொருந்த சிறிது காலம் தேவைப்படும்.</span></p>
-                  </div>
-                </div>
-                <p className="text-[7.5px] font-bold mt-2 border-t border-dotted border-black pt-1.5 text-center">
-                  Please note: Spectacle power should be reviewed at least once a year for adults and once in 6 months for children (below 15 years).
-                </p>
-              </div>
-            </div>
-          </div>
-          )}
-
-          {printType === 'medical' && (
-            <div className="space-y-4">
-              {/* Hospital Header in the style of Vision Xpress */}
-              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
-                <img 
-                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
-                  alt="VPN Logo" 
-                  className="h-10 w-auto object-contain shrink-0"
-                />
-                <div className="flex-1 text-center pr-10">
-                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
-                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
-                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
-                </div>
-              </div>
-              <div className="text-center my-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Medical Prescription</span>
-              </div>
-
-              {/* Outer report container with double borders */}
-              <div className="report-print-container space-y-4 text-left">
-                {/* Patient Info Block structured as a clean 1px border table */}
-                <table className="w-full text-[8.5px]">
-                  <tbody>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
-                      <td className="p-1 w-[30%]">{printData.patientName}</td>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">UIN / MRN:</td>
-                      <td className="p-1 w-[30%]">MR-{printData.mrNumber}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">Age / Gender:</td>
-                      <td className="p-1">{printData.ageGender}</td>
-                      <td className="p-1 font-bold bg-gray-50">Prescription Date:</td>
-                      <td className="p-1">{printData.date}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">Contact No:</td>
-                      <td className="p-1">{printData.contactNumber || "—"}</td>
-                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
-                      <td className="p-1">{printData.doctorName}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-              {/* Diagnosis Section */}
-              {printData.diagnosisText && (
-                <div className="space-y-1">
-                  <h3 className="font-bold text-[9px] uppercase border-b border-black pb-0.5">Diagnosis / Clinical Indications</h3>
-                  <p className="text-[9px] font-bold text-slate-800 p-1.5 border border-slate-300 bg-slate-50">{printData.diagnosisText}</p>
-                </div>
-              )}
-
-              {/* Prescribed Medications Table */}
-              <div className="space-y-1">
-                <h3 className="font-bold text-[9px] uppercase border-b border-black pb-0.5">Prescribed Medications (Rx)</h3>
-                {printData.medications && printData.medications.length > 0 ? (
-                  <table className="w-full border-collapse border border-black text-[9px]">
-                    <thead>
-                      <tr className="bg-gray-100 border-b border-black text-left">
-                        <th className="border-r border-black p-1.5 font-bold w-[35%]">Medicine / Eyedrops</th>
-                        <th className="border-r border-black p-1.5 font-bold w-[20%]">Dose / Route</th>
-                        <th className="border-r border-black p-1.5 font-bold w-[20%]">Frequency</th>
-                        <th className="border-r border-black p-1.5 font-bold w-[15%]">Duration</th>
-                        <th className="p-1.5 font-bold text-center w-[10%]">Eye</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {printData.medications.map((m: any, idx: number) => (
-                        <tr key={idx} className="border-b border-black last:border-b-0">
-                          <td className="border-r border-black p-1.5 font-bold">{m.drug || m.name || "—"}</td>
-                          <td className="border-r border-black p-1.5">{m.dosage || m.dose || "—"} ({m.route || "Topical"})</td>
-                          <td className="border-r border-black p-1.5">{m.frequency || "—"}</td>
-                          <td className="border-r border-black p-1.5">{m.duration || "—"}</td>
-                          <td className="p-1.5 text-center font-bold">{m.eye || "Both"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p className="text-[9px] italic text-slate-500 p-2 text-center border border-dashed border-slate-300">No medical prescriptions entered for this visit.</p>
-                )}
-              </div>
-
-              {/* Clinical Advice / Advice */}
-              {printData.notes && (
-                <div className="space-y-1">
-                  <h3 className="font-bold text-[9px] uppercase border-b border-black pb-0.5">Advice / Special Instructions</h3>
-                  <div className="p-2 border border-slate-300 bg-slate-50 italic text-[9px] text-slate-700 leading-relaxed font-medium">
-                    {printData.notes}
-                  </div>
-                </div>
-              )}
-
-              {/* Signature Section */}
-              <div className="pt-10 flex justify-end">
-                <div className="text-center w-48">
-                  <div className="border-t border-dotted border-black pt-1">
-                    <p className="text-[9px] font-black text-slate-800 uppercase">{printData.doctorName}</p>
-                    <p className="text-[7.5px] text-gray-500 uppercase">Consulting Ophthalmologist</p>
-                    <p className="text-[7px] text-gray-400">Reg No: 120/09</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          )}
-
-          {(printType === 'all' || !printType) && (
-            <>
-              {/* Hospital Header in the style of Vision Xpress */}
-              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white">
-                <img 
-                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
-                  alt="VPN Logo" 
-                  className="h-10 w-auto object-contain shrink-0"
-                />
-                <div className="flex-1 text-center pr-10">
-                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
-                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
-                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
-                </div>
-              </div>
-              <div className="text-center my-2">
-                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Optometrist Clinical Summary</span>
-              </div>
-
-              {/* Outer report container with double borders */}
-              <div className="report-print-container space-y-4">
-                {/* Patient Info Block structured as a clean 1px border table */}
-                <table className="w-full text-[8.5px]">
-                  <tbody>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
-                      <td className="p-1 w-[30%]">{printData.patientName}</td>
-                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Age / Gender:</td>
-                      <td className="p-1 w-[30%]">{printData.ageGender}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">MR Number:</td>
-                      <td className="p-1">MR-{printData.mrNumber}</td>
-                      <td className="p-1 font-bold bg-gray-50">Contact Number:</td>
-                      <td className="p-1">{printData.contactNumber || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
-                      <td className="p-1">{printData.doctorName}</td>
-                      <td className="p-1 font-bold bg-gray-50">Visit Date:</td>
-                      <td className="p-1">{printData.date}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-              {/* Optometry & Refraction */}
-              {printData.refraction && (() => {
-                const rd = printData.refraction;
-                return (
-                  <div className="space-y-3">
-                    <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">1. Optometry & Refraction</h2>
-                    
-                    {/* Visual Acuity Table */}
-                    {rd.visualAcuity && (
-                      <div className="space-y-1">
-                        <span className="text-[7.5px] font-bold uppercase text-gray-500">Visual Acuity</span>
-                        <table className="w-full border-collapse border border-black text-[8px]">
-                          <thead>
-                            <tr className="bg-gray-100 border-b border-black text-center">
-                              <th className="border-r border-black p-0.5 text-left font-bold w-[120px]">Modality</th>
-                              <th className="border-r border-black p-0.5 font-bold">OD (Right Eye)</th>
-                              <th className="border-r border-black p-0.5 font-bold">OS (Left Eye)</th>
-                              <th className="p-0.5 font-bold">OU (Both Eyes)</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-center">
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Unaided DV</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.unaided)}</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.unaided)}</td>
-                              <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.unaided)}</td>
-                            </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Unaided NV</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.nearVision)}</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.nearVision)}</td>
-                              <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.nearVision)}</td>
-                            </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Aided DV</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.aided)}</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.aided)}</td>
-                              <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.aided)}</td>
-                            </tr>
-                            <tr>
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Pinhole Potential</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OD?.pinhole)}</td>
-                              <td className="border-r border-black p-0.5">{fmtVA(rd.visualAcuity.OS?.pinhole)}</td>
-                              <td className="p-0.5">{fmtVA(rd.visualAcuity.OU?.pinhole)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Objective Measurements */}
-                      <div className="space-y-1">
-                        <span className="text-[7.5px] font-bold uppercase text-gray-500">Objective Measurements</span>
-                        <table className="w-full border-collapse border border-black text-[8px]">
-                          <thead>
-                            <tr className="bg-gray-100 border-b border-black">
-                              <th className="border-r border-black p-0.5 text-left font-bold">Method</th>
-                              <th className="border-r border-black p-0.5 text-center font-bold">OD</th>
-                              <th className="p-0.5 text-center font-bold">OS</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-center">
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Autoref (AR)</td>
-                              <td className="border-r border-black p-0.5">
-                                {rd.autoRef?.OD?.sphere1 ? `${fmtLens(rd.autoRef.OD.sphere1)} / ${fmtLens(rd.autoRef.OD.cylinder1)} × ${rd.autoRef.OD.axis1}°` : "—"}
-                              </td>
-                              <td className="p-0.5">
-                                {rd.autoRef?.OS?.sphere1 ? `${fmtLens(rd.autoRef.OS.sphere1)} / ${fmtLens(rd.autoRef.OS.cylinder1)} × ${fmtLens(rd.autoRef.OS.axis1)}°` : "—"}
-                              </td>
-                            </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">Clinical Retinoscopy</td>
-                              <td className="border-r border-black p-0.5">
-                                {rd.objectiveRefraction?.OD?.sphere || rd.retinoscopy?.OD?.sphere ? `${fmtLens(rd.objectiveRefraction?.OD?.sphere || rd.retinoscopy?.OD?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OD?.cylinder || rd.retinoscopy?.OD?.cylinder)} × ${rd.objectiveRefraction?.OD?.axis || rd.retinoscopy?.OD?.axis}°` : "—"}
-                              </td>
-                              <td className="p-0.5">
-                                {rd.objectiveRefraction?.OS?.sphere || rd.retinoscopy?.OS?.sphere ? `${fmtLens(rd.objectiveRefraction?.OS?.sphere || rd.retinoscopy?.OS?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OS?.cylinder || rd.retinoscopy?.OS?.cylinder)} × ${rd.objectiveRefraction?.OS?.axis || rd.retinoscopy?.OS?.axis}°` : "—"}
-                              </td>
-                            </tr>
-                            {(rd.cycloplegic || rd.objectiveRefraction?.OD?.cycloSphere) && (
-                              <tr>
-                                <td className="border-r border-black p-0.5 text-left font-semibold">Cyclo / Dilated</td>
-                                <td className="border-r border-black p-0.5">
-                                  {rd.objectiveRefraction?.OD?.cycloSphere || rd.cycloplegic?.OD?.sphere ? `${fmtLens(rd.objectiveRefraction?.OD?.cycloSphere || rd.cycloplegic?.OD?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OD?.cycloCylinder || rd.cycloplegic?.OD?.cylinder)} × ${rd.objectiveRefraction?.OD?.cycloAxis || rd.cycloplegic?.OD?.axis}°` : "—"}
-                                </td>
-                                <td className="p-0.5">
-                                  {rd.objectiveRefraction?.OS?.cycloSphere || rd.cycloplegic?.OS?.sphere ? `${fmtLens(rd.objectiveRefraction?.OS?.cycloSphere || rd.cycloplegic?.OS?.sphere)} / ${fmtLens(rd.objectiveRefraction?.OS?.cycloCylinder || rd.cycloplegic?.OS?.cylinder)} × ${rd.objectiveRefraction?.OS?.cycloAxis || rd.cycloplegic?.OS?.axis}°` : "—"}
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Subjective Acceptance */}
-                      <div className="space-y-1">
-                        <span className="text-[7.5px] font-bold uppercase text-gray-500">Subjective Acceptance</span>
-                        <table className="w-full border-collapse border border-black text-[8px]">
-                          <thead>
-                            <tr className="bg-gray-100 border-b border-black">
-                              <th className="border-r border-black p-0.5 text-left font-bold">Eye</th>
-                              <th className="border-r border-black p-0.5 text-center font-bold">SPH</th>
-                              <th className="border-r border-black p-0.5 text-center font-bold">CYL</th>
-                              <th className="border-r border-black p-0.5 text-center font-bold">AXIS</th>
-                              <th className="p-0.5 text-center font-bold">BCVA</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-center">
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">OD (DV)</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OD?.sphere)}</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OD?.cylinder)}</td>
-                              <td className="border-r border-black p-0.5">{rd.acceptance?.distance?.OD?.axis || "—"}</td>
-                              <td className="p-0.5">{fmtVA(rd.acceptance?.distance?.OD?.vn)}</td>
-                            </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">OD (NV)</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OD?.sphere)}</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OD?.cylinder)}</td>
-                              <td className="border-r border-black p-0.5">{rd.acceptance?.near?.OD?.axis || "—"}</td>
-                              <td className="p-0.5">{fmtVA(rd.acceptance?.near?.OD?.vn)}</td>
-                            </tr>
-                            <tr className="border-b border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold">OS (DV)</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OS?.sphere)}</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.distance?.OS?.cylinder)}</td>
-                              <td className="border-r border-black p-0.5">{rd.acceptance?.distance?.OS?.axis || "—"}</td>
-                              <td className="p-0.5">{fmtVA(rd.acceptance?.distance?.OS?.vn)}</td>
-                            </tr>
-                            <tr>
-                              <td className="border-r border-black p-0.5 text-left font-semibold">OS (NV)</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OS?.sphere)}</td>
-                              <td className="border-r border-black p-0.5">{fmtLens(rd.acceptance?.near?.OS?.cylinder)}</td>
-                              <td className="border-r border-black p-0.5">{rd.acceptance?.near?.OS?.axis || "—"}</td>
-                              <td className="p-0.5">{fmtVA(rd.acceptance?.near?.OS?.vn)}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Anterior Findings / Diagnosis */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Slit Lamp & Anterior Segment */}
-                {(() => {
-                  const slitLamp = printData.slitLamp;
-                  const eom = printData.eom;
-                  if (!slitLamp && !eom) return null;
-                  return (
-                    <div className="space-y-1">
-                      <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">2. Anterior Segment Findings</h2>
-                      <table className="w-full border-collapse border border-black text-[8px]">
-                        <thead>
-                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                            <th className="border-r border-black p-0.5 text-left w-[120px]">Parameter</th>
-                            <th className="border-r border-black p-0.5">OD (Right Eye)</th>
-                            <th className="p-0.5">OS (Left Eye)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {slitLamp && Object.keys(slitLamp).filter(key => key !== 'dilation' && key !== 'gonioscopy' && key !== 'synaptophore').map((key) => {
-                            const valOD = slitLamp[key]?.OD;
-                            const valOS = slitLamp[key]?.OS;
-                            if (!valOD && !valOS) return null;
-                            return (
-                              <tr key={key} className="border-b border-black last:border-b-0">
-                                <td className="border-r border-black p-0.5 text-left font-semibold uppercase text-[7px]">{key}</td>
-                                <td className="border-r border-black p-0.5 text-center">{valOD || "NAD"}</td>
-                                <td className="p-0.5 text-center">{valOS || "NAD"}</td>
-                              </tr>
-                            );
-                          })}
-                          {eom && (
-                            <tr className="border-t border-black">
-                              <td className="border-r border-black p-0.5 text-left font-semibold uppercase text-[7px]">EOM motility</td>
-                              <td className="border-r border-black p-0.5 text-center">{eom.OD || "Full"}</td>
-                              <td className="p-0.5 text-center">{eom.OS || "Full"}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })()}
-
-                {/* Fundus Examination */}
-                {printData.fundus && (() => {
-                  const f = printData.fundus;
-                  const keys = Object.keys(f).filter(k => f[k]?.OD || f[k]?.OS);
-                  if (keys.length === 0) return null;
-                  return (
-                    <div className="space-y-1">
-                      <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">3. Posterior Segment (Fundus)</h2>
-                      <table className="w-full border-collapse border border-black text-[8px]">
-                        <thead>
-                          <tr className="bg-gray-100 border-b border-black text-center font-bold">
-                            <th className="border-r border-black p-0.5 text-left w-[120px]">Observation</th>
-                            <th className="border-r border-black p-0.5">OD (Right Eye)</th>
-                            <th className="p-0.5">OS (Left Eye)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {keys.map((key) => (
-                            <tr key={key} className="border-b border-black last:border-b-0">
-                              <td className="border-r border-black p-0.5 text-left font-semibold uppercase text-[7px]">{key === 'vitreous' ? 'Vitreous' : key === 'retina' ? 'Retina & Macula' : 'Optic Disc'}</td>
-                              <td className="border-r border-black p-0.5 text-center">{f[key]?.OD || "NAD"}</td>
-                              <td className="p-0.5 text-center">{f[key]?.OS || "NAD"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Diagnosis Info */}
-              {printData.diagnosisText && (
-                <div className="space-y-1">
-                  <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">4. Diagnosis Summary</h2>
-                  <div className="p-1 border border-black text-[8px] bg-gray-50 font-bold">
-                    {printData.diagnosisText}
-                  </div>
-                </div>
-              )}
-
-              {/* Medical Prescriptions */}
-              {printData.medications && printData.medications.length > 0 && (
-                <div className="space-y-1">
-                  <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">5. Medical Prescriptions</h2>
-                  <table className="w-full border-collapse border border-black text-[8px]">
-                    <thead>
-                      <tr className="bg-gray-100 border-b border-black text-left">
-                        <th className="border-r border-black p-0.5 font-bold">Medicine</th>
-                        <th className="border-r border-black p-0.5 font-bold">Dose / Route</th>
-                        <th className="border-r border-black p-0.5 font-bold">Frequency</th>
-                        <th className="border-r border-black p-0.5 font-bold">Duration</th>
-                        <th className="p-0.5 font-bold text-center">Eye</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {printData.medications.map((m: any, idx: number) => (
-                        <tr key={idx} className="border-b border-black last:border-b-0">
-                          <td className="border-r border-black p-0.5 font-bold">{m.drug || m.name || "—"}</td>
-                          <td className="border-r border-black p-0.5">{m.dosage || m.dose || "—"} ({m.route || "Topical"})</td>
-                          <td className="border-r border-black p-0.5">{m.frequency || "—"}</td>
-                          <td className="border-r border-black p-0.5">{m.duration || "—"}</td>
-                          <td className="p-0.5 text-center font-semibold">{m.eye || "Both"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Doctor Glass RX */}
-              {(() => {
-                const glassRx = printData.glassRx;
-                if (glassRx) {
-                  const hasDistance = ['OD', 'OS'].some(eye => glassRx.distance?.[eye]?.sphere || glassRx.distance?.[eye]?.cylinder || glassRx.distance?.[eye]?.axis);
-                  const hasNear = ['OD', 'OS'].some(eye => glassRx.near?.[eye]?.sphere || glassRx.near?.[eye]?.cylinder || glassRx.near?.[eye]?.axis);
-                  if (hasDistance || hasNear) {
-                    return (
-                      <div className="space-y-1">
-                        <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">6. Final Glass RX</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                          {hasDistance && (
-                            <div className="space-y-1">
-                              <span className="text-[7.5px] font-bold uppercase text-gray-500">Distance Vision (DV)</span>
-                              <table className="w-full border-collapse border border-black text-[8px]">
-                                <thead>
-                                  <tr className="bg-gray-100 border-b border-black text-center">
-                                    <th className="border-r border-black p-0.5 font-bold">Eye</th>
-                                    <th className="border-r border-black p-0.5 font-bold">SPH</th>
-                                    <th className="border-r border-black p-0.5 font-bold">CYL</th>
-                                    <th className="p-0.5 font-bold">AXIS</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="text-center">
-                                  {['OD', 'OS'].map((eye) => (
-                                    <tr key={eye} className="border-b border-black last:border-b-0">
-                                      <td className="border-r border-black p-0.5 font-semibold">{eye}</td>
-                                      <td className="border-r border-black p-0.5">{glassRx.distance?.[eye]?.sphere || "0.00"}</td>
-                                      <td className="border-r border-black p-0.5">{glassRx.distance?.[eye]?.cylinder || "0.00"}</td>
-                                      <td className="p-0.5">{glassRx.distance?.[eye]?.axis || "0"}°</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                          {hasNear && (
-                            <div className="space-y-1">
-                              <span className="text-[7.5px] font-bold uppercase text-gray-500">Near Vision (NV)</span>
-                              <table className="w-full border-collapse border border-black text-[8px]">
-                                <thead>
-                                  <tr className="bg-gray-100 border-b border-black text-center">
-                                    <th className="border-r border-black p-0.5 font-bold">Eye</th>
-                                    <th className="border-r border-black p-0.5 font-bold">SPH</th>
-                                    <th className="border-r border-black p-0.5 font-bold">CYL</th>
-                                    <th className="p-0.5 font-bold">AXIS</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="text-center">
-                                  {['OD', 'OS'].map((eye) => (
-                                    <tr key={eye} className="border-b border-black last:border-b-0">
-                                      <td className="border-r border-black p-0.5 font-semibold">{eye}</td>
-                                      <td className="border-r border-black p-0.5">{glassRx.near?.[eye]?.sphere || "0.00"}</td>
-                                      <td className="border-r border-black p-0.5">{glassRx.near?.[eye]?.cylinder || "0.00"}</td>
-                                      <td className="p-0.5">{glassRx.near?.[eye]?.axis || "0"}°</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-                }
-                return null;
-              })()}
-
-              {/* Remarks & Notes */}
-              {(printData.notes || printData.posteriorSegment) && (() => {
-                const postSeg = printData.posteriorSegment;
-                const required = postSeg?.required && postSeg.required !== "Nothing selected" ? postSeg.required : null;
-                const adminInstructions = postSeg?.adminInstructions && postSeg.adminInstructions !== "Standard administration" ? postSeg.adminInstructions : null;
-
-                return (
-                  <div className="space-y-1.5">
-                    <h2 className="text-[9px] font-bold uppercase border-b border-black pb-0.5">7. Remarks & Instructions</h2>
-                    {printData.notes && <p className="text-[8px]"><strong>Clinical Advice / Notes:</strong> {printData.notes}</p>}
-                    {required && (
-                      <p className="text-[8px]"><strong>Investigations Required:</strong> {typeof required === 'object' ? (Array.isArray(required) ? required.join(", ") : "—") : required} {postSeg.other ? `(${postSeg.other})` : ""}</p>
-                    )}
-                    {adminInstructions && <p className="text-[8px]"><strong>Administration Directions:</strong> {adminInstructions}</p>}
-                  </div>
-                );
-              })()}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Consolidated / Separate Print Section */}
+      {printType && printData && createPortal(
+        <div id="print-section" className="hidden print:block fixed inset-0 bg-white z-[9999] p-8 m-0 overflow-visible print-section">
+          <SharedPrintLayout printData={printData} printType={printType} />
+        </div>,
+        document.body
+      )}
+    </div>
   );
 }
 

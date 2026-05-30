@@ -386,6 +386,55 @@ const getInitialConsultations = () => {
   ];
 };
 
+// --- Seed Inventory ---
+const INITIAL_INVENTORY = [
+  { id: "inv-1", name: "Moxifloxacin 0.5%", category: "Antibiotics", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-2", name: "Ciprofloxacin 0.3%", category: "Antibiotics", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-3", name: "Timolol 0.5%", category: "Anti-Glaucoma", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-4", name: "Bimatoprost 0.03%", category: "Anti-Glaucoma", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-5", name: "Carboxymethylcellulose 0.5%", category: "Lubricants", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-6", name: "Hydroxypropyl Methylcellulose", category: "Lubricants", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-7", name: "Tropicamide 1%", category: "Mydriatics", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-8", name: "Phenylephrine 2.5%", category: "Mydriatics", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-9", name: "Nepafenac 0.1%", category: "NSAIDs", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-10", name: "Ketorolac 0.5%", category: "NSAIDs", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-11", name: "Prednisolone Acetate 1%", category: "Steroids", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+  { id: "inv-12", name: "Dexamethasone 0.1%", category: "Steroids", route: "Topical", isActive: true, createdAt: new Date().toISOString() },
+];
+
+// --- Seed Audit Logs ---
+const INITIAL_AUDIT_LOGS = [
+  { id: "log-1", userId: "user-admin", username: "admin", name: "Admin User", role: "ADMIN", action: "LOGIN", details: "Admin logged in successfully", ipAddress: "192.168.1.10", createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+  { id: "log-2", userId: "user-receptionist", username: "reception", name: "Demo Receptionist", role: "RECEPTIONIST", action: "PATIENT_REGISTERED", details: "Registered new patient: Karthik Kumar (MR-100430)", ipAddress: "192.168.1.11", createdAt: new Date(Date.now() - 90 * 60 * 1000).toISOString() },
+  { id: "log-3", userId: "user-doctor", username: "doctor", name: "Dr. John Doe", role: "DOCTOR", action: "CONSULTATION_CREATED", details: "Completed consultation for MR-100423", ipAddress: "192.168.1.12", createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString() },
+  { id: "log-4", userId: "user-optometrist", username: "optometrist", name: "Demo Optometrist", role: "OPTOMETRIST", action: "REFRACTION_SAVED", details: "Refraction data recorded for MR-100424", ipAddress: "192.168.1.13", createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+  { id: "log-5", userId: "user-admin", username: "admin", name: "Admin User", role: "ADMIN", action: "USER_CREATED", details: "Created new staff account: Dr. Jane Smith (DOCTOR)", ipAddress: "192.168.1.10", createdAt: new Date(Date.now() - 20 * 60 * 1000).toISOString() },
+  { id: "log-6", userId: "user-receptionist", username: "reception", name: "Demo Receptionist", role: "RECEPTIONIST", action: "PATIENT_REGISTERED", details: "Registered new patient: Priya Sundar (MR-100431)", ipAddress: "192.168.1.11", createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString() },
+];
+
+// --- Seed Family Groups ---
+const INITIAL_FAMILY_GROUPS = [
+  {
+    id: "family-1",
+    name: "Kumar Family",
+    primaryPatientMrNumber: "100423",
+    members: [
+      { mrNumber: "100423", name: "Karthik Kumar", relationship: "Self" },
+      { mrNumber: "100424", name: "Priya Kumar", relationship: "Spouse" },
+    ],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// --- Seed Admin Users ---
+const INITIAL_ADMIN_USERS = [
+  { id: "user-admin", name: "Admin User", username: "admin", role: "ADMIN", email: "admin@vpneye.com", isActive: true, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: "user-receptionist", name: "Demo Receptionist", username: "reception", role: "RECEPTIONIST", email: "reception@vpneye.com", isActive: true, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: "user-doctor", name: "Dr. John Doe", username: "doctor", role: "DOCTOR", email: "doctor@vpneye.com", isActive: true, createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: "user-optometrist", name: "Demo Optometrist", username: "optometrist", role: "OPTOMETRIST", email: "optometrist@vpneye.com", isActive: true, createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: "user-pharmacy", name: "Demo Pharmacist", username: "pharmacy", role: "PHARMACIST", email: "pharmacy@vpneye.com", isActive: true, createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() },
+];
+
 export class DemoDatabase {
   private getStore<T>(key: string): T[] {
     const raw = localStorage.getItem(key);
@@ -473,6 +522,26 @@ export class DemoDatabase {
     // 6. Seed Consultations
     if (!localStorage.getItem("demo_consultations")) {
       this.setStore("demo_consultations", getInitialConsultations());
+    }
+
+    // 7. Seed Inventory
+    if (!localStorage.getItem("demo_inventory")) {
+      this.setStore("demo_inventory", INITIAL_INVENTORY);
+    }
+
+    // 8. Seed Audit Logs
+    if (!localStorage.getItem("demo_audit_logs")) {
+      this.setStore("demo_audit_logs", INITIAL_AUDIT_LOGS);
+    }
+
+    // 9. Seed Family Groups
+    if (!localStorage.getItem("demo_family_groups")) {
+      this.setStore("demo_family_groups", INITIAL_FAMILY_GROUPS);
+    }
+
+    // 10. Seed Admin Users
+    if (!localStorage.getItem("demo_admin_users")) {
+      this.setStore("demo_admin_users", INITIAL_ADMIN_USERS);
     }
   }
 
@@ -916,6 +985,335 @@ export class DemoDatabase {
     });
     this.setStore("demo_visits", updatedVisits);
     return updatedVisits.find((v) => v.id === visitId);
+  }
+
+  public saveOptical(visitId: string, opticalData: any) {
+    const opticals = this.getStore<any>("demo_opticals") || [];
+    const existingIndex = opticals.findIndex((o: any) => o.visitId === visitId);
+
+    const updatedRecord = {
+      ...opticalData,
+      id: visitId,
+      visitId: visitId,
+      createdAt: opticalData.createdAt || new Date().toISOString(),
+    };
+
+    if (existingIndex !== -1) {
+      opticals[existingIndex] = updatedRecord;
+    } else {
+      opticals.push(updatedRecord);
+    }
+    this.setStore("demo_opticals", opticals);
+
+    // Update corresponding visit status to COMPLETED
+    const visits = this.getVisitsWithTokens();
+    const updatedVisits = visits.map((v) => {
+      if (v.id === visitId) {
+        return { ...v, status: "COMPLETED" };
+      }
+      return v;
+    });
+    this.setStore("demo_visits", updatedVisits);
+
+    return updatedRecord;
+  }
+
+  // -------------------------
+  // Inventory Operations
+  // -------------------------
+  public getInventory() {
+    return this.getStore<any>("demo_inventory");
+  }
+
+  public addInventoryItem(data: { name: string; category: string; route: string }) {
+    const items = this.getStore<any>("demo_inventory");
+    const newItem = {
+      id: `inv-${Date.now()}`,
+      name: data.name,
+      category: data.category,
+      route: data.route || "Topical",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    this.setStore("demo_inventory", [...items, newItem]);
+    return newItem;
+  }
+
+  public updateInventoryItem(id: string, data: Partial<{ name: string; category: string; route: string; isActive: boolean }>) {
+    const items = this.getStore<any>("demo_inventory");
+    const updated = items.map((item: any) =>
+      item.id === id ? { ...item, ...data } : item
+    );
+    this.setStore("demo_inventory", updated);
+    return updated.find((i: any) => i.id === id);
+  }
+
+  public deleteInventoryItem(id: string) {
+    const items = this.getStore<any>("demo_inventory");
+    this.setStore("demo_inventory", items.filter((i: any) => i.id !== id));
+    return { success: true };
+  }
+
+  // -------------------------
+  // Audit Log Operations
+  // -------------------------
+  public addAuditLog(log: { action: string; details: string; role?: string; username?: string; name?: string }) {
+    try {
+      const session = JSON.parse(localStorage.getItem("user_session") || "{}");
+      const logs = this.getStore<any>("demo_audit_logs");
+      const newLog = {
+        id: `log-${Date.now()}`,
+        userId: session.id || "system",
+        username: log.username || session.username || "system",
+        name: log.name || session.name || "System",
+        role: log.role || session.role || "SYSTEM",
+        action: log.action,
+        details: log.details,
+        ipAddress: "127.0.0.1",
+        createdAt: new Date().toISOString(),
+      };
+      this.setStore("demo_audit_logs", [newLog, ...logs].slice(0, 200));
+      return newLog;
+    } catch {
+      return null;
+    }
+  }
+
+  public getAuditLogs(page: number = 1, limit: number = 15, search: string = "") {
+    const logs = this.getStore<any>("demo_audit_logs");
+    const filtered = search
+      ? logs.filter((l: any) =>
+          l.action?.toLowerCase().includes(search.toLowerCase()) ||
+          l.details?.toLowerCase().includes(search.toLowerCase()) ||
+          l.username?.toLowerCase().includes(search.toLowerCase()) ||
+          l.name?.toLowerCase().includes(search.toLowerCase())
+        )
+      : logs;
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    return {
+      logs: filtered.slice(start, start + limit),
+      pagination: { total, totalPages, page, limit },
+    };
+  }
+
+  // -------------------------
+  // Family Groups
+  // -------------------------
+  public getFamilyGroups(search: string = "", page: number = 1, limit: number = 10) {
+    const groups = this.getStore<any>("demo_family_groups");
+    const filtered = search
+      ? groups.filter((g: any) =>
+          g.name?.toLowerCase().includes(search.toLowerCase()) ||
+          g.primaryPatientMrNumber?.includes(search) ||
+          g.members?.some((m: any) => m.name?.toLowerCase().includes(search.toLowerCase()) || m.mrNumber?.includes(search))
+        )
+      : groups;
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    return {
+      groups: filtered.slice(start, start + limit).map((g: any) => ({
+        ...g,
+        memberCount: g.members?.length || 0,
+      })),
+      pagination: { total, totalPages, page, limit },
+    };
+  }
+
+  public createFamilyGroup(data: { name: string; primaryPatientMrNumber: string }) {
+    const groups = this.getStore<any>("demo_family_groups");
+    const patients = this.getStore<any>("demo_patients");
+    const primary = patients.find((p: any) => p.mrNumber === data.primaryPatientMrNumber);
+    const newGroup = {
+      id: `family-${Date.now()}`,
+      name: data.name,
+      primaryPatientMrNumber: data.primaryPatientMrNumber,
+      members: primary ? [{ mrNumber: data.primaryPatientMrNumber, name: primary.name, relationship: "Self" }] : [],
+      createdAt: new Date().toISOString(),
+    };
+    this.setStore("demo_family_groups", [...groups, newGroup]);
+    return newGroup;
+  }
+
+  public addFamilyMember(groupId: string, member: { mrNumber: string; relationship: string }) {
+    const groups = this.getStore<any>("demo_family_groups");
+    const patients = this.getStore<any>("demo_patients");
+    const patient = patients.find((p: any) => p.mrNumber === member.mrNumber);
+    if (!patient) throw new Error("Patient not found");
+    const updated = groups.map((g: any) => {
+      if (g.id === groupId) {
+        const alreadyMember = g.members?.some((m: any) => m.mrNumber === member.mrNumber);
+        if (alreadyMember) throw new Error("Patient is already in this group");
+        return {
+          ...g,
+          members: [...(g.members || []), { mrNumber: member.mrNumber, name: patient.name, relationship: member.relationship }],
+        };
+      }
+      return g;
+    });
+    this.setStore("demo_family_groups", updated);
+    return updated.find((g: any) => g.id === groupId);
+  }
+
+  public removeFamilyMember(groupId: string, mrNumber: string) {
+    const groups = this.getStore<any>("demo_family_groups");
+    const updated = groups.map((g: any) => {
+      if (g.id === groupId) {
+        return { ...g, members: g.members.filter((m: any) => m.mrNumber !== mrNumber) };
+      }
+      return g;
+    });
+    this.setStore("demo_family_groups", updated);
+    return { success: true };
+  }
+
+  public deleteFamilyGroup(groupId: string) {
+    const groups = this.getStore<any>("demo_family_groups");
+    this.setStore("demo_family_groups", groups.filter((g: any) => g.id !== groupId));
+    return { success: true };
+  }
+
+  public getPatientFamilyGroup(mrNumber: string) {
+    const groups = this.getStore<any>("demo_family_groups");
+    return groups.find((g: any) => g.members?.some((m: any) => m.mrNumber === mrNumber)) || null;
+  }
+
+  // -------------------------
+  // Admin Users
+  // -------------------------
+  public getAdminUsers(page: number = 1, limit: number = 10, search: string = "", role: string = "") {
+    const users = this.getStore<any>("demo_admin_users");
+    let filtered = users;
+    if (search) {
+      filtered = filtered.filter((u: any) =>
+        u.name?.toLowerCase().includes(search.toLowerCase()) ||
+        u.username?.toLowerCase().includes(search.toLowerCase()) ||
+        u.email?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    if (role) {
+      filtered = filtered.filter((u: any) => u.role === role);
+    }
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const start = (page - 1) * limit;
+    return {
+      users: filtered.slice(start, start + limit),
+      pagination: { total, totalPages, page, limit },
+    };
+  }
+
+  public createAdminUser(data: any) {
+    const users = this.getStore<any>("demo_admin_users");
+    const exists = users.find((u: any) => u.username === data.username);
+    if (exists) throw new Error("Username already exists");
+    const newUser = {
+      id: `user-${Date.now()}`,
+      name: data.name,
+      username: data.username,
+      role: data.role,
+      email: data.email || `${data.username}@vpneye.com`,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    this.setStore("demo_admin_users", [...users, newUser]);
+    this.addAuditLog({ action: "USER_CREATED", details: `Created new staff account: ${data.name} (${data.role})` });
+    return newUser;
+  }
+
+  public updateAdminUser(id: string, data: any) {
+    const users = this.getStore<any>("demo_admin_users");
+    const updated = users.map((u: any) => u.id === id ? { ...u, ...data } : u);
+    this.setStore("demo_admin_users", updated);
+    return updated.find((u: any) => u.id === id);
+  }
+
+  public deleteAdminUser(id: string) {
+    const users = this.getStore<any>("demo_admin_users");
+    this.setStore("demo_admin_users", users.filter((u: any) => u.id !== id));
+    return { success: true };
+  }
+
+  public resetUserPassword(userId: string, _newPassword: string) {
+    // In demo mode, password reset is acknowledged but not actually enforced
+    this.addAuditLog({ action: "PASSWORD_RESET", details: `Password reset for user ID: ${userId}` });
+    return { success: true, message: "Password reset successfully (demo mode)" };
+  }
+
+  // -------------------------
+  // Admin Stats / Reports
+  // -------------------------
+  public getAdminStats() {
+    const visits = this.getStore<any>("demo_visits");
+    const patients = this.getStore<any>("demo_patients");
+    const users = this.getStore<any>("demo_admin_users");
+    const today = new Date().toDateString();
+    const todayVisits = visits.filter((v: any) => new Date(v.visitedAt || v.createdAt).toDateString() === today);
+
+    const statusCounts: Record<string, number> = {};
+    todayVisits.forEach((v: any) => {
+      const s = v.status || "AT_RECEPTION";
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+    });
+
+    const roleCounts: Record<string, number> = {};
+    users.forEach((u: any) => {
+      roleCounts[u.role] = (roleCounts[u.role] || 0) + 1;
+    });
+
+    return {
+      totalPatients: patients.length,
+      totalVisits: visits.length,
+      totalUsers: users.length,
+      todayVisits: todayVisits.length,
+      completedToday: todayVisits.filter((v: any) => ["COMPLETED", "CONSULTED", "AT_OPTICAL"].includes(v.status)).length,
+      pendingToday: todayVisits.filter((v: any) => ["AT_RECEPTION", "IN_REFRACTION", "REFRACTION_DONE"].includes(v.status)).length,
+      withDoctorToday: todayVisits.filter((v: any) => v.status === "WITH_DOCTOR").length,
+      visitsStatusGroup: statusCounts,
+      usersRoleGroup: roleCounts,
+    };
+  }
+
+  public getReports(type: string = "patients", page: number = 1, limit: number = 20, search: string = "") {
+    if (type === "patients") {
+      const patients = this.getStore<any>("demo_patients");
+      const filtered = search
+        ? patients.filter((p: any) =>
+            p.name?.toLowerCase().includes(search.toLowerCase()) ||
+            p.mrNumber?.includes(search) ||
+            p.contactNumber?.includes(search)
+          )
+        : patients;
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      const start = (page - 1) * limit;
+      return {
+        data: filtered.slice(start, start + limit),
+        pagination: { total, totalPages, page, limit },
+        type,
+      };
+    } else if (type === "visits") {
+      const visits = this.getStore<any>("demo_visits");
+      const enriched = visits.map((v: any) => this.populateVisitRelations(v));
+      const filtered = search
+        ? enriched.filter((v: any) =>
+            v.patient?.name?.toLowerCase().includes(search.toLowerCase()) ||
+            v.mrNumber?.includes(search) ||
+            v.status?.toLowerCase().includes(search.toLowerCase())
+          )
+        : enriched;
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+      const start = (page - 1) * limit;
+      return {
+        data: filtered.slice(start, start + limit),
+        pagination: { total, totalPages, page, limit },
+        type,
+      };
+    }
+    return { data: [], pagination: { total: 0, totalPages: 1, page: 1, limit }, type };
   }
 }
 

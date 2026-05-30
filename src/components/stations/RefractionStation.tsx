@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from "
 import {
   Activity, AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ChevronUp,
   ChevronRight, ClipboardList, Clock, Crosshair, Eye, History, Save, Scan,
-  Search, ShieldCheck, Stethoscope, User, X, Send, CloudUpload, Droplets, Check
+  Search, ShieldCheck, Stethoscope, User, X, Send, CloudUpload, Droplets, Check, Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/config";
 import { api } from "@/lib/api";
-import { getPatientAgeString, getPatientAgeNumber, calculateSessionSlot } from "@/lib/utils";
+import { cn, getPatientAgeString, getPatientAgeNumber, getPatientGenderString, calculateSessionSlot, eyeBoxClass, eyeLabelClass, eyeRowBgClass, eyeVaInputClass } from "@/lib/utils";
 import { ScanReportGallery } from "@/components/ScanReportGallery";
 import { CTRRDrawingDialog } from "./CTRRDrawingDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { RefractionSummaryView } from "./RefractionSummaryView";
+import { SharedPrintLayout } from "./SharedPrintLayout";
+import { createPortal } from "react-dom";
 import { sanitizeOptometryInput, getFieldTypeFromName } from "@/lib/validation";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 
 import { type Patient } from "@/data/mockData";
 
@@ -70,7 +75,7 @@ const formatComplaintToStatement = (c: { complaint: string, eye: string, duratio
 
 const parseComplaintString = (part: string) => {
   const trimmed = part.trim().replace(/\.$/, ""); // remove trailing period if any
-  
+
   // 1. Try matching sentence format: e.g. "Eye pain in the right eye for the past 3 days"
   let match = trimmed.match(/^(.+?)\s+in\s+(?:the\s+)?(right\s+eye|left\s+eye|both\s+eyes)?(?:\s+for\s+the\s+past\s+(\d+)\s+(day|days|month|months|year|years))?$/i);
   if (match) {
@@ -142,26 +147,76 @@ const SCHIRMER_OPTIONS = [
   "31 mm", "32 mm", "33 mm", "34 mm", "35 mm"
 ];
 
-const TagInput = React.memo(({ 
-  values, 
-  onAdd, 
-  onRemove, 
+const TagInput = React.memo(({
+  values,
+  onAdd,
+  onRemove,
   placeholder,
-  disabled
-}: { 
-  values: string[]; 
-  onAdd: (val: string) => void; 
+  disabled,
+  isKeratometry = false,
+  gender
+}: {
+  values: string[];
+  onAdd: (val: string) => void;
   onRemove: (index: number) => void;
   placeholder: string;
   disabled?: boolean;
+  isKeratometry?: boolean;
+  gender?: string;
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState(false);
+  const [selectedPrefix, setSelectedPrefix] = useState("K1");
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const prefixOptions = ["K1", "K2"];
+  const genderLower = gender?.toLowerCase();
+  const isMale = genderLower === "male" || genderLower === "master";
+  const isFemale = genderLower === "female" || genderLower === "miss";
+  if (isMale) {
+    prefixOptions.push("m-K1", "m-K2");
+  } else if (isFemale) {
+    prefixOptions.push("f-K1", "f-K2");
+  } else {
+    prefixOptions.push("f-K1", "f-K2", "m-K1", "m-K2");
+  }
+
+  useEffect(() => {
+    if (open) {
+      const openTime = Date.now();
+      const handleScroll = (e: Event) => {
+        // Ignore scroll events for the first 800ms to allow smooth scroll to complete
+        if (Date.now() - openTime < 800) return;
+
+        // If the scroll event originated from inside the popover content, do not close it
+        const target = e.target as HTMLElement;
+        if (
+          target &&
+          (target.closest('[data-radix-popper-content-wrapper]') ||
+            target.closest('.shadow-xl') ||
+            target.closest('.rounded-xl'))
+        ) {
+          return;
+        }
+
+        setOpen(false);
+      };
+      window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll, { capture: true });
+      };
+    }
+  }, [open]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ',') && inputValue.trim()) {
       e.preventDefault();
-      onAdd(inputValue.trim());
+      const val = inputValue.trim();
+      const finalVal = (isKeratometry && !val.includes(":"))
+        ? `${selectedPrefix}: ${val}`
+        : val;
+      onAdd(finalVal);
       setInputValue("");
       setOpen(false);
     }
@@ -175,38 +230,59 @@ const TagInput = React.memo(({
   const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    let num = parseFloat(inputValue) || 15;
+    let num = parseFloat(inputValue) || (isKeratometry ? 43.00 : 15);
     if (direction === "up") {
-      num += 1;
+      num += isKeratometry ? 0.25 : 1;
     } else {
-      num -= 1;
+      num -= isKeratometry ? 0.25 : 1;
     }
     if (num < 0) num = 0;
-    setInputValue(String(num));
+    setInputValue(isKeratometry ? num.toFixed(2) : String(num));
     setOpen(true);
   };
 
   const iopValues = [
     "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
-    "22", "23", "24", "25", "26", "28", "30", "32", "35", "40"
+    "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "34",
+    "36", "38", "40"
+  ];
+
+  const keratometryValues = [
+    "38.00", "39.00", "40.00", "40.50", "41.00", "41.50",
+    "42.00", "42.50", "43.00", "43.50", "44.00", "44.50",
+    "45.00", "45.50", "46.00", "46.50", "47.00", "48.00"
   ];
 
   return (
     <Popover open={open && !disabled} onOpenChange={setOpen}>
-      <div className="relative flex items-center w-full group min-w-0">
+      <div ref={containerRef} className="relative flex items-center w-full group min-w-0">
         <PopoverAnchor asChild>
-          <div className="flex flex-wrap items-center gap-1.5 p-1.5 border border-blue-100 bg-white min-h-[44px] flex-1 min-w-0 pr-8">
+          <div className={cn(
+            "flex flex-wrap items-center gap-1.5 p-1.5 bg-white min-h-[44px] flex-1 min-w-0 pr-8 border",
+            isKeratometry ? "border-slate-200" : "border-blue-100"
+          )}>
             {(Array.isArray(values) ? values : (typeof values === 'string' && (values as string).trim() ? [(values as string).trim()] : [])).map((v, i) => (
-              <span key={i} className="group flex items-center gap-1 bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border border-blue-200 uppercase tracking-tighter transition-all">
+              <span key={i} className={cn(
+                "group flex items-center transition-all border uppercase",
+                isKeratometry
+                  ? "bg-slate-100 text-black text-xs sm:text-sm font-bold px-3 py-1.5 border-slate-300 gap-1.5 tracking-normal"
+                  : "bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border-blue-200 gap-1 tracking-tighter"
+              )}>
                 {v}
                 {!disabled && (
-                  <X className="w-2.5 h-2.5 cursor-pointer hover:text-red-600 transition-all opacity-0 group-hover:opacity-100" onClick={() => onRemove(i)} />
+                  <X className={cn(
+                    "cursor-pointer hover:text-red-600 transition-all opacity-0 group-hover:opacity-100",
+                    isKeratometry ? "w-3 h-3" : "w-2.5 h-2.5"
+                  )} onClick={() => onRemove(i)} />
                 )}
               </span>
             ))}
             <input
               ref={inputRef}
-              className="flex-1 outline-none text-base font-black placeholder:text-slate-300 min-w-[50px] bg-transparent text-center"
+              className={cn(
+                "flex-1 outline-none placeholder:text-slate-300 min-w-[50px] bg-transparent text-center",
+                isKeratometry ? "text-sm sm:text-base font-bold text-black" : "text-base font-black text-slate-900"
+              )}
               placeholder={values.length === 0 ? placeholder : ""}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -224,7 +300,11 @@ const TagInput = React.memo(({
               onBlur={() => {
                 setTimeout(() => {
                   if (inputValue.trim() && !disabled) {
-                    onAdd(inputValue.trim());
+                    const val = inputValue.trim();
+                    const finalVal = (isKeratometry && !val.includes(":"))
+                      ? `${selectedPrefix}: ${val}`
+                      : val;
+                    onAdd(finalVal);
                     setInputValue("");
                   }
                 }, 150);
@@ -259,26 +339,80 @@ const TagInput = React.memo(({
         )}
       </div>
 
-      <PopoverContent className="w-80 p-4 border border-slate-200 bg-white shadow-xl rounded-xl z-[100]" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <div className="space-y-3">
+      <PopoverContent
+        className="w-80 p-4 border border-slate-200 bg-white shadow-xl rounded-xl z-[100]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => {
+          if (
+            containerRef.current &&
+            (containerRef.current === e.target || containerRef.current.contains(e.target as Node))
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
+        <div className="space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">IOP Predefined Values (mmHg)</span>
-            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5">Normal: 10-21</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+              {isKeratometry ? "Keratometry Predefined Values (Diopters)" : "IOP Predefined Values (mmHg)"}
+            </span>
+            <span className={cn(
+              "text-[9px] font-bold px-1.5 py-0.5",
+              isKeratometry ? "text-indigo-600 bg-indigo-50" : "text-emerald-600 bg-emerald-50"
+            )}>
+              {isKeratometry ? "Normal: 40-46 D" : "Normal: 10-17"}
+            </span>
           </div>
+
+          {isKeratometry && (
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block">Target Type Prefix</span>
+              <div className="grid grid-cols-3 gap-1">
+                {prefixOptions.map((prefix) => {
+                  const isPrefSelected = selectedPrefix === prefix;
+                  return (
+                    <button
+                      key={prefix}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setSelectedPrefix(prefix)}
+                      className={cn(
+                        "py-1 text-[10px] font-black uppercase tracking-wider transition-all border text-center rounded",
+                        isPrefSelected
+                          ? "bg-indigo-600 text-white border-indigo-700 shadow-sm"
+                          : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                      )}
+                    >
+                      {prefix}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-6 gap-1.5">
-            {iopValues.map((val) => {
-              const numVal = parseInt(val);
-              const isNormal = numVal >= 10 && numVal <= 21;
+            {(isKeratometry ? keratometryValues : iopValues).map((val) => {
+              const numVal = parseFloat(val);
+              const isNormal = isKeratometry
+                ? (numVal >= 40.00 && numVal <= 46.00)
+                : (numVal >= 10 && numVal <= 17);
               return (
                 <button
                   key={val}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleSelect(val)}
+                  onClick={() => {
+                    const finalVal = isKeratometry ? `${selectedPrefix}: ${val}` : val;
+                    handleSelect(finalVal);
+                  }}
                   className={cn(
                     "h-9 text-xs font-black transition-all border rounded flex items-center justify-center",
-                    isNormal 
-                      ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50" 
+                    isNormal
+                      ? (isKeratometry
+                        ? "bg-white text-indigo-600 border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50/50"
+                        : "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50")
                       : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
                   )}
                 >
@@ -293,12 +427,12 @@ const TagInput = React.memo(({
   );
 });
 
-const DiagnosticCard = React.memo(({ 
-  title, 
-  icon: Icon, 
-  sectionId, 
-  openSections, 
-  onToggle, 
+const DiagnosticCard = React.memo(({
+  title,
+  icon: Icon,
+  sectionId,
+  openSections,
+  onToggle,
   children,
   className,
   headerClassName,
@@ -320,8 +454,8 @@ const DiagnosticCard = React.memo(({
 }) => {
   const isOpen = openSections[sectionId];
   return (
-    <Card className={cn("border-2 rounded-none shadow-sm overflow-hidden", className)} data-section={sectionId}>
-      <div 
+    <Card className={cn("border-2 rounded-none shadow-sm overflow-hidden", className)} data-section={sectionId} id={`sec-${sectionId}`}>
+      <div
         className={cn("px-5 py-2.5 flex items-center justify-between cursor-pointer hover:opacity-90 transition-all border-l-4", headerClassName)}
         onClick={() => onToggle(sectionId)}
       >
@@ -397,20 +531,6 @@ const DualEyePrescriptionBlock = React.memo(({
       };
     });
   };
-  const updateRemark = (eye: "OD" | "OS", val: string) => {
-    const sanitizedVal = sanitizeOptometryInput(val, 'notes');
-    setFormData((p: any) => {
-      const currentSection = p[stateKey] || {};
-      const currentRemarks = currentSection.remarks || {};
-      return {
-        ...p,
-        [stateKey]: {
-          ...currentSection,
-          remarks: { ...currentRemarks, [eye]: sanitizedVal }
-        }
-      };
-    });
-  };
 
 
 
@@ -442,11 +562,8 @@ const DualEyePrescriptionBlock = React.memo(({
           {["OD", "OS"].map((eye) => (
             <div key={eye} className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-4 border-b border-orange-100 pb-2">
-                <div className={cn(
-                  "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                  eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                )}>{eye}</div>
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{eye === "OD" ? "Right Eye" : "Left Eye"} Result</span>
+                <div className={eyeBoxClass(eye)}>{eye}</div>
+                <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeLabelClass(eye))}>{eye === "OD" ? "Right Eye" : "Left Eye"} Result</span>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -498,8 +615,8 @@ const DualEyePrescriptionBlock = React.memo(({
                         label={`${title} ${eye} - BCVA (DV)`}
                         value={(data as any)?.distance?.[eye]?.vn || ""}
                         onChange={(val) => update("distance", eye as any, "vn", val)}
-                        placeholder="-"
-                        className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        placeholder="6/6"
+                        className={cn("h-11 text-center text-sm font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0", eyeVaInputClass(eye))}
                         disabled={disabled}
                       />
                     </div>
@@ -554,22 +671,13 @@ const DualEyePrescriptionBlock = React.memo(({
                         label={`${title} Near ${eye} - BCVA (NV)`}
                         value={(data as any)?.near?.[eye]?.vn || ""}
                         onChange={(val) => update("near", eye as any, "vn", val)}
-                        placeholder="-"
-                        className="h-11 text-center text-sm font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        placeholder="N6"
+                        className={cn("h-11 text-center text-sm font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0", eyeVaInputClass(eye))}
                         disabled={disabled}
                       />
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="pt-2">
-                <Input
-                  className="h-10 bg-white text-[11px] font-bold border-dashed border-orange-100 rounded-none italic placeholder:text-slate-300 text-slate-900"
-                  placeholder="Notes..."
-                  value={(data as any)?.remarks?.[eye] || ""}
-                  onChange={(e) => updateRemark(eye as any, e.target.value)}
-                />
               </div>
             </div>
           ))}
@@ -579,16 +687,16 @@ const DualEyePrescriptionBlock = React.memo(({
   );
 });
 
-const TonometrySection = React.memo(({ 
-  formData, 
-  setFormData, 
-  openSections, 
+const TonometrySection = React.memo(({
+  formData,
+  setFormData,
+  openSections,
   toggleSection,
   disabled
-}: { 
-  formData: any; 
-  setFormData: any; 
-  openSections: any; 
+}: {
+  formData: any;
+  setFormData: any;
+  openSections: any;
   toggleSection: (id: string) => void;
   disabled?: boolean;
 }) => {
@@ -624,7 +732,7 @@ const TonometrySection = React.memo(({
                         <span className="text-[9px] font-black uppercase text-blue-500 tracking-widest bg-blue-50 px-2 py-0.5">MEAN</span>
                       </div>
                       <div className="flex items-center gap-3 w-full min-w-0">
-                        <TagInput 
+                        <TagInput
                           placeholder="Value"
                           values={(formData.tonometryDetails?.nct as any)?.[eye]?.mean || []}
                           onAdd={(val) => setFormData((p: any) => {
@@ -648,7 +756,7 @@ const TonometrySection = React.memo(({
                     </div>
 
                     {/* GAT Assessment */}
-                     <div className="space-y-4">
+                    <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <span className={cn(
                           "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
@@ -657,7 +765,7 @@ const TonometrySection = React.memo(({
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-blue-50 px-2 py-0.5">GAT (Goldmann)</span>
                       </div>
                       <div className="flex items-center gap-3 w-full min-w-0">
-                        <TagInput 
+                        <TagInput
                           placeholder="Value"
                           values={(formData.tonometryDetails?.gat as any)?.[eye]?.reading || []}
                           onAdd={(val) => setFormData((p: any) => {
@@ -684,10 +792,10 @@ const TonometrySection = React.memo(({
                   {/* Schiotz Assessment (Right 4 Columns) */}
                   <div className="xl:col-span-4 space-y-4 xl:border-l xl:border-blue-100 xl:pl-8 self-stretch">
                     <div className="flex items-center gap-3">
-                        <span className={cn(
-                          "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                          eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                        )}>{eye}</span>
+                      <span className={cn(
+                        "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                        eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                      )}>{eye}</span>
                       <span className="text-[9px] font-black uppercase text-blue-500 tracking-widest bg-blue-50 px-2 py-0.5">Schiotz</span>
                     </div>
                     <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full min-w-0">
@@ -755,7 +863,7 @@ interface PowerPaletteInputProps {
   placeholder?: string;
   className?: string;
   label: string;
-  type: "sph" | "cyl" | "axis" | "add" | "dv" | "nv" | "iop" | "schiotz_scale";
+  type: "sph" | "cyl" | "axis" | "add" | "dv" | "nv" | "iop" | "schiotz_scale" | "pd";
   disabled?: boolean;
 }
 
@@ -787,6 +895,33 @@ const PowerPaletteInput = React.memo(({
     }
   }, [value]);
 
+  useEffect(() => {
+    if (open) {
+      const openTime = Date.now();
+      const handleScroll = (e: Event) => {
+        // Ignore scroll events for the first 800ms to allow smooth scroll to complete
+        if (Date.now() - openTime < 800) return;
+
+        // If the scroll event originated from inside the popover content, do not close it
+        const target = e.target as HTMLElement;
+        if (
+          target &&
+          (target.closest('[data-radix-popper-content-wrapper]') ||
+            target.closest('.shadow-xl') ||
+            target.closest('.rounded-xl'))
+        ) {
+          return;
+        }
+
+        setOpen(false);
+      };
+      window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll, { capture: true });
+      };
+    }
+  }, [open]);
+
   const powerValues = [
     "0.00", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00",
     "2.25", "2.50", "2.75", "3.00", "3.25", "3.50", "3.75", "4.00", "4.25",
@@ -799,14 +934,24 @@ const PowerPaletteInput = React.memo(({
 
   const iopValues = [
     "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
-    "22", "23", "24", "25", "26", "28", "30", "32", "35", "40"
+    "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "34",
+    "36", "38", "40"
   ];
 
   const schiotzScaleValues = [
     "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0", "9.5", "10.0", "11.0", "12.0"
   ];
+
+  const pdValues = [
+    "24", "24.5", "25", "25.5", "26", "26.5", "27", "27.5",
+    "28", "28.5", "29", "29.5", "30", "30.5", "31", "31.5",
+    "32", "32.5", "33", "33.5", "34", "34.5", "35", "35.5",
+    "36", "36.5", "37", "37.5", "38", "39", "40"
+  ];
+
   const focusNext = () => {
-    const inputs = Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[];
+    const inputs = (Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
     const idx = inputs.findIndex(el => el === inputRef.current);
     if (idx !== -1 && idx < inputs.length - 1) {
       setOpen(false);
@@ -818,7 +963,8 @@ const PowerPaletteInput = React.memo(({
   };
 
   const focusPrev = () => {
-    const inputs = Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[];
+    const inputs = (Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
     const idx = inputs.findIndex(el => el === inputRef.current);
     if (idx > 0) {
       setOpen(false);
@@ -831,16 +977,30 @@ const PowerPaletteInput = React.memo(({
 
   const handleSelect = (val: string) => {
     let finalVal = val;
-    if (type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && val !== "0.00") {
+    if (type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && type !== "pd" && val !== "0.00") {
       finalVal = sign + val;
     }
     onChange(finalVal);
+
+    // Auto-advance to next field after selecting a value
+    const inputs = (Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[])
+      .filter(el => !el.disabled);
+    const idx = inputs.findIndex(el => el === inputRef.current);
+    if (idx !== -1 && idx < inputs.length - 1) {
+      setOpen(false);
+      setTimeout(() => {
+        inputs[idx + 1].focus();
+        inputs[idx + 1].select();
+      }, 50);
+    } else {
+      setOpen(false);
+    }
   };
 
   const handleStep = (direction: "up" | "down", e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (type === "dv" || type === "nv") {
       const arr = (type === "dv" ? DIST_VISION_OPTIONS : NEAR_VISION_OPTIONS) as readonly string[];
       let idx = arr.indexOf(value);
@@ -848,49 +1008,59 @@ const PowerPaletteInput = React.memo(({
         idx = 0;
       }
       if (direction === "up") {
-        idx = Math.max(0, idx - 1);
+        idx = (idx - 1 + arr.length) % arr.length;
       } else {
-        idx = Math.min(arr.length - 1, idx + 1);
+        idx = (idx + 1) % arr.length;
       }
       onChange(arr[idx]);
-    } else if (type === "axis") {
-      let num = parseInt(value || "0");
-      if (isNaN(num)) num = 0;
+      return;
+    }
+
+    if (type === "pd") {
+      let num = parseFloat(value) || 30;
+      num = direction === "up" ? num + 0.5 : num - 0.5;
+      onChange(String(parseFloat(num.toFixed(1))));
+      return;
+    }
+
+    if (type === "iop") {
+      let num = parseInt(value) || 15;
+      if (direction === "up") num += 1;
+      else num -= 1;
+      if (num < 0) num = 0;
+      onChange(String(num));
+      return;
+    }
+
+    if (type === "schiotz_scale") {
+      let num = parseFloat(value) || 5.5;
+      if (direction === "up") num += 0.5;
+      else num -= 0.5;
+      if (num < 0) num = 0;
+      onChange(num.toFixed(1));
+      return;
+    }
+
+    let num = parseFloat(value) || 0;
+
+    if (type === "axis") {
+      const step = 5;
       if (direction === "up") {
-        num = (num + 1) % 181;
+        num = num + step;
+        if (num > 180) num = 0;
       } else {
-        num = num - 1;
+        num = num - step;
         if (num < 0) num = 180;
       }
-      onChange(num.toString());
-    } else if (type === "iop") {
-      let num = parseInt(value || "10");
-      if (isNaN(num)) num = 10;
-      if (direction === "up") {
-        num = num + 1;
-      } else {
-        num = Math.max(0, num - 1);
-      }
-      onChange(num.toString());
-    } else if (type === "schiotz_scale") {
-      let num = parseFloat(value || "5.5");
-      if (isNaN(num)) num = 5.5;
-      if (direction === "up") {
-        num = num + 0.5;
-      } else {
-        num = Math.max(0, num - 0.5);
-      }
-      onChange(num.toFixed(1));
+      onChange(String(num));
     } else {
-      let num = parseFloat(value || "0.00");
-      if (isNaN(num)) num = 0;
       const step = 0.25;
       if (direction === "up") {
         num = num + step;
       } else {
         num = num - step;
       }
-      
+
       let signPrefix = "";
       if (num > 0) {
         signPrefix = "+";
@@ -924,6 +1094,27 @@ const PowerPaletteInput = React.memo(({
                 setOpen(true);
               }
             }}
+            onKeyDown={(e) => {
+              if (e.key === "Tab") {
+                const inputs = Array.from(document.querySelectorAll('.palette-input')) as HTMLInputElement[];
+                const idx = inputs.findIndex(el => el === inputRef.current);
+                if (e.shiftKey) {
+                  if (idx > 0) {
+                    e.preventDefault();
+                    focusPrev();
+                  } else {
+                    setOpen(false);
+                  }
+                } else {
+                  if (idx !== -1 && idx < inputs.length - 1) {
+                    e.preventDefault();
+                    focusNext();
+                  } else {
+                    setOpen(false);
+                  }
+                }
+              }
+            }}
             placeholder={placeholder}
             disabled={disabled}
           />
@@ -953,9 +1144,10 @@ const PowerPaletteInput = React.memo(({
           </div>
         )}
       </div>
-      <PopoverContent 
+      <PopoverContent
         className="w-[340px] p-4 bg-white border border-slate-200 shadow-xl rounded-xl z-50 relative mt-1"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => {
           if (
             containerRef.current &&
@@ -968,6 +1160,7 @@ const PowerPaletteInput = React.memo(({
         {/* Custom Circular Close button absolute-positioned at top center */}
         <button
           type="button"
+          tabIndex={-1}
           onClick={() => setOpen(false)}
           className="absolute left-1/2 -translate-x-1/2 -top-4 w-7 h-7 flex items-center justify-center bg-[#4f6f96] hover:bg-slate-700 text-white rounded-full border-2 border-white shadow-md transition-colors"
         >
@@ -979,6 +1172,7 @@ const PowerPaletteInput = React.memo(({
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <button
               type="button"
+              tabIndex={-1}
               onClick={focusPrev}
               className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
             >
@@ -989,6 +1183,7 @@ const PowerPaletteInput = React.memo(({
             </span>
             <button
               type="button"
+              tabIndex={-1}
               onClick={focusNext}
               className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
             >
@@ -997,10 +1192,12 @@ const PowerPaletteInput = React.memo(({
           </div>
 
           {/* Plus/Minus Sign toggle for power fields */}
-          {type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && (
+          {type !== "axis" && type !== "dv" && type !== "nv" && type !== "iop" && type !== "schiotz_scale" && type !== "pd" && (
             <div className="flex justify-center bg-slate-50 p-1 rounded-lg">
               <button
                 type="button"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSign("+")}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
@@ -1013,6 +1210,8 @@ const PowerPaletteInput = React.memo(({
               </button>
               <button
                 type="button"
+                tabIndex={-1}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setSign("-")}
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
@@ -1029,34 +1228,38 @@ const PowerPaletteInput = React.memo(({
           {/* Grid panel */}
           <div className={cn(
             "grid gap-1.5 max-h-[220px] overflow-y-auto pr-1",
-            type === "dv" ? "grid-cols-3" : type === "nv" ? "grid-cols-4" : type === "schiotz_scale" ? "grid-cols-4" : "grid-cols-5"
+            type === "dv" ? "grid-cols-3" : type === "nv" ? "grid-cols-4" : type === "schiotz_scale" ? "grid-cols-4" : type === "pd" ? "grid-cols-4" : "grid-cols-5"
           )}>
             {type === "dv"
               ? DIST_VISION_OPTIONS.map((val) => {
-                  const isSelected = value === val;
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleSelect(val)}
-                      className={cn(
-                        "py-2 px-1 text-[10px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
-                      )}
-                    >
-                      {val}
-                    </button>
-                  );
-                })
+                const isSelected = value === val;
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    tabIndex={-1}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSelect(val)}
+                    className={cn(
+                      "py-2 px-1 text-[10px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                      isSelected
+                        ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                        : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                    )}
+                  >
+                    {val}
+                  </button>
+                );
+              })
               : type === "nv"
-              ? NEAR_VISION_OPTIONS.map((val) => {
+                ? NEAR_VISION_OPTIONS.map((val) => {
                   const isSelected = value === val;
                   return (
                     <button
                       key={val}
                       type="button"
+                      tabIndex={-1}
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSelect(val)}
                       className={cn(
                         "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
@@ -1069,92 +1272,248 @@ const PowerPaletteInput = React.memo(({
                     </button>
                   );
                 })
-              : type === "axis"
-              ? axisValues.map((val) => {
-                  const isSelected = value === val;
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleSelect(val)}
-                      className={cn(
-                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
-                      )}
-                    >
-                      {val}
-                    </button>
-                  );
-                })
-              : type === "schiotz_scale"
-              ? schiotzScaleValues.map((val) => {
-                  const isSelected = value === val;
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleSelect(val)}
-                      className={cn(
-                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
-                      )}
-                    >
-                      {val}
-                    </button>
-                  );
-                })
-              : type === "iop"
-              ? iopValues.map((val) => {
-                  const isSelected = value === val;
-                  const numVal = parseInt(val);
-                  const isNormal = numVal >= 10 && numVal <= 21;
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleSelect(val)}
-                      className={cn(
-                        "py-2 px-1 text-[11px] font-black border rounded shadow-sm transition-all truncate",
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : isNormal
-                          ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50"
-                          : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
-                      )}
-                    >
-                      {val}
-                    </button>
-                  );
-                })
-              : powerValues.map((val) => {
-                  const displayVal = val === "0.00" ? "0.00" : sign + val;
-                  const isSelected = value === displayVal || (val === "0.00" && value === "0.00");
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => handleSelect(val)}
-                      className={cn(
-                        "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
-                      )}
-                    >
-                      {displayVal}
-                    </button>
-                  );
-                })}
+                : type === "axis"
+                  ? axisValues.map((val) => {
+                    const isSelected = value === val;
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleSelect(val)}
+                        className={cn(
+                          "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                          isSelected
+                            ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                            : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                        )}
+                      >
+                        {val}
+                      </button>
+                    );
+                  })
+                  : type === "schiotz_scale"
+                    ? schiotzScaleValues.map((val) => {
+                      const isSelected = value === val;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          tabIndex={-1}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSelect(val)}
+                          className={cn(
+                            "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                            isSelected
+                              ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                              : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                          )}
+                        >
+                          {val}
+                        </button>
+                      );
+                    })
+                    : type === "pd"
+                      ? pdValues.map((val) => {
+                        const isSelected = value === val;
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            tabIndex={-1}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelect(val)}
+                            className={cn(
+                              "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                              isSelected
+                                ? "bg-blue-600 text-white border-blue-700 shadow-md"
+                                : "bg-slate-50 border-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100"
+                            )}
+                          >
+                            {val}
+                          </button>
+                        );
+                      })
+                      : type === "iop"
+                        ? iopValues.map((val) => {
+                          const isSelected = value === val;
+                          const numVal = parseInt(val);
+                          const isNormal = numVal >= 10 && numVal <= 17;
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              tabIndex={-1}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleSelect(val)}
+                              className={cn(
+                                "py-2 px-1 text-[11px] font-black border rounded shadow-sm transition-all truncate",
+                                isSelected
+                                  ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                                  : isNormal
+                                    ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50"
+                                    : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
+                              )}
+                            >
+                              {val}
+                            </button>
+                          );
+                        })
+                        : powerValues.map((val) => {
+                          const displayVal = val === "0.00" ? "0.00" : sign + val;
+                          const isSelected = value === displayVal || (val === "0.00" && value === "0.00");
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              tabIndex={-1}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => handleSelect(val)}
+                              className={cn(
+                                "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
+                                isSelected
+                                  ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                                  : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                              )}
+                            >
+                              {displayVal}
+                            </button>
+                          );
+                        })}
           </div>
         </div>
       </PopoverContent>
     </Popover>
   );
 });
+
+export function isAtLeastOneSectionCompleted(formData: any, selectedChips?: any[]) {
+  if (!formData) return false;
+
+  // 1. History & Complaints
+  if ((formData.complaints && formData.complaints.length > 0) || 
+      (formData.complaintNotes && formData.complaintNotes.trim() !== "") || 
+      (selectedChips && selectedChips.length > 0)) {
+    return true;
+  }
+
+  // 2. Visual Acuity
+  if (formData.visualAcuity) {
+    const va = formData.visualAcuity;
+    for (const eye of ["OD", "OS", "OU"] as const) {
+      const e = va[eye];
+      if (e && (e.unaided || e.nearVision || e.aided || e.aidedNear || e.contactLens || e.contactLensNear || e.pinhole)) {
+        return true;
+      }
+    }
+  }
+
+  // 3. PG Power
+  if (formData.pgPower) {
+    const pg = formData.pgPower;
+    if (pg.notes && pg.notes.trim() !== "") return true;
+    for (const type of ["glass", "contact"] as const) {
+      const data = pg[type];
+      if (data) {
+        for (const eye of ["OD", "OS"] as const) {
+          const e = data[eye];
+          if (e && (e.sphere1 || e.cylinder1 || e.axis1 || e.add || e.vn1 || e.vnNear1 || e.sphere2 || e.cylinder2 || e.axis2)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Objective Refraction
+  if (formData.objectiveRefraction) {
+    const obj = formData.objectiveRefraction;
+    for (const eye of ["OD", "OS"] as const) {
+      const e = obj[eye];
+      if (e && (e.sphere || e.cylinder || e.axis || e.qualityOfRef || e.cycloSphere || e.cycloCylinder || e.cycloAxis)) {
+        return true;
+      }
+    }
+  }
+
+  // 5. Glass Prescription
+  if (formData.glassPrescription) {
+    const gp = formData.glassPrescription;
+    for (const eye of ["OD", "OS"] as const) {
+      const e = gp[eye];
+      if (e && (e.sphere || e.cylinder || e.axis || e.bcva || e.nearDsph || e.nearCylinder || e.nearAxis || e.nearAdd || e.nearBcva || e.nearCm)) {
+        return true;
+      }
+    }
+    if (gp.distPD?.OD || gp.distPD?.OS || gp.nearPD?.OD || gp.nearPD?.OS) return true;
+  }
+
+  // 6. Contact Lens Prescription
+  if (formData.contactLensPrescription) {
+    const cl = formData.contactLensPrescription;
+    for (const eye of ["OD", "OS"] as const) {
+      const e = cl[eye];
+      if (e && (e.sphere || e.cylinder || e.axis || e.bcva || e.nearDsph || e.nearCylinder || e.nearAxis || e.nearAdd || e.nearBcva || e.nearCm)) {
+        return true;
+      }
+    }
+  }
+
+  // 7. Auto Ref & AR Meter
+  if (formData.arMeterEnabled && formData.arMeter) {
+    const ar = formData.arMeter;
+    for (const eye of ["OD", "OS"] as const) {
+      const e = ar[eye];
+      if (e && (e.SPH || e.CYL || e.AXIS)) return true;
+    }
+  }
+  if (formData.autoRef) {
+    const ar = formData.autoRef;
+    for (const eye of ["OD", "OS"] as const) {
+      const e = ar[eye];
+      if (e && (e.sphere1 || e.cylinder1 || e.axis1)) return true;
+    }
+  }
+
+  // 8. Refining
+  if (formData.refining) {
+    const ref = formData.refining;
+    if (ref.duochrome?.OD || ref.duochrome?.OS || ref.jcc?.OD || ref.jcc?.OS) return true;
+  }
+
+  // 9. Notes & Remarks
+  if ((formData.optometristNotes && formData.optometristNotes.trim() !== "") ||
+      (formData.binocular && formData.binocular.trim() !== "") ||
+      (formData.ctrr && formData.ctrr.trim() !== "") ||
+      (formData.orthoptics && formData.orthoptics.trim() !== "") ||
+      (formData.amslerGrid && formData.amslerGrid.trim() !== "") ||
+      (formData.contrastSensitivity && formData.contrastSensitivity.trim() !== "") ||
+      (formData.jcc && formData.jcc.trim() !== "")) {
+    return true;
+  }
+
+  // 10. Keratometry
+  if (formData.keratometry) {
+    if ((formData.keratometry.OD && formData.keratometry.OD.length > 0) ||
+        (formData.keratometry.OS && formData.keratometry.OS.length > 0)) {
+      return true;
+    }
+  }
+
+  // 11. Tonometry & NCT
+  if (formData.tonometryDetails) {
+    const t = formData.tonometryDetails;
+    if (t.nct?.OD?.iop || t.nct?.OS?.iop || t.at?.OD || t.at?.OS) return true;
+  }
+
+  // 12. Ishihara Test
+  if (formData.ishiharaTest) {
+    if (formData.ishiharaTest.status || formData.ishiharaTest.notes) return true;
+  }
+
+  return false;
+}
 
 export function RefractionStation({ patient, doctors = [] }: { patient?: Patient | null, doctors?: any[] }) {
   const { toast } = useToast();
@@ -1164,6 +1523,9 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const [isUploadingCTRR, setIsUploadingCTRR] = useState(false);
   const [advanceLoading, setAdvanceLoading] = useState(false);
   const [localStatus, setLocalStatus] = useState<string | undefined>(patient?.status);
+  const [hasExistingRecord, setHasExistingRecord] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  useSmoothScroll(scrollContainerRef, [patient?.id]);
 
   // Sync local status when patient prop changes
   useEffect(() => {
@@ -1172,11 +1534,11 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
   // Determine if the form should be locked (not editable)
   const statusUpper = localStatus?.toUpperCase();
-  const isCurrentlyInRefraction = 
-    statusUpper === "IN_REFRACTION" || 
-    statusUpper === "OPTOMETRIST" || 
-    statusUpper === "WITH_DOCTOR" || 
-    statusUpper === "DOCTOR" || 
+  const isCurrentlyInRefraction =
+    statusUpper === "IN_REFRACTION" ||
+    statusUpper === "OPTOMETRIST" ||
+    statusUpper === "WITH_DOCTOR" ||
+    statusUpper === "DOCTOR" ||
     statusUpper === "REFRACTION_DONE";
   const isLocked = !isCurrentlyInRefraction;
 
@@ -1207,29 +1569,21 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const handleCTRRUpload = async () => {
     if (!formData.ctrr || !patient?.id || !patient?.mrNumber) return;
     if (!formData.ctrr.startsWith('data:image')) {
-      toast({ title: "Already Uploaded", description: "Drawing is already stored." });
+      toast({ title: "Already Uploaded", description: "Drawing is already stored locally." });
       return formData.ctrr;
     }
 
     setIsUploadingCTRR(true);
     try {
-      // Simulate network latency for saving the drawing locally
-      await new Promise(resolve => setTimeout(resolve, 600));
-
+      const cloudUrl = formData.ctrr;
+      setFormData(prev => ({ ...prev, ctrr: cloudUrl }));
       toast({
-        title: "Drawing Saved",
-        description: "Drawing is saved locally in this offline session.",
+        title: "Local Sync Successful",
+        description: "Drawing is now stored locally.",
       });
-
-      // Just return the base64 URL directly, avoiding cloud uploads.
-      return formData.ctrr;
+      return cloudUrl;
     } catch (err) {
-      console.error("CTRR save error:", err);
-      toast({
-        variant: "destructive",
-        title: "Failed to save drawing",
-        description: "An error occurred during local save.",
-      });
+      console.error("CTRR Local Upload error:", err);
       return null;
     } finally {
       setIsUploadingCTRR(false);
@@ -1252,7 +1606,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
         OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
       },
       contact: {
-        clType: ["Soft CL"], // Array for multi-select: Disposable, Yearly, Toric
+        clType: ["Soft CL", "Toric"], // Array for multi-select: Disposable, Yearly, Toric
         OD: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
         OS: { sphere1: "", cylinder1: "", axis1: "", add: "", vn1: "", vnNear1: "", sphere2: "", cylinder2: "", axis2: "" },
       },
@@ -1265,11 +1619,13 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
     },
     glassPrescription: {
       glassType: "SVN",
+      distPD: { OD: "", OS: "" },
+      nearPD: { OD: "", OS: "" },
       OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
       OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
     },
     contactLensPrescription: {
-      clType: ["Soft CL"],
+      clType: ["Soft CL", "Toric"],
       OD: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
       OS: { sphere: "", cylinder: "", axis: "", bcva: "", nearDsph: "", nearCylinder: "", nearAxis: "", nearAdd: "", nearBcva: "", nearCm: "" },
     },
@@ -1311,6 +1667,138 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const [formData, _setFormData] = useState(() => JSON.parse(JSON.stringify(initialFormData)));
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
+  const [activeSection, setActiveSection] = useState("sec-portfolio");
+  const [isNavHovered, setIsNavHovered] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [printVisit, setPrintVisit] = useState<any>(null);
+  const [printType, setPrintType] = useState<string | null>(null);
+  const navHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleNavMouseEnter = () => {
+    if (navHoverTimeoutRef.current) {
+      clearTimeout(navHoverTimeoutRef.current);
+      navHoverTimeoutRef.current = null;
+    }
+    setIsNavHovered(true);
+  };
+
+  const handleNavMouseLeave = () => {
+    if (navHoverTimeoutRef.current) {
+      clearTimeout(navHoverTimeoutRef.current);
+    }
+    navHoverTimeoutRef.current = setTimeout(() => {
+      setIsNavHovered(false);
+    }, 300);
+  };
+
+  const [scansCount, setScansCount] = useState(0);
+
+  useEffect(() => {
+    return () => {
+      if (navHoverTimeoutRef.current) {
+        clearTimeout(navHoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.IntersectionObserver) return;
+
+    const sections = [
+      "sec-portfolio",
+      "sec-systemic",
+      "sec-ocular",
+      "sec-visualAcuity",
+      "sec-pgPower",
+      "sec-autoRef",
+      "sec-keratometry",
+      "sec-objective",
+      "sec-acceptance",
+      "sec-refining",
+      "sec-glass",
+      "sec-contactLens",
+      "sec-tonometry",
+      "sec-secondary",
+      "sec-remarks"
+    ];
+
+    const observerOptions = {
+      root: null,
+      rootMargin: "-10% 0px -80% 0px",
+      threshold: 0,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const tid = entry.target.id;
+          if (tid === "sec-systemic" || tid === "sec-ocular") {
+            setActiveSection("sec-portfolio");
+          } else if (tid === "sec-objective") {
+            setActiveSection("sec-keratometry");
+          } else if (tid === "sec-contactLens") {
+            setActiveSection("sec-glass");
+          } else {
+            setActiveSection(tid);
+          }
+        }
+      });
+    }, observerOptions);
+
+    sections.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => {
+      sections.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) observer.unobserve(el);
+      });
+    };
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const sectionKey = id.replace("sec-", "");
+    if (sectionKey === "portfolio" || sectionKey === "systemic" || sectionKey === "ocular") {
+      setOpenSections(prev => ({ ...prev, portfolio: true, systemic: true, ocular: true }));
+      setTimeout(() => {
+        const el = document.getElementById("sec-portfolio");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+          setActiveSection("sec-portfolio");
+        }
+      }, 50);
+    } else if (sectionKey === "keratometry" || sectionKey === "objective") {
+      setOpenSections(prev => ({ ...prev, keratometry: true, objective: true }));
+      setTimeout(() => {
+        const el = document.getElementById("sec-keratometry");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+          setActiveSection("sec-keratometry");
+        }
+      }, 50);
+    } else if (sectionKey === "glass" || sectionKey === "contactLens") {
+      setOpenSections(prev => ({ ...prev, glass: true, contactLens: true }));
+      setTimeout(() => {
+        const el = document.getElementById("sec-glass");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+          setActiveSection("sec-glass");
+        }
+      }, 50);
+    } else {
+      setOpenSections(prev => ({ ...prev, [sectionKey]: true }));
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+          setActiveSection(id);
+        }
+      }, 50);
+    }
+  };
+
   const toggleSection = useCallback((id: string) => {
     setOpenSections(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
@@ -1318,8 +1806,9 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const expandAll = useCallback(() => {
     const all = {
       portfolio: true, systemic: true, ocular: true, visualAcuity: true, pgPower: true,
-      tonometry: true, secondary: true, autoRef: true, keratometry: true, objective: true, 
-      acceptance: true, refining: true, specialized: true, glass: true, contactLens: true, 
+      autoRef: true, keratometry: true, objective: true,
+      acceptance: true, refining: true, glass: true, contactLens: true,
+      tonometry: true, secondary: true,
       remarks: true
     };
     setOpenSections(all);
@@ -1328,6 +1817,59 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const collapseAll = useCallback(() => {
     setOpenSections({});
   }, []);
+
+  const isSectionCompleted = useCallback((id: string) => {
+    switch (id) {
+      case "portfolio": {
+        if (selectedChips.length > 0) {
+          const allSystemicCompleted = selectedChips.every(item => {
+            const hasDuration = !!(item.duration && item.duration.trim());
+            const hasMedication = !!((item.details && item.details.length > 0) || (item.medicationNotes && item.medicationNotes.trim()));
+            return hasDuration && hasMedication;
+          });
+          if (!allSystemicCompleted) return false;
+        }
+        return scansCount > 0 || (formData.complaints && formData.complaints.length > 0) || selectedChips.length > 0;
+      }
+      case "visualAcuity":
+        return !!(formData.visualAcuity?.OD?.unaided || formData.visualAcuity?.OS?.unaided);
+      case "pgPower":
+        const activeTab = formData.pgPower?.activeTab;
+        if (activeTab === "glass") {
+          return !!(formData.pgPower?.glass?.OD?.sphere1 || formData.pgPower?.glass?.OS?.sphere1);
+        } else {
+          return !!(formData.pgPower?.contact?.OD?.sphere1 || formData.pgPower?.contact?.OS?.sphere1);
+        }
+      case "autoRef":
+        return !!(formData.autoRef?.OD?.sphere1 || formData.autoRef?.OS?.sphere1);
+      case "keratometry":
+        return !!(
+          (formData.keratometry?.OD?.length > 0 || formData.keratometry?.OS?.length > 0) ||
+          (formData.objectiveRefraction?.OD?.sphere || formData.objectiveRefraction?.OS?.sphere)
+        );
+      case "acceptance":
+        return !!(formData.acceptance?.distance?.OD?.sphere || formData.acceptance?.distance?.OS?.sphere);
+      case "refining":
+        return !!(formData.refining?.duochrome?.OD || formData.refining?.duochrome?.OS || formData.refining?.jcc?.OD || formData.refining?.jcc?.OS);
+      case "glass":
+        return !!(
+          (formData.glassPrescription?.OD?.sphere || formData.glassPrescription?.OS?.sphere) ||
+          (formData.contactLensPrescription?.OD?.sphere || formData.contactLensPrescription?.OS?.sphere)
+        );
+      case "tonometry":
+        return !!(
+          (formData.tonometryDetails?.nct?.OD?.mean?.length > 0 || formData.tonometryDetails?.nct?.OS?.mean?.length > 0) ||
+          (formData.tonometryDetails?.gat?.OD?.reading?.length > 0 || formData.tonometryDetails?.gat?.OS?.reading?.length > 0) ||
+          (formData.tonometryDetails?.schiotz?.OD?.reading || formData.tonometryDetails?.schiotz?.OS?.reading)
+        );
+      case "secondary":
+        return !!(formData.ishiharaTest?.status || formData.schirmerTest?.OD || formData.schirmerTest?.OS || formData.amslerGrid || formData.contrastSensitivity);
+      case "remarks":
+        return !!formData.optometristNotes;
+      default:
+        return false;
+    }
+  }, [selectedChips, formData]);
 
   const handleContainerKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -1346,9 +1888,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       let nextSectionEl: Element | null = null;
 
       const sectionOrder = [
-        'portfolio', 'systemic', 'ocular', 'visualAcuity', 'pgPower', 
-        'tonometry', 'secondary', 'autoRef', 'keratometry', 'objective', 
-        'acceptance', 'refining', 'specialized', 'glass', 'contactLens', 
+        'portfolio', 'systemic', 'ocular', 'visualAcuity', 'pgPower',
+        'autoRef', 'keratometry', 'objective',
+        'acceptance', 'refining', 'glass', 'contactLens',
+        'tonometry', 'secondary',
         'remarks'
       ];
 
@@ -1363,7 +1906,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
       if (nextSectionId && nextSectionEl) {
         setOpenSections(prev => ({ ...prev, [nextSectionId as string]: true }));
-        
+
         setTimeout(() => {
           const focusableSelector = 'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
           const firstInput = nextSectionEl?.querySelector(focusableSelector) as HTMLElement;
@@ -1422,8 +1965,13 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
 
     const loadRefractionData = async () => {
       try {
-        // 1. Fetch Offline Data
-        const serverData = await api.getRefraction(patient.id);
+        // 1. Fetch Server Data
+        let serverData = null;
+        try {
+          serverData = await api.getRefraction(patient.id);
+        } catch (e) {
+          console.error("Error loading server refraction data:", e);
+        }
 
         // 2. Fetch Local Draft
         const savedDraft = localStorage.getItem(storageKey);
@@ -1463,6 +2011,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
         };
 
         if (serverData || draftData) {
+          setHasExistingRecord(!!serverData);
           _setFormData(() => {
             const merged = mergeDeep(initialFormData, serverData || {});
             const final = mergeDeep(merged, draftData?.data || {});
@@ -1521,6 +2070,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             setSelectedChips(sanitizedChips);
           }
         } else {
+          setHasExistingRecord(false);
           const initialData = { ...initialFormData };
           if (patient?.complaint) {
             initialData.complaints = patient.complaint.split(',').map((s: string) => {
@@ -1546,10 +2096,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   useEffect(() => {
     if (isDraftLoaded && formData) {
       const sectionsWithData: Record<string, boolean> = {};
-      
+
       if (selectedChips.length > 0) sectionsWithData.systemic = true;
       if ((formData.complaints?.length > 0) || formData.complaintNotes) sectionsWithData.ocular = true;
-      
+
       const hasContent = (obj: any) => {
         if (!obj) return false;
         if (typeof obj === 'string') return obj.trim() !== "";
@@ -1558,12 +2108,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       };
 
       if (hasContent(formData.visualAcuity)) sectionsWithData.visualAcuity = true;
-      
+
       const pg = formData.pgPower;
       if ([pg.glass?.OD, pg.glass?.OS, pg.contact?.OD, pg.contact?.OS].some(eye => eye && ["sphere1", "cylinder1", "axis1", "add"].some(f => (eye as any)[f] !== ""))) {
         sectionsWithData.pgPower = true;
       }
-      
+
       const ar = formData.autoRef;
       if ([ar.OD, ar.OS].some(eye => ["sphere1", "cylinder1", "axis1"].some(f => (eye as any)[f] !== ""))) {
         sectionsWithData.autoRef = true;
@@ -1575,7 +2125,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       }
 
       const gp = formData.glassPrescription;
-      if ([gp.OD, gp.OS].some(eye => ["sphere", "cylinder", "axis", "nearDsph", "nearAdd"].some(f => (eye as any)[f] !== ""))) {
+      if (
+        [gp.OD, gp.OS].some(eye => ["sphere", "cylinder", "axis", "nearDsph", "nearAdd"].some(f => (eye as any)[f] !== "")) ||
+        [gp.distPD?.OD, gp.distPD?.OS, gp.nearPD?.OD, gp.nearPD?.OS].some(v => v !== "")
+      ) {
         sectionsWithData.glass = true;
       }
 
@@ -1585,11 +2138,11 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
       if (formData.optometristNotes) sectionsWithData.remarks = true;
 
       if (hasContent(formData.keratometry) || formData.jcc || formData.amslerGrid || hasContent(formData.refining)) sectionsWithData.specialized = true;
-      
+
       if (formData.contrastSensitivity || formData.ishiharaTest?.status || hasContent(formData.schirmerTest)) sectionsWithData.secondary = true;
-      
+
       if (hasContent(formData.acceptance)) sectionsWithData.acceptance = true;
-      
+
       if (hasContent(formData.contactLensPrescription)) sectionsWithData.contactLens = true;
 
       setOpenSections(prev => ({ ...prev, ...sectionsWithData }));
@@ -1637,7 +2190,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
     const sanitizedVal = sanitizeOptometryInput(value, fieldType);
     setFormData(prev => {
       const currentGrid = prev[grid] || {};
-      
+
       if (grid === "pgPower" && subType) {
         const subtypeObj = currentGrid[subType] || {};
         return {
@@ -1669,6 +2222,20 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
     });
   }, [setFormData]);
 
+  const updateGlassPd = useCallback((pdType: "distPD" | "nearPD", eye: "OD" | "OS", value: string) => {
+    const sanitizedVal = sanitizeOptometryInput(value, "pd");
+    setFormData(prev => {
+      const current = prev.glassPrescription?.[pdType] || { OD: "", OS: "" };
+      return {
+        ...prev,
+        glassPrescription: {
+          ...prev.glassPrescription,
+          [pdType]: { ...current, [eye]: sanitizedVal },
+        },
+      };
+    });
+  }, [setFormData]);
+
   const visualAcuityHandler = useCallback((eye: string, f: string, v: string) => updateEyeGrid("visualAcuity", eye, f, v), [updateEyeGrid]);
   const autoRefHandler = useCallback((eye: string, f: string, v: string) => updateEyeGrid("autoRef", eye, f, v), [updateEyeGrid]);
   const keratometryHandler = useCallback((eye: string, f: string, v: string) => updateEyeGrid("keratometry", eye, f, v), [updateEyeGrid]);
@@ -1676,7 +2243,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const syncObjectiveToAcceptance = () => {
     setFormData(prev => {
       const ar = prev.objectiveRefraction;
-      const newAcc = { 
+      const newAcc = {
         ...prev.acceptance,
         distance: {
           OD: { ...prev.acceptance.distance.OD, sphere: ar.OD.sphere, cylinder: ar.OD.cylinder, axis: ar.OD.axis },
@@ -1691,12 +2258,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const syncAcceptanceToFinal = () => {
     setFormData(prev => {
       const acc = prev.acceptance;
-      const newRx = { 
+      const newRx = {
         ...prev.glassPrescription,
-        OD: { 
-          ...prev.glassPrescription.OD, 
-          sphere: acc.distance.OD.sphere, 
-          cylinder: acc.distance.OD.cylinder, 
+        OD: {
+          ...prev.glassPrescription.OD,
+          sphere: acc.distance.OD.sphere,
+          cylinder: acc.distance.OD.cylinder,
           axis: acc.distance.OD.axis,
           bcva: acc.distance.OD.vn,
           nearDsph: acc.near?.OD?.sphere || "",
@@ -1704,10 +2271,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
           nearAxis: acc.near?.OD?.axis || "",
           nearBcva: acc.near?.OD?.vn || "",
         },
-        OS: { 
-          ...prev.glassPrescription.OS, 
-          sphere: acc.distance.OS.sphere, 
-          cylinder: acc.distance.OS.cylinder, 
+        OS: {
+          ...prev.glassPrescription.OS,
+          sphere: acc.distance.OS.sphere,
+          cylinder: acc.distance.OS.cylinder,
           axis: acc.distance.OS.axis,
           bcva: acc.distance.OS.vn,
           nearDsph: acc.near?.OS?.sphere || "",
@@ -1724,12 +2291,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   const syncAcceptanceToCL = () => {
     setFormData(prev => {
       const acc = prev.acceptance;
-      const newCL = { 
+      const newCL = {
         ...prev.contactLensPrescription,
-        OD: { 
-          ...prev.contactLensPrescription.OD, 
-          sphere: acc.distance.OD.sphere, 
-          cylinder: acc.distance.OD.cylinder, 
+        OD: {
+          ...prev.contactLensPrescription.OD,
+          sphere: acc.distance.OD.sphere,
+          cylinder: acc.distance.OD.cylinder,
           axis: acc.distance.OD.axis,
           bcva: acc.distance.OD.vn,
           nearDsph: acc.near?.OD?.sphere || "",
@@ -1737,10 +2304,10 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
           nearAxis: acc.near?.OD?.axis || "",
           nearBcva: acc.near?.OD?.vn || "",
         },
-        OS: { 
-          ...prev.contactLensPrescription.OS, 
-          sphere: acc.distance.OS.sphere, 
-          cylinder: acc.distance.OS.cylinder, 
+        OS: {
+          ...prev.contactLensPrescription.OS,
+          sphere: acc.distance.OS.sphere,
+          cylinder: acc.distance.OS.cylinder,
           axis: acc.distance.OS.axis,
           bcva: acc.distance.OS.vn,
           nearDsph: acc.near?.OS?.sphere || "",
@@ -1766,6 +2333,57 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   }, []);
 
   const userName = userSession?.name || "Not Attended";
+
+  const handlePrintRefractionReport = () => {
+    if (!patient) return;
+    const patientName = patient.name || "UNNAMED PATIENT";
+    const patientGender = getPatientGenderString(patient);
+    const ageString = getPatientAgeString(patient);
+
+    const pData = {
+      patientName,
+      ageGender: `${ageString} / ${patientGender}`,
+      mrNumber: patient.mrNumber || "0000",
+      contactNumber: patient.contactNumber || "—",
+      doctorName: patient.consultingDoctorName || "Dr. Clinical Lead",
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      diagnosisText: "",
+      notes: formData.optometristRemarks || "",
+      medications: [],
+      glassRx: {
+        distance: formData.acceptance?.distance || null,
+        near: formData.acceptance?.near || null,
+        glassType: formData.acceptance?.glassType || null,
+        instruction: formData.acceptance?.instruction || null
+      },
+      refraction: {
+        visualAcuity: formData.visualAcuity,
+        autoRef: formData.autoRef,
+        objectiveRefraction: formData.objectiveRefraction,
+        acceptance: formData.acceptance,
+        binocular: formData.binocular,
+        refining: formData.refining,
+        jcc: formData.jcc,
+        amslerGrid: formData.amslerGrid,
+        contrastSensitivity: formData.contrastSensitivity,
+        optometristName: userName,
+        consultantName: patient.consultingDoctorName || "Dr. Gajendran MBBS DO",
+        tonometryDetails: formData.tonometryDetails,
+        keratometry: formData.keratometry,
+        schirmerTest: formData.schirmerTest,
+        ishiharaTest: formData.ishiharaTest,
+        pgPower: formData.pgPower
+      },
+      anteriorSegment: {},
+      posteriorSegment: {}
+    };
+
+    setPrintVisit(pData);
+    setPrintType('refraction');
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
 
   const toggleChip = useCallback((c: string) =>
     setSelectedChips((prev) =>
@@ -1843,539 +2461,602 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white relative" onKeyDown={handleContainerKeyDown}>
-      {/* Premium Diagnostic Header */}
-      <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
-            <Eye className="w-5 h-5 md:w-6 md:h-6" />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Badge className="bg-orange-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
-                <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
-              <User className="w-3 h-3 text-slate-400" />
-              <span>{patient.gender}</span>
-              <span className="text-slate-300">•</span>
-              <span>{getPatientAgeString(patient)}</span>
-              <span className="text-slate-300">•</span>
-              <span className="text-orange-600 font-black tracking-widest">Diagnostic Phase</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
-          {(localStatus === "completed" || localStatus === "COMPLETED") && (
-            <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
-              <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
-              Visit Completed
-            </Badge>
-          )}
-          {(localStatus === "AT_RECEPTION" || localStatus === "reception") && (
-            <Button
-              size="sm"
-              onClick={handleAdvanceToRefraction}
-              disabled={advanceLoading}
-              className="h-9 md:h-11 gap-2 bg-orange-600 hover:bg-black text-white font-black uppercase tracking-widest rounded-none px-3 md:px-6 shadow-md transition-all text-[9px] md:text-xs"
-            >
-              <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
-              {advanceLoading ? "..." : "Begin Refraction"}
-            </Button>
-          )}
-          <div className="flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={expandAll}
-              className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-orange-600 hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
-            >
-              Expand All
-            </Button>
-            <div className="w-px h-4 bg-slate-200" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={collapseAll}
-              className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-rose-600 hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
-            >
-              Collapse All
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
-            <div className="text-right shrink-0">
-              <div className="flex items-center justify-end gap-1.5 mb-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Practitioner</p>
-              </div>
-              <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{userName}</p>
-            </div>
-            <div className="bg-emerald-50 p-2.5 rounded-full hidden md:block border border-emerald-100">
-              <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white relative refraction-station-container" onKeyDown={handleContainerKeyDown}>
       {/* Main Clinical Workspace - Isolated Scrollable Area */}
       <div className="flex-1 relative overflow-hidden bg-slate-50/50">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
-        <div className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300 transition-all overflow-x-hidden z-10">
+        <div ref={scrollContainerRef} className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300 transition-all overflow-x-hidden z-10">
           <div className="max-w-7xl mx-auto px-2 md:px-4 py-4 relative" style={{ zoom: "110%" }}>
-          <div className="bg-white shadow-xl border border-slate-200 p-3 sm:p-6 md:p-8">
-            <fieldset 
-              disabled={isLocked}
-              className={cn("space-y-4 md:space-y-6 border-0 p-0 m-0 min-w-0 transition-all", isLocked && "opacity-80 pointer-events-none grayscale")}
-            >
 
-              {/* Clinical Scan Portfolio */}
-            <DiagnosticCard
-              title="Clinical Scan Portfolio"
-              icon={Scan}
-              sectionId="portfolio"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-slate-100 text-slate-900 border-l-slate-600"
-            >
-              <div className="bg-slate-50 p-3 md:p-4 border-2 border-dashed border-slate-200">
-                <ScanReportGallery mrNumber={patient.mrNumber?.toString()} visitId={patient.id} allowUpload={isCurrentlyInRefraction} />
-              </div>
-            </DiagnosticCard>
-
-            {/* Systemic Health Portfolio */}
-            <DiagnosticCard
-              title="Systemic Health Portfolio"
-              icon={ShieldCheck}
-              sectionId="systemic"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-rose-50 text-rose-900 border-l-rose-600"
-              badge={selectedChips.length > 0 ? `${selectedChips.length} Condition${selectedChips.length > 1 ? 's' : ''}` : undefined}
-            >
-              <div className="space-y-6">
-                <div className="bg-rose-50/50 p-4 border border-rose-100/50 flex items-start gap-3">
-                  <Activity className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] font-bold text-rose-800 leading-relaxed italic">
-                    Identify systemic conditions requiring clinical attention. Selections automatically populate clinical remarks.
-                  </p>
+            {/* Premium Diagnostic Header - Moved inside scrollable area */}
+            <div className="bg-white border border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-md gap-4 md:gap-8 mb-4">
+              <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
+                  <Eye className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {systemic.map((chip) => {
-                    const isSelected = selectedChips.some(c => c.condition === chip);
-                    return (
-                      <div key={chip} className="w-fit">
-                        <button
-                          type="button"
-                          onClick={() => toggleChip(chip)}
-                          className={cn(
-                            "flex items-center justify-between px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                            isSelected
-                              ? "bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-200"
-                              : "bg-white text-slate-400 border-slate-100 hover:border-rose-200 hover:text-rose-600"
-                          )}
-                        >
-                          {chip}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Selected Health Portfolios with Duration & Specific Details */}
-                {selectedChips.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-rose-50">
-                    {selectedChips.map((item) => (
-                      <div key={item.condition} className="bg-white border border-rose-100 p-3 space-y-3 shadow-sm hover:border-rose-400 transition-all flex flex-col">
-                        <div className="flex flex-col gap-2">
-                          <div className="py-0.5 whitespace-nowrap">
-                            <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
-                              {item.condition}
-                            </span>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Active Diagnosis</span>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 pt-1">
-                            <div className="flex flex-wrap gap-1 flex-1">
-                              {[
-                                { label: "1 yr", value: "1 year" },
-                                { label: "3 yrs", value: "3 years" },
-                                { label: "5 yrs", value: "5 years" },
-                                { label: "10 yrs", value: "10 years" }
-                              ].map((opt) => {
-                                const normalizedDur = (item.duration || "").toLowerCase().replace(/\s+/g, "");
-                                const normalizedVal = opt.value.toLowerCase().replace(/\s+/g, "");
-                                const normalizedLbl = opt.label.toLowerCase().replace(/\s+/g, "");
-                                const isPresetSelected = normalizedDur === normalizedVal || normalizedDur === normalizedLbl;
-                                return (
-                                  <button
-                                    key={opt.value}
-                                    type="button"
-                                    onClick={() => updateChipDuration(item.condition, opt.value)}
-                                    className={cn(
-                                      "px-2 py-0.5 text-[8px] font-black uppercase tracking-wider transition-all border rounded-none",
-                                      isPresetSelected
-                                        ? "bg-rose-600 text-white border-rose-700 shadow-sm"
-                                        : "bg-rose-50/30 text-rose-700 border-rose-100 hover:bg-rose-50 hover:border-rose-300"
-                                    )}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div className="w-24 shrink-0">
-                              <Input
-                                placeholder="Duration..."
-                                value={item.duration}
-                                onChange={(e) => updateChipDuration(item.condition, e.target.value)}
-                                className="h-8 text-[10px] font-black rounded-none border-0 bg-rose-50/50 hover:bg-rose-50 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-rose-500 transition-all px-2 text-slate-900"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Sub-options based on condition */}
-                        {SYSTEMIC_SUB_OPTIONS[item.condition] && (
-                          <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-50">
-                            {SYSTEMIC_SUB_OPTIONS[item.condition].map(opt => (
-                              <div key={opt} className="flex items-center space-x-2 bg-slate-50/50 px-2 py-1 border border-slate-100">
-                                <Checkbox 
-                                  id={`opt-${item.condition}-${opt}`} 
-                                  checked={item.details?.includes(opt)}
-                                  onCheckedChange={() => toggleChipDetail(item.condition, opt)}
-                                  className="w-3.5 h-3.5 border-rose-300 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600"
-                                />
-                                <label htmlFor={`opt-${item.condition}-${opt}`} className="text-[9px] font-black uppercase text-slate-500 tracking-wider cursor-pointer">
-                                  {opt}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Medication/Drug Details Note Field */}
-                        <div className="pt-2">
-                          <Input
-                            placeholder="Specific Medication / Drug Details..."
-                            value={item.medicationNotes || ""}
-                            onChange={(e) => updateChipMedicationNotes(item.condition, e.target.value)}
-                            className="h-9 text-[10px] font-bold rounded-none border-0 border-b border-rose-100 bg-transparent hover:border-rose-300 focus-visible:border-rose-500 focus-visible:ring-0 transition-all px-1 text-slate-700 italic"
-                          />
-                        </div>
-                      </div>
-                    ))}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Badge className="bg-orange-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                      <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
+                    </div>
                   </div>
-                )}
+                  <div className="flex items-center gap-2 text-[9px] md:text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100/50 w-fit px-2 py-0.5 rounded-md">
+                    <User className="w-3 h-3 text-slate-400" />
+                    <span>{getPatientGenderString(patient)}</span>
+                    <span className="text-slate-300">•</span>
+                    <span>{getPatientAgeString(patient)}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-orange-600 font-black tracking-widest">Diagnostic Phase</span>
+                  </div>
+                </div>
               </div>
-            </DiagnosticCard>
 
-            {/* Primary Ocular Complaints */}
-            <DiagnosticCard
-              title="Primary Ocular Complaints"
-              icon={History}
-              sectionId="ocular"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-amber-50 text-amber-900 border-l-amber-600"
-              badge={formData.complaints?.length > 0 ? `${formData.complaints.length} Selected` : undefined}
+              <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-8 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0 relative z-10">
+                {(localStatus === "completed" || localStatus === "COMPLETED") && (
+                  <Badge className="bg-emerald-600 text-white border-0 gap-2 h-9 md:h-11 px-4 md:px-6 rounded-none font-black uppercase text-[10px] md:text-xs tracking-widest shadow-md shrink-0">
+                    <CheckCircle2 className="w-4 h-4 md:w-5 h-5" />
+                    Visit Completed
+                  </Badge>
+                )}
+                {(localStatus === "AT_RECEPTION" || localStatus === "reception") && (
+                  <Button
+                    size="sm"
+                    onClick={handleAdvanceToRefraction}
+                    disabled={advanceLoading}
+                    className="h-9 md:h-11 gap-2 bg-orange-600 hover:bg-black text-white font-black uppercase tracking-widest rounded-none px-3 md:px-6 shadow-md transition-all text-[9px] md:text-xs"
+                  >
+                    <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+                    {advanceLoading ? "..." : "Begin Refraction"}
+                  </Button>
+                )}
+                <div className="flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-lg border border-slate-200/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={expandAll}
+                    className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-orange-600 hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
+                  >
+                    Expand All
+                  </Button>
+                  <div className="w-px h-4 bg-slate-200" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={collapseAll}
+                    className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-rose-600 hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
+                  >
+                    Collapse All
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+                  <div className="text-right shrink-0">
+                    <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Optometrist</p>
+                    </div>
+                    <p className="text-xs md:text-sm font-black text-slate-900 truncate max-w-[150px]">{userName}</p>
+                  </div>
+                  <div className="bg-emerald-50 p-2.5 rounded-full hidden md:block border border-emerald-100">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <fieldset
+              disabled={isLocked}
+              className={cn("border-0 p-0 m-0 min-w-0 transition-all", isLocked && "opacity-80 pointer-events-none grayscale")}
             >
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                  <div className="md:col-span-8 space-y-4">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Chief Complaints (Multi-Select)</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {complaints.map((c) => {
-                            const isSelected = formData.complaints?.some((x: any) => (typeof x === 'string' ? x : x.complaint) === c);
-                            return (
-                              <div 
-                                key={c} 
-                                className={cn(
-                                  "px-4 py-2 border transition-all cursor-pointer select-none text-[9px] font-black uppercase tracking-widest",
-                                  isSelected
-                                    ? "bg-amber-600 text-white border-amber-600 shadow-md translate-y-[-1px]"
-                                    : "bg-white text-slate-600 border-amber-100 hover:border-amber-300 hover:text-slate-800"
+              <div className="flex flex-row items-start relative max-w-7xl mx-auto mb-8 gap-6">
+                {/* Left navigation sidebar */}
+                <div className="hidden lg:block w-0 relative overflow-visible self-stretch">
+                  <div className="sticky top-[120px] z-30">
+                    <div
+                      onMouseEnter={handleNavMouseEnter}
+                      onMouseLeave={handleNavMouseLeave}
+                      className={cn(
+                        "absolute left-[-72px] top-[-40px] bg-white border border-slate-200 shadow-lg transition-all duration-300 overflow-hidden rounded-lg py-1 border-l-4 border-l-orange-500",
+                        isNavHovered ? "w-60" : "w-16"
+                      )}
+                    >
+                      <p className={cn(
+                        "text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] my-3 px-3 truncate whitespace-nowrap transition-opacity duration-200",
+                        isNavHovered ? "block" : "hidden"
+                      )}>
+                        Refraction Map
+                      </p>
+                      <p className={cn(
+                        "text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] my-3 px-3 text-center transition-opacity duration-200",
+                        isNavHovered ? "hidden" : "block"
+                      )}>
+                        MAP
+                      </p>
+                      <div>
+                        {[
+                          { id: "portfolio", label: "Scans & Systemic Health" },
+                          { id: "visualAcuity", label: "Visual Acuity (VA)" },
+                          { id: "pgPower", label: "Previous Power (PG & CL)" },
+                          { id: "autoRef", label: "Auto Refraction (AR)" },
+                          { id: "keratometry", label: "Keratometry & Retinoscopy" },
+                          { id: "acceptance", label: "Acceptance (Subjective)" },
+                          { id: "refining", label: "Subjective Refining" },
+                          { id: "glass", label: "Final Glass & CL Rx" },
+                          { id: "tonometry", label: "Tonometry (IOP)" },
+                          { id: "secondary", label: "Secondary Assessments" },
+                          { id: "remarks", label: "Clinical Remarks" }
+                        ].map((sec) => {
+                          const active = activeSection === `sec-${sec.id}`;
+                          const completed = isSectionCompleted(sec.id);
+
+                          const sectionColorMap: Record<string, { activeText: string; activeBorder: string; activeBg: string; hoverText: string; hoverBg: string; hoverBorder: string }> = {
+                            portfolio: {
+                              activeText: "text-rose-600",
+                              activeBorder: "border-l-rose-600",
+                              activeBg: "bg-rose-50/50",
+                              hoverText: "hover:text-rose-600",
+                              hoverBorder: "hover:border-l-rose-300",
+                              hoverBg: "hover:bg-rose-50/20"
+                            },
+                            visualAcuity: {
+                              activeText: "text-blue-600",
+                              activeBorder: "border-l-blue-600",
+                              activeBg: "bg-blue-50/50",
+                              hoverText: "hover:text-blue-600",
+                              hoverBorder: "hover:border-l-blue-300",
+                              hoverBg: "hover:bg-blue-50/20"
+                            },
+                            pgPower: {
+                              activeText: "text-emerald-600",
+                              activeBorder: "border-l-emerald-600",
+                              activeBg: "bg-emerald-50/50",
+                              hoverText: "hover:text-emerald-600",
+                              hoverBorder: "hover:border-l-emerald-300",
+                              hoverBg: "hover:bg-emerald-50/20"
+                            },
+                            autoRef: {
+                              activeText: "text-purple-600",
+                              activeBorder: "border-l-purple-600",
+                              activeBg: "bg-purple-50/50",
+                              hoverText: "hover:text-purple-600",
+                              hoverBorder: "hover:border-l-purple-300",
+                              hoverBg: "hover:bg-purple-50/20"
+                            },
+                            keratometry: {
+                              activeText: "text-indigo-600",
+                              activeBorder: "border-l-indigo-600",
+                              activeBg: "bg-indigo-50/50",
+                              hoverText: "hover:text-indigo-600",
+                              hoverBorder: "hover:border-l-indigo-300",
+                              hoverBg: "hover:bg-indigo-50/20"
+                            },
+                            acceptance: {
+                              activeText: "text-orange-600",
+                              activeBorder: "border-l-orange-600",
+                              activeBg: "bg-orange-50/50",
+                              hoverText: "hover:text-orange-600",
+                              hoverBorder: "hover:border-l-orange-300",
+                              hoverBg: "hover:bg-orange-50/20"
+                            },
+                            refining: {
+                              activeText: "text-fuchsia-600",
+                              activeBorder: "border-l-fuchsia-600",
+                              activeBg: "bg-fuchsia-50/50",
+                              hoverText: "hover:text-fuchsia-600",
+                              hoverBorder: "hover:border-l-fuchsia-300",
+                              hoverBg: "hover:bg-fuchsia-50/20"
+                            },
+                            glass: {
+                              activeText: "text-pink-600",
+                              activeBorder: "border-l-pink-600",
+                              activeBg: "bg-pink-50/50",
+                              hoverText: "hover:text-pink-600",
+                              hoverBorder: "hover:border-l-pink-300",
+                              hoverBg: "hover:bg-pink-50/20"
+                            },
+                            tonometry: {
+                              activeText: "text-violet-600",
+                              activeBorder: "border-l-violet-600",
+                              activeBg: "bg-violet-50/50",
+                              hoverText: "hover:text-violet-600",
+                              hoverBorder: "hover:border-l-violet-300",
+                              hoverBg: "hover:bg-violet-50/20"
+                            },
+                            secondary: {
+                              activeText: "text-cyan-600",
+                              activeBorder: "border-l-cyan-600",
+                              activeBg: "bg-cyan-50/50",
+                              hoverText: "hover:text-cyan-600",
+                              hoverBorder: "hover:border-l-cyan-300",
+                              hoverBg: "hover:bg-cyan-50/20"
+                            },
+                            remarks: {
+                              activeText: "text-slate-600",
+                              activeBorder: "border-l-slate-600",
+                              activeBg: "bg-slate-50/50",
+                              hoverText: "hover:text-slate-600",
+                              hoverBorder: "hover:border-l-slate-300",
+                              hoverBg: "hover:bg-slate-50/20"
+                            }
+                          };
+
+                          const colors = sectionColorMap[sec.id] || {
+                            activeText: "text-orange-600",
+                            activeBorder: "border-l-orange-600",
+                            activeBg: "bg-orange-50/50",
+                            hoverText: "hover:text-orange-600",
+                            hoverBorder: "hover:border-l-orange-300",
+                            hoverBg: "hover:bg-orange-50/20"
+                          };
+
+                          return (
+                            <button
+                              key={sec.id}
+                              type="button"
+                              onClick={() => scrollToSection(`sec-${sec.id}`)}
+                              className={cn(
+                                "w-full text-left transition-all leading-tight flex items-center py-4 px-3 border-b border-slate-100 last:border-b-0 border-l-2 transition-opacity duration-200",
+                                colors.activeText,
+                                active
+                                  ? `${colors.activeBorder} ${colors.activeBg} opacity-100`
+                                  : `border-l-transparent opacity-70 hover:opacity-100 hover:bg-slate-50/30`
+                              )}
+                            >
+                              {/* Collapsed state: show first letter or tick */}
+                              <div className={cn(
+                                "w-8 flex justify-center items-center shrink-0",
+                                isNavHovered ? "hidden" : "flex"
+                              )}>
+                                {completed ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 font-bold" />
+                                ) : (
+                                  <span className="text-xs font-black uppercase">{sec.label.charAt(0)}</span>
                                 )}
-                                onClick={() => toggleComplaint(c)}
-                              >
-                                {c}
                               </div>
-                            );
-                          })}
-                        </div>
+                              {/* Expanded state: show full label with status badge */}
+                              <div className={cn(
+                                "flex items-center justify-between flex-1 min-w-0 pl-2 pr-1",
+                                isNavHovered ? "flex" : "hidden"
+                              )}>
+                                <span className="truncate text-[10px] font-black uppercase tracking-wider whitespace-nowrap">
+                                  {sec.id === "portfolio"
+                                    ? `${sec.label} (${scansCount})`
+                                    : sec.label}
+                                </span>
+                                {completed && (
+                                  <Check className="w-3 h-3 text-emerald-500 font-black shrink-0 ml-1" />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                        {/* Detailed inputs for selected complaints */}
-                        {formData.complaints && formData.complaints.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-amber-100">
-                            {formData.complaints.map((item: any) => {
-                              const name = typeof item === 'string' ? item : item.complaint;
-                              const eye = typeof item === 'string' ? 'OU' : item.eye || 'OU';
-                              const duration = typeof item === 'string' ? '' : item.duration || '';
-                              const unit = typeof item === 'string' ? 'days' : item.unit || 'days';
-                              const isOcular = !["headache"].includes(name.toLowerCase());
+                <div className="flex-1 w-full space-y-4 md:space-y-6 bg-white shadow-xl border border-slate-200 p-3 sm:p-6 md:p-8">
 
-                              return (
-                                <div key={name} className="bg-amber-50/25 border border-amber-200/50 p-3 space-y-3 shadow-sm hover:border-amber-300 transition-all flex flex-col">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
-                                      {name}
-                                    </span>
-                                    <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Complaint Specifics</span>
-                                  </div>
+                  {/* Clinical Scan Portfolio */}
+                  <DiagnosticCard
+                    title="Clinical Scan Portfolio"
+                    icon={Scan}
+                    sectionId="portfolio"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-slate-100 text-slate-900 border-l-slate-600"
+                  >
+                    <div className="bg-slate-50 p-3 md:p-4 border-2 border-dashed border-slate-200">
+                      <ScanReportGallery mrNumber={patient.mrNumber?.toString()} visitId={patient.id} allowUpload={isCurrentlyInRefraction} onCountChange={setScansCount} />
+                    </div>
+                  </DiagnosticCard>
 
-                                  <div className={cn("grid gap-2", isOcular ? "grid-cols-2" : "grid-cols-1")}>
-                                    {isOcular && (
-                                      <div className="space-y-1">
-                                        <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Which Eye</label>
-                                        <div className="flex gap-0.5">
-                                          {["OD", "OS", "OU"].map((eyeOpt) => (
-                                            <button
-                                              key={eyeOpt}
-                                              type="button"
-                                              onClick={() => updateComplaintDetail(name, "eye", eyeOpt)}
-                                              className={cn(
-                                                "flex-1 py-1 text-[8px] font-black uppercase tracking-wider transition-all border",
-                                                eye === eyeOpt
-                                                  ? "bg-amber-600 text-white border-amber-700 shadow-sm"
-                                                  : "bg-white text-slate-400 border-slate-100 hover:border-amber-200 hover:text-amber-600"
-                                              )}
-                                            >
-                                              {eyeOpt}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
+                  {/* Systemic Health Portfolio */}
+                  <DiagnosticCard
+                    title="Systemic Health Portfolio"
+                    icon={ShieldCheck}
+                    sectionId="systemic"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-rose-50 text-rose-900 border-l-rose-600"
+                    badge={selectedChips.length > 0 ? `${selectedChips.length} Condition${selectedChips.length > 1 ? 's' : ''}` : undefined}
+                  >
+                    <div className="space-y-6">
+                      <div className="bg-rose-50/50 p-4 border border-rose-100/50 flex items-start gap-3">
+                        <Activity className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <p className="text-[10px] font-bold text-rose-800 leading-relaxed italic">
+                          Identify systemic conditions requiring clinical attention. Selections automatically populate clinical remarks.
+                        </p>
+                      </div>
 
-                                    <div className="space-y-1">
-                                      <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Duration</label>
-                                      <div className="flex gap-1 items-center">
-                                        <div className="flex items-center border border-slate-200 bg-white h-7 select-none">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const currentVal = parseInt(duration) || 1;
-                                              if (currentVal > 1) {
-                                                updateComplaintDetail(name, "duration", (currentVal - 1).toString());
-                                              }
-                                            }}
-                                            className="px-1.5 h-full text-slate-500 hover:text-amber-600 transition-all border-r border-slate-200 hover:bg-slate-50 flex items-center justify-center"
-                                          >
-                                            <ChevronDown className="w-3 h-3" />
-                                          </button>
-                                          <span className="w-8 text-center text-[10px] font-black text-slate-800">
-                                            {duration || "1"}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const currentVal = parseInt(duration) || 1;
-                                              updateComplaintDetail(name, "duration", (currentVal + 1).toString());
-                                            }}
-                                            className="px-1.5 h-full text-slate-500 hover:text-amber-600 transition-all border-l border-slate-200 hover:bg-slate-50 flex items-center justify-center"
-                                          >
-                                            <ChevronUp className="w-3 h-3" />
-                                          </button>
-                                        </div>
-                                        <Select
-                                          value={unit}
-                                          onValueChange={(val) => updateComplaintDetail(name, "unit", val)}
+                      <div className="flex flex-wrap gap-2">
+                        {systemic.map((chip) => {
+                          const isSelected = selectedChips.some(c => c.condition === chip);
+                          return (
+                            <div key={chip} className="w-fit">
+                              <button
+                                type="button"
+                                onClick={() => toggleChip(chip)}
+                                className={cn(
+                                  "flex items-center justify-between px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                  isSelected
+                                    ? "bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-200"
+                                    : "bg-white text-slate-400 border-slate-100 hover:border-rose-200 hover:text-rose-600"
+                                )}
+                              >
+                                {chip}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected Health Portfolios with Duration & Specific Details */}
+                      {selectedChips.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t border-rose-50">
+                          {selectedChips.map((item) => (
+                            <div key={item.condition} className="bg-white border border-rose-100 p-3 space-y-3 shadow-sm hover:border-rose-400 transition-all flex flex-col">
+                              <div className="flex flex-col gap-2">
+                                <div className="py-0.5 whitespace-nowrap">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
+                                    {item.condition}
+                                  </span>
+                                  <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Active Diagnosis</span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2 pt-1">
+                                  <div className="flex flex-wrap gap-1 flex-1">
+                                    {[
+                                      { label: "1 yr", value: "1 year" },
+                                      { label: "3 yrs", value: "3 years" },
+                                      { label: "5 yrs", value: "5 years" },
+                                      { label: "10 yrs", value: "10 years" }
+                                    ].map((opt) => {
+                                      const normalizedDur = (item.duration || "").toLowerCase().replace(/\s+/g, "");
+                                      const normalizedVal = opt.value.toLowerCase().replace(/\s+/g, "");
+                                      const normalizedLbl = opt.label.toLowerCase().replace(/\s+/g, "");
+                                      const isPresetSelected = normalizedDur === normalizedVal || normalizedDur === normalizedLbl;
+                                      return (
+                                        <button
+                                          key={opt.value}
+                                          type="button"
+                                          onClick={() => updateChipDuration(item.condition, opt.value)}
+                                          className={cn(
+                                            "px-2 py-0.5 text-[8px] font-black uppercase tracking-wider transition-all border rounded-none",
+                                            isPresetSelected
+                                              ? "bg-rose-600 text-white border-rose-700 shadow-sm"
+                                              : "bg-rose-50/30 text-rose-700 border-rose-100 hover:bg-rose-50 hover:border-rose-300"
+                                          )}
                                         >
-                                          <SelectTrigger className="h-7 text-[10px] font-black rounded-none border border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 w-20 px-2 bg-white">
-                                            <SelectValue placeholder="Unit" />
-                                          </SelectTrigger>
-                                          <SelectContent className="rounded-none font-bold text-[10px]">
-                                            <SelectItem value="days">Days</SelectItem>
-                                            <SelectItem value="months">Months</SelectItem>
-                                            <SelectItem value="years">Years</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
+                                          {opt.label}
+                                        </button>
+                                      );
+                                    })}
                                   </div>
+                                  <div className="w-24 shrink-0">
+                                    <Input
+                                      placeholder="Duration..."
+                                      value={item.duration}
+                                      onChange={(e) => updateChipDuration(item.condition, e.target.value)}
+                                      className="h-8 text-[10px] font-black rounded-none border-0 bg-rose-50/50 hover:bg-rose-50 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-rose-500 transition-all px-2 text-slate-900"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Sub-options based on condition */}
+                              {SYSTEMIC_SUB_OPTIONS[item.condition] && (
+                                <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-50">
+                                  {SYSTEMIC_SUB_OPTIONS[item.condition].map(opt => (
+                                    <div key={opt} className="flex items-center space-x-2 bg-slate-50/50 px-2 py-1 border border-slate-100">
+                                      <Checkbox
+                                        id={`opt-${item.condition}-${opt}`}
+                                        checked={item.details?.includes(opt)}
+                                        onCheckedChange={() => toggleChipDetail(item.condition, opt)}
+                                        className="w-3.5 h-3.5 border-rose-300 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600"
+                                      />
+                                      <label htmlFor={`opt-${item.condition}-${opt}`} className="text-[9px] font-black uppercase text-slate-500 tracking-wider cursor-pointer">
+                                        {opt}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Medication/Drug Details Note Field */}
+                              <div className="pt-2">
+                                <Input
+                                  placeholder="Specific Medication / Drug Details..."
+                                  value={item.medicationNotes || ""}
+                                  onChange={(e) => updateChipMedicationNotes(item.condition, e.target.value)}
+                                  className="h-9 text-[10px] font-bold rounded-none border-0 border-b border-rose-100 bg-transparent hover:border-rose-300 focus-visible:border-rose-500 focus-visible:ring-0 transition-all px-1 text-slate-700 italic"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </DiagnosticCard>
+
+                  {/* Primary Ocular Complaints */}
+                  {/* Primary Ocular Complaints */}
+                  {/* Primary Ocular Complaints */}
+                  <DiagnosticCard
+                    title="Primary Ocular Complaints"
+                    icon={History}
+                    sectionId="ocular"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-stone-50 text-stone-900 border-l-stone-600"
+                    badge={formData.complaints?.length > 0 ? `${formData.complaints.length} Selected` : undefined}
+                  >
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                        <div className="md:col-span-8 space-y-4">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Chief Complaints (Multi-Select)</label>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {complaints.map((c) => {
+                              const isSelected = formData.complaints?.some((x: any) => (typeof x === 'string' ? x : x.complaint) === c);
+                              return (
+                                <div
+                                  key={c}
+                                  className={cn(
+                                    "px-4 py-2 border transition-all cursor-pointer select-none text-[9px] font-black uppercase tracking-widest",
+                                    isSelected
+                                      ? "bg-stone-600 text-white border-stone-600 shadow-md translate-y-[-1px]"
+                                      : "bg-white text-slate-600 border-stone-100 hover:border-stone-300 hover:text-slate-800"
+                                  )}
+                                  onClick={() => toggleComplaint(c)}
+                                >
+                                  {c}
                                 </div>
                               );
                             })}
                           </div>
-                        )}
-                      </div>
-                      <div className="md:col-span-4 space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Detailed Symptomology</label>
-                        <Textarea
-                          className="min-h-[140px] font-bold p-3 md:p-4 bg-white border-amber-100 text-slate-900 focus:border-amber-400"
-                          placeholder="Describe symptoms, duration, severity..."
-                          value={formData.complaintNotes}
-                          onChange={(e) => setFormData(p => ({ ...p, complaintNotes: sanitizeOptometryInput(e.target.value, 'notes') }))}
-                        />
+
+                          {/* Detailed inputs for selected complaints */}
+                          {formData.complaints && formData.complaints.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-stone-100">
+                              {formData.complaints.map((item: any) => {
+                                const name = typeof item === 'string' ? item : item.complaint;
+                                const eye = typeof item === 'string' ? 'OU' : item.eye || 'OU';
+                                const duration = typeof item === 'string' ? '' : item.duration || '';
+                                const unit = typeof item === 'string' ? 'days' : item.unit || 'days';
+                                const isOcular = !["headache"].includes(name.toLowerCase());
+
+                                return (
+                                  <div key={name} className="bg-stone-50/25 border border-stone-200/50 p-3 space-y-3 shadow-sm hover:border-stone-300 transition-all flex flex-col">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-800 block leading-tight">
+                                        {name}
+                                      </span>
+                                      <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest leading-none">Complaint Specifics</span>
+                                    </div>
+
+                                    <div className={cn("grid gap-2", isOcular ? "grid-cols-2" : "grid-cols-1")}>
+                                      {isOcular && (
+                                        <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Which Eye</label>
+                                          <div className="flex gap-0.5">
+                                            {["OD", "OS", "OU"].map((eyeOpt) => (
+                                              <button
+                                                key={eyeOpt}
+                                                type="button"
+                                                onClick={() => updateComplaintDetail(name, "eye", eyeOpt)}
+                                                className={cn(
+                                                  "flex-1 py-1 text-[8px] font-black uppercase tracking-wider transition-all border",
+                                                  eye === eyeOpt
+                                                    ? "bg-stone-600 text-white border-stone-700 shadow-sm"
+                                                    : "bg-white text-slate-400 border-slate-100 hover:border-stone-200 hover:text-stone-600"
+                                                )}
+                                              >
+                                                {eyeOpt}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Duration</label>
+                                        <div className="flex gap-1 items-center">
+                                          <div className="flex items-center border border-slate-200 bg-white h-7 select-none">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const currentVal = parseInt(duration) || 1;
+                                                if (currentVal > 1) {
+                                                  updateComplaintDetail(name, "duration", (currentVal - 1).toString());
+                                                }
+                                              }}
+                                              className="px-1.5 h-full text-slate-500 hover:text-stone-600 transition-all border-r border-slate-200 hover:bg-slate-50 flex items-center justify-center"
+                                            >
+                                              <ChevronDown className="w-3 h-3" />
+                                            </button>
+                                            <span className="w-8 text-center text-[10px] font-black text-slate-800">
+                                              {duration || "1"}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const currentVal = parseInt(duration) || 1;
+                                                updateComplaintDetail(name, "duration", (currentVal + 1).toString());
+                                              }}
+                                              className="px-1.5 h-full text-slate-500 hover:text-stone-600 transition-all border-l border-slate-200 hover:bg-slate-50 flex items-center justify-center"
+                                            >
+                                              <ChevronUp className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                          <Select
+                                            value={unit}
+                                            onValueChange={(val) => updateComplaintDetail(name, "unit", val)}
+                                          >
+                                            <SelectTrigger className="h-7 text-[10px] font-black rounded-none border border-slate-200 focus-visible:ring-0 focus-visible:ring-offset-0 w-20 px-2 bg-white">
+                                              <SelectValue placeholder="Unit" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-none font-bold text-[10px]">
+                                              <SelectItem value="days">Days</SelectItem>
+                                              <SelectItem value="months">Months</SelectItem>
+                                              <SelectItem value="years">Years</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="md:col-span-4 space-y-2">
+                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest pl-1">Detailed Symptomology</label>
+                          <Textarea
+                            className="min-h-[140px] font-bold p-3 md:p-4 bg-white border-stone-100 text-slate-900 focus:border-stone-400"
+                            placeholder="Describe symptoms, duration, severity..."
+                            value={formData.complaintNotes}
+                            onChange={(e) => setFormData(p => ({ ...p, complaintNotes: sanitizeOptometryInput(e.target.value, 'notes') }))}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </DiagnosticCard>
+                  </DiagnosticCard>
 
-            {/* Quantitative Visual Acuity */}
-            <DiagnosticCard
-              title="Quantitative Visual Acuity (VA)"
-              icon={Eye}
-              sectionId="visualAcuity"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-blue-50 text-blue-900 border-l-blue-600"
-            >
-              <div className="space-y-8">
+                  {/* Quantitative Visual Acuity */}
+                  <DiagnosticCard
+                    title="Quantitative Visual Acuity (VA)"
+                    icon={Eye}
+                    sectionId="visualAcuity"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-blue-50 text-blue-900 border-l-blue-600"
+                  >
+                    <div className="space-y-8">
 
-                  {/* Mobile VA Card Layout */}
-                  <div className="grid grid-cols-1 gap-4 md:hidden pt-3">
-                    {["OD", "OS", "OU"].map((eye) => (
-                      <div key={eye} className="border-2 border-slate-100 bg-white p-3 space-y-3">
-                        <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
-                          <span className={cn(
-                            "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                            eye === "OD" ? "border-blue-600 text-blue-600" : eye === "OS" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                          )}>{eye}</span>
-                          <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{eye === "OD" ? "Right Eye" : eye === "OS" ? "Left Eye" : "Both Eyes"}</span>
-                        </div>
-
-                        <div className="space-y-4">
-                          {/* Unaided */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-blue-600 tracking-widest bg-blue-50 px-2 py-0.5">Unaided Vision (DV/NV)</label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <PowerPaletteInput
-                                type="dv"
-                                label={`Visual Acuity Unaided ${eye} - DV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
-                                placeholder="DV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
-                              <PowerPaletteInput
-                                type="nv"
-                                label={`Visual Acuity Unaided ${eye} - NV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
-                                placeholder="NV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
+                      {/* Mobile VA Card Layout */}
+                      <div className="grid grid-cols-1 gap-4 md:hidden pt-3">
+                        {["OD", "OS", "OU"].map((eye) => (
+                          <div key={eye} className="border-2 border-slate-100 bg-white p-3 space-y-3">
+                            <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+                              <span className={eyeBoxClass(eye)}>{eye}</span>
+                              <span className={cn("text-[9px] font-black uppercase tracking-widest", eyeLabelClass(eye))}>{eye === "OD" ? "Right Eye" : eye === "OS" ? "Left Eye" : "Both Eyes"}</span>
                             </div>
-                          </div>
 
-                          {/* Aided */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-emerald-600 tracking-widest bg-emerald-50 px-2 py-0.5">Aided Vision (DV/NV)</label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <PowerPaletteInput
-                                type="dv"
-                                label={`Visual Acuity Aided ${eye} - DV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
-                                placeholder="DV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
-                              <PowerPaletteInput
-                                type="nv"
-                                label={`Visual Acuity Aided ${eye} - NV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
-                                placeholder="NV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Contact Lens */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-slate-100 px-2 py-0.5">Contact Lens (DV/NV)</label>
-                            <div className="grid grid-cols-2 gap-2">
-                              <PowerPaletteInput
-                                type="dv"
-                                label={`Visual Acuity Contact Lens ${eye} - DV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
-                                placeholder="DV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
-                              <PowerPaletteInput
-                                type="nv"
-                                label={`Visual Acuity Contact Lens ${eye} - NV`}
-                                value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
-                                onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
-                                placeholder="NV"
-                                className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                disabled={isLocked}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Pinhole */}
-                          <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase text-amber-600 tracking-widest bg-amber-50 px-2 py-0.5">Pinhole (DV ONLY)</label>
-                            <PowerPaletteInput
-                              type="dv"
-                              label={`Visual Acuity Pinhole ${eye} - DV`}
-                              value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
-                              onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
-                              placeholder="DV"
-                              className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                              disabled={isLocked}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop VA Table Layout */}
-                  <div className="hidden md:block overflow-x-auto pt-3">
-                    <div className="min-w-[800px] xl:min-w-0">
-                      <Table className="border-collapse table-fixed w-full">
-                        <TableHeader>
-                          <TableRow className="h-16 hover:bg-transparent border-b-2 border-slate-200">
-                            <TableHead className="w-[70px] text-[10px] font-black uppercase tracking-widest text-orange-600 pl-6">Eye</TableHead>
-                            <TableHead className="w-[190px] text-center bg-blue-50/50">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1 block">Unaided Vision</span>
-                              <div className="flex justify-around text-[8px] font-black text-blue-400"><span>DV</span><span>NV</span></div>
-                            </TableHead>
-                            <TableHead className="w-[190px] text-center bg-emerald-50/50">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-1 block">Aided Vision</span>
-                              <div className="flex justify-around text-[8px] font-black text-emerald-400"><span>DV</span><span>NV</span></div>
-                            </TableHead>
-                            <TableHead className="w-[190px] text-center bg-slate-100/50">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 mb-1 block">Contact Lens</span>
-                              <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
-                            </TableHead>
-                            <TableHead className="w-[120px] text-center bg-amber-50/50 pr-4">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 mb-1 block">Pinhole (PH)</span>
-                              <div className="text-[8px] font-black text-amber-400">DV ONLY</div>
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {["OD", "OS", "OU"].map((eye) => (
-                            <TableRow key={eye} className="h-24 hover:bg-slate-50/30 transition-colors">
-                              <TableCell className="pl-6">
-                                <div className={cn(
-                                  "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                  eye === "OD" ? "border-blue-600 text-blue-600" : eye === "OS" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                                )}>{eye}</div>
-                              </TableCell>
-                              <TableCell className="bg-blue-50/20 px-2 py-4">
-                                <div className="grid grid-cols-2 gap-2 h-14">
+                            <div className="space-y-4">
+                              {/* Unaided */}
+                              <div className="space-y-2">
+                                <label className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5", eye === "OU" ? "text-slate-500 bg-slate-100" : eyeLabelClass(eye), eye === "OD" ? "bg-blue-50" : eye === "OS" ? "bg-emerald-50" : "")}>Unaided Vision (DV/NV)</label>
+                                <div className="grid grid-cols-2 gap-2">
                                   <PowerPaletteInput
                                     type="dv"
                                     label={`Visual Acuity Unaided ${eye} - DV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="DV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -2383,21 +3064,24 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     label={`Visual Acuity Unaided ${eye} - NV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="NV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
-                              </TableCell>
-                              <TableCell className="bg-emerald-50/20 px-2 py-4">
-                                <div className="grid grid-cols-2 gap-2 h-14">
+                              </div>
+
+                              {/* Aided */}
+                              <div className="space-y-2">
+                                <label className={cn("text-[9px] font-black uppercase tracking-widest px-2 py-0.5", eye === "OU" ? "text-slate-500 bg-slate-100" : eyeLabelClass(eye), eye === "OD" ? "bg-blue-50" : eye === "OS" ? "bg-emerald-50" : "")}>Aided Vision (DV/NV)</label>
+                                <div className="grid grid-cols-2 gap-2">
                                   <PowerPaletteInput
                                     type="dv"
                                     label={`Visual Acuity Aided ${eye} - DV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="DV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -2405,21 +3089,24 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     label={`Visual Acuity Aided ${eye} - NV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="NV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
-                              </TableCell>
-                              <TableCell className="bg-slate-100/20 px-2 py-4">
-                                <div className="grid grid-cols-2 gap-2 h-14">
+                              </div>
+
+                              {/* Contact Lens */}
+                              <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-slate-100 px-2 py-0.5">Contact Lens (DV/NV)</label>
+                                <div className="grid grid-cols-2 gap-2">
                                   <PowerPaletteInput
                                     type="dv"
                                     label={`Visual Acuity Contact Lens ${eye} - DV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="DV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -2427,1191 +3114,1471 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     label={`Visual Acuity Contact Lens ${eye} - NV`}
                                     value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                    placeholder="NV"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
-                              </TableCell>
-                              <TableCell className="bg-amber-50/20 px-2 py-4">
-                                <div className="h-14">
-                                  <PowerPaletteInput
-                                    type="dv"
-                                    label={`Visual Acuity Pinhole ${eye} - DV`}
-                                    value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
-                                    onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
-                                    placeholder="-"
-                                    className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
-                                    disabled={isLocked}
-                                  />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                  </div>
-                </div>
-              </div>
-            </DiagnosticCard>
-
-            {/* Previous Optical Prescription (PG Power) */}
-            <DiagnosticCard
-              title="Previous Optical Prescription (PG Power)"
-              icon={ClipboardList}
-              sectionId="pgPower"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-emerald-50 text-emerald-900 border-l-emerald-600"
-              badge={formData.pgPower.activeTab.toUpperCase()}
-            >
-              <div className="space-y-8">
-                <div className="flex flex-col gap-6">
-                    <RadioGroup
-                      value={formData.pgPower.activeTab}
-                      onValueChange={(val) => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: val } }))}
-                      className="flex flex-col sm:flex-row gap-4 sm:gap-8"
-                    >
-                      <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'glass' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'glass' } }))}>
-                        <RadioGroupItem value="glass" id="pg-glass" className="w-5 h-5 border-2 text-orange-600" />
-                        <Label htmlFor="pg-glass" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Spectacles</Label>
-                      </div>
-                      <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'contact' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'contact' } }))}>
-                        <RadioGroupItem value="contact" id="pg-contact" className="w-5 h-5 border-2 text-orange-600" />
-                        <Label htmlFor="pg-contact" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Contact Lens</Label>
-                      </div>
-                    </RadioGroup>
-
-                    {formData.pgPower.activeTab === "glass" && (
-                      <div className="space-y-3 min-w-[200px]">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Architecture</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {[
-                            { label: "Single Vision (SVN)", value: "SVN" },
-                            { label: "Bifocals (KBF)", value: "KBF" },
-                            { label: "Progressive (PAL)", value: "PAL" }
-                          ].map((opt) => {
-                            const isSelected = formData.pgPower.glass.glassType === opt.value;
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, glass: { ...p.pgPower.glass, glassType: opt.value } } }))}
-                                className={cn(
-                                  "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                  isSelected
-                                    ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                    : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
-                                )}
-                              >
-                                {opt.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {formData.pgPower.activeTab === "contact" && (
-                      <div className="flex flex-col md:flex-row gap-6 md:gap-8 min-w-[200px] flex-1">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {["Soft CL", "RGP", "Scleral"].map((type) => {
-                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
-                              const isSelected = currentTypes.includes(type);
-                              const isDisabled = type === "RGP" || type === "Scleral";
-                              return (
-                                <button key={type} type="button" disabled={isDisabled} onClick={() => {
-                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                  setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {["Disposable", "Yearly"].map((type) => {
-                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
-                              const isSelected = currentTypes.includes(type);
-                              return (
-                                <button key={type} type="button" onClick={() => {
-                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                  setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {["Spherical", "Toric", "Multifocal"].map((type) => {
-                              const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
-                              const isSelected = currentTypes.includes(type);
-                              return (
-                                <button key={type} type="button" onClick={() => {
-                                  const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                  setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                    {["OD", "OS"].map((eye) => (
-                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-3 md:border-0 md:bg-transparent md:p-0 space-y-4">
-                        <div className="flex items-center gap-3 border-b border-orange-100 pb-2">
-                          <span className={cn(
-                            "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                            eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                          )}>{eye}</span>
-                          <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{eye === "OD" ? "Right Eye" : "Left Eye"} Result</span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {["sphere1", "cylinder1", "axis1", "add", "vn1", "vnNear1"].map((f) => {
-                            const labels: any = { sphere1: "SPH", cylinder1: "CYL", axis1: "AXIS", add: "ADD", vn1: "VA(DV)", vnNear1: "VA(NV)" };
-                            return (
-                              <div key={f} className="space-y-1">
-                                <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{labels[f]}</label>
-                                {f.startsWith("vn") ? (
-                                  <PowerPaletteInput
-                                    type={f === "vnNear1" ? "nv" : "dv"}
-                                    label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
-                                    value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
-                                    onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
-                                    placeholder="-"
-                                    className="h-11 text-center text-sm font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
-                                    disabled={isLocked}
-                                  />
-                                ) : (
-                                  <PowerPaletteInput
-                                    type={f === "sphere1" ? "sph" : f === "cylinder1" ? "cyl" : f === "axis1" ? "axis" : "add"}
-                                    label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
-                                    value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
-                                    onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
-                                    placeholder={f === "axis1" ? "0" : "0.00"}
-                                    className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
-                                    disabled={isLocked}
-                                  />
-                                )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-            </DiagnosticCard>
 
-            <TonometrySection 
-              formData={formData}
-              setFormData={setFormData}
-              openSections={openSections}
-              toggleSection={toggleSection}
-              disabled={isLocked}
-            />
-
-            {/* 9. Secondary Clinical Assessments */}
-            <DiagnosticCard
-              title="Secondary Assessments (Color & Dryness)"
-              icon={AlertCircle}
-              sectionId="secondary"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-cyan-50 text-cyan-900 border-l-cyan-600"
-              badge={(formData.ishiharaTest?.status || formData.schirmerTest?.OD || formData.schirmerTest?.OS) ? "Data Entered" : undefined}
-            >
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
-                    <div className="space-y-6 bg-slate-50 p-6">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] border-b border-slate-200 pb-2 flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-emerald-600" /> Ishihara (Color Vision)
-                        </label>
-                        <div className="space-y-4">
-                        <div className="flex gap-3">
-                          {[
-                            { label: "CLEAR (Normal)", value: "CLEAR" },
-                            { label: "DEFICIENCY REPORTED", value: "DEFICIENCY" }
-                          ].map((opt) => {
-                            const isSelected = formData.ishiharaTest?.status === opt.value;
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setFormData(p => ({
-                                  ...p,
-                                  ishiharaTest: { 
-                                    ...(p.ishiharaTest || {}), 
-                                    status: opt.value,
-                                    notes: opt.value === "CLEAR" ? "" : p.ishiharaTest?.notes 
-                                  }
-                                }))}
-                                className={cn(
-                                  "flex-1 h-14 px-4 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                  isSelected
-                                    ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                    : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
-                                )}
-                              >
-                                {opt.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity duration-300", formData.ishiharaTest?.status === "DEFICIENCY" ? "opacity-100" : "opacity-30 pointer-events-none")}>
-                          {["Red", "Green", "Red-Green", "Total"].map((def) => {
-                            const isDefSelected = formData.ishiharaTest?.notes === def;
-                            let colorClass = "";
-                            if (isDefSelected) {
-                              if (def === "Red") colorClass = "bg-red-500 text-white border-red-500";
-                              else if (def === "Green") colorClass = "bg-emerald-500 text-white border-emerald-500";
-                              else if (def === "Red-Green") colorClass = "bg-gradient-to-r from-red-500 to-emerald-500 text-white border-transparent";
-                              else if (def === "Total") colorClass = "bg-slate-700 text-white border-slate-700";
-                            } else {
-                              if (def === "Red") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-red-400 hover:text-red-600";
-                              else if (def === "Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600";
-                              else if (def === "Red-Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600";
-                              else if (def === "Total") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-slate-500 hover:text-slate-700";
-                            }
-
-                            return (
-                              <button
-                                key={def}
-                                type="button"
-                                onClick={() => setFormData(p => {
-                                  const current = p.ishiharaTest || {};
-                                  return { ...p, ishiharaTest: { ...current, notes: current.notes === def ? "" : def } };
-                                })}
-                                className={cn(
-                                  "h-12 text-[9px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                  colorClass
-                                )}
-                              >
-                                {def}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
-                      <div className="space-y-6 bg-slate-50 p-6">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] border-b border-slate-200 pb-2 flex items-center gap-2">
-                          <Droplets className="w-4 h-4 text-blue-600" /> Schirmer's Test (mm)
-                        </label>
-                        <div className="grid grid-cols-2 gap-6">
-                          {["OD", "OS"].map((eye) => (
-                            <div key={eye} className="space-y-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase text-center block">{eye} Assessment</span>
-                              <Select value={(formData.schirmerTest as any)[eye] || ""} onValueChange={(val) => setFormData(p => {
-                                const current = p.schirmerTest || {};
-                                return { ...p, schirmerTest: { ...current, [eye]: val } };
-                              })}>
-                                <SelectTrigger className="h-14 font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="-" /></SelectTrigger>
-                                <SelectContent className="max-h-[300px] font-bold">
-                                  {SCHIRMER_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                                </SelectContent>
-                              </Select>
+                              {/* Pinhole */}
+                              <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase text-amber-600 tracking-widest bg-amber-50 px-2 py-0.5">Pinhole (DV ONLY)</label>
+                                <PowerPaletteInput
+                                  type="dv"
+                                  label={`Visual Acuity Pinhole ${eye} - DV`}
+                                  value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
+                                  onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
+                                  placeholder="DV"
+                                  className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  disabled={isLocked}
+                                />
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                  </div>
-                </div>
-              </div>
-            </DiagnosticCard>
-
-            {/* Automated Refraction (AR/REK) */}
-            <DiagnosticCard
-              title="Automated Refraction (AR/REK)"
-              icon={Activity}
-              sectionId="autoRef"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-purple-50 text-purple-900 border-l-purple-600"
-            >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {["OD", "OS"].map((eye) => (
-                    <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4">
-                      <div className="flex items-center gap-3 border-b border-purple-100 pb-2">
-                        <span className={cn(
-                          "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                          eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
-                        )}>{eye}</span>
-                        <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Digital Sensing {eye === "OD" ? "Right" : "Left"}</span>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {["sphere1", "cylinder1", "axis1"].map((f) => (
-                          <div key={f} className="space-y-1">
-                            <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{f.replace("1", "").toUpperCase()}</label>
-                            <PowerPaletteInput
-                              type={f.startsWith("sphere") ? "sph" : f.startsWith("cylinder") ? "cyl" : "axis"}
-                              label={`Auto Ref ${eye} - ${f.replace("1", "").toUpperCase()}`}
-                              value={(formData.autoRef as any)[eye]?.[f] || ""}
-                              onChange={(val) => updateEyeGrid("autoRef", eye, f, val)}
-                              placeholder="—"
-                              className="h-11 text-center text-base font-black bg-white border-purple-100 rounded-none focus:border-purple-400 text-slate-900"
-                              disabled={isLocked}
-                            />
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-            </DiagnosticCard>
 
-            {/* Keratometry Matrix */}
-            {/* Keratometry Matrix */}
-            <DiagnosticCard
-              title="Keratometry Matrix (K1/K2/Axis)"
-              icon={Activity}
-              sectionId="keratometry"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-indigo-50 text-indigo-900 border-l-indigo-600"
-            >
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3 bg-white p-4 border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-7 h-7 flex items-center justify-center border border-blue-200 text-blue-600 font-black text-[9px] bg-blue-50">OD</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Right Eye Clinical Readings</span>
-                    </div>
-                    <TagInput 
-                      placeholder="K1/K2 @ Axis (e.g. 44.00/45.00 @ 90)"
-                      values={formData.keratometry?.OD || []}
-                      onAdd={(val) => setFormData(p => ({
-                        ...p,
-                        keratometry: { ...p.keratometry, OD: [...(Array.isArray(p.keratometry?.OD) ? p.keratometry.OD : []), sanitizeOptometryInput(val, 'notes')] }
-                      }))}
-                      onRemove={(idx) => setFormData(p => {
-                        const arr = [...(Array.isArray(p.keratometry?.OD) ? p.keratometry.OD : [])];
-                        arr.splice(idx, 1);
-                        return { ...p, keratometry: { ...p.keratometry, OD: arr } };
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-3 bg-white p-4 border border-slate-100 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="w-7 h-7 flex items-center justify-center border border-emerald-200 text-emerald-600 font-black text-[9px] bg-emerald-50">OS</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Left Eye Clinical Readings</span>
-                    </div>
-                    <TagInput 
-                      placeholder="K1/K2 @ Axis (e.g. 44.00/45.00 @ 90)"
-                      values={formData.keratometry?.OS || []}
-                      onAdd={(val) => setFormData(p => ({
-                        ...p,
-                        keratometry: { ...p.keratometry, OS: [...(Array.isArray(p.keratometry?.OS) ? p.keratometry.OS : []), sanitizeOptometryInput(val, 'notes')] }
-                      }))}
-                      onRemove={(idx) => setFormData(p => {
-                        const arr = [...(Array.isArray(p.keratometry?.OS) ? p.keratometry.OS : [])];
-                        arr.splice(idx, 1);
-                        return { ...p, keratometry: { ...p.keratometry, OS: arr } };
-                      })}
-                    />
-                  </div>
-                </div>
-              </div>
-            </DiagnosticCard>
-
-            {/* Objective Refraction & Retinoscopy */}
-            <DiagnosticCard
-              title="Objective Refraction (Retinoscopy)"
-              icon={Crosshair}
-              sectionId="objective"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-teal-50 text-teal-900 border-l-teal-600"
-              badge={formData.objectiveRefraction?.type === "DilRR" ? "Dilated" : "Cycloplegic"}
-            >
-              <div className="space-y-6">
-                <div className="space-y-8">
-                  {["OD", "OS"].map((eye) => (
-                    <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Dry RR */}
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3 border-b border-emerald-100 pb-2 min-h-[44px]">
-                            <span className={cn(
-                              "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                              eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                            )}>{eye}</span>
-                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">Dry RR</span>
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
-                              <PowerPaletteInput
-                                type="sph"
-                                label={`Objective Refraction Dry ${eye} - SPH`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", val)}
-                                placeholder="0.00"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                              <PowerPaletteInput
-                                type="cyl"
-                                label={`Objective Refraction Dry ${eye} - CYL`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", val)}
-                                placeholder="0.00"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                              <PowerPaletteInput
-                                type="axis"
-                                label={`Objective Refraction Dry ${eye} - AXIS`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", val)}
-                                placeholder="0"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
-                            </div>
-                          </div>
+                      {/* Desktop VA Table Layout */}
+                      <div className="hidden md:block overflow-x-auto pt-3">
+                        <div className="min-w-[800px] xl:min-w-0">
+                          <Table className="border-collapse table-fixed w-full">
+                            <TableHeader>
+                              <TableRow className="h-16 hover:bg-transparent border-b-2 border-slate-200">
+                                <TableHead className="w-[70px] text-[10px] font-black uppercase tracking-widest text-orange-600 pl-6">Eye</TableHead>
+                                <TableHead className="w-[190px] text-center">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1 block">Unaided Vision</span>
+                                  <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
+                                </TableHead>
+                                <TableHead className="w-[190px] text-center">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1 block">Aided Vision</span>
+                                  <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
+                                </TableHead>
+                                <TableHead className="w-[190px] text-center">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1 block">Contact Lens</span>
+                                  <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
+                                </TableHead>
+                                <TableHead className="w-[120px] text-center pr-4">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1 block">Pinhole (PH)</span>
+                                  <div className="text-[8px] font-black text-slate-400">DV ONLY</div>
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {["OD", "OS", "OU"].map((eye) => (
+                                <TableRow key={eye} className="h-24 hover:bg-slate-50/30 transition-colors">
+                                  <TableCell className="pl-6">
+                                    <div className={eyeBoxClass(eye)}>{eye}</div>
+                                  </TableCell>
+                                  <TableCell className={cn("px-2 py-4", eyeRowBgClass(eye))}>
+                                    <div className="grid grid-cols-2 gap-2 h-14">
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Visual Acuity Unaided ${eye} - DV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
+                                        placeholder="6/6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                      <PowerPaletteInput
+                                        type="nv"
+                                        label={`Visual Acuity Unaided ${eye} - NV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
+                                        placeholder="N6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className={cn("px-2 py-4", eyeRowBgClass(eye))}>
+                                    <div className="grid grid-cols-2 gap-2 h-14">
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Visual Acuity Aided ${eye} - DV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
+                                        placeholder="6/6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                      <PowerPaletteInput
+                                        type="nv"
+                                        label={`Visual Acuity Aided ${eye} - NV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
+                                        placeholder="N6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className={cn("px-2 py-4", eyeRowBgClass(eye))}>
+                                    <div className="grid grid-cols-2 gap-2 h-14">
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Visual Acuity Contact Lens ${eye} - DV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
+                                        placeholder="6/6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                      <PowerPaletteInput
+                                        type="nv"
+                                        label={`Visual Acuity Contact Lens ${eye} - NV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
+                                        placeholder="N6"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className={cn("px-2 py-4", eyeRowBgClass(eye))}>
+                                    <div className="grid grid-cols-1 h-14">
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Visual Acuity Pinhole ${eye} - DV`}
+                                        value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
+                                        onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
+                                        placeholder="6/6"
+                                        className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
+                      </div>
+                    </div>
+                  </DiagnosticCard>
 
-                        {/* Modality RR */}
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between border-b border-emerald-100 pb-2 min-h-[44px]">
-                            <div className="flex items-center gap-3">
+                  {/* Previous Optical Prescription (PG Power) */}
+                  <DiagnosticCard
+                    title="Previous Optical Prescription (PG Power)"
+                    icon={ClipboardList}
+                    sectionId="pgPower"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-emerald-50 text-emerald-900 border-l-emerald-600"
+                    badge={formData.pgPower.activeTab.toUpperCase()}
+                  >
+                    <div className="space-y-8">
+                      <div className="flex flex-col gap-6">
+                        <RadioGroup
+                          value={formData.pgPower.activeTab}
+                          onValueChange={(val) => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: val } }))}
+                          className="flex flex-col sm:flex-row gap-4 sm:gap-8"
+                        >
+                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'glass' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'glass' } }))}>
+                            <RadioGroupItem value="glass" id="pg-glass" className="w-5 h-5 border-2 text-orange-600" />
+                            <Label htmlFor="pg-glass" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Spectacles</Label>
+                          </div>
+                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'contact' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'contact' } }))}>
+                            <RadioGroupItem value="contact" id="pg-contact" className="w-5 h-5 border-2 text-orange-600" />
+                            <Label htmlFor="pg-contact" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Contact Lens</Label>
+                          </div>
+                        </RadioGroup>
+
+                        {formData.pgPower.activeTab === "glass" && (
+                          <div className="space-y-3 min-w-[200px]">
+                            <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Architecture</label>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {[
+                                { label: "Single Vision (SVN)", value: "SVN" },
+                                { label: "Bifocals (KBF)", value: "KBF" },
+                                { label: "Progressive (PAL)", value: "PAL" },
+                                { label: "Double D Bifocal (DBF)", value: "DBF" },
+                                { label: "Reading Glass", value: "READING" }
+                              ].map((opt) => {
+                                const isSelected = formData.pgPower.glass.glassType === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, glass: { ...p.pgPower.glass, glassType: opt.value } } }))}
+                                    className={cn(
+                                      "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                      isSelected
+                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                        : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                    )}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {formData.pgPower.activeTab === "contact" && (
+                          <div className="flex flex-col md:flex-row gap-6 md:gap-8 min-w-[200px] flex-1">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Soft CL", "RGP", "Scleral"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  const isDisabled = type === "RGP" || type === "Scleral";
+                                  return (
+                                    <button key={type} type="button" disabled={isDisabled} onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Disposable", "Yearly"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  return (
+                                    <button key={type} type="button" onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Spherical", "Toric", "Multifocal"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.pgPower.contact.clType) ? formData.pgPower.contact.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  return (
+                                    <button key={type} type="button" onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                        {["OD", "OS"].map((eye) => (
+                          <div key={eye} className="border-2 border-slate-100 bg-white/50 p-3 md:border-0 md:bg-transparent md:p-0 space-y-4">
+                            <div className="flex items-center gap-3 border-b border-orange-100 pb-2">
                               <span className={cn(
                                 "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
                                 eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
                               )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">{formData.objectiveRefraction?.type === "DilRR" ? "Dil RR" : "Cyclo RR"}</span>
+                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{eye === "OD" ? "Right Eye" : "Left Eye"} Result</span>
                             </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {["sphere1", "cylinder1", "axis1", "add", "vn1", "vnNear1"].map((f) => {
+                                const labels: any = { sphere1: "SPH", cylinder1: "CYL", axis1: "AXIS", add: "ADD", vn1: "VA(DV)", vnNear1: "VA(NV)" };
+                                return (
+                                  <div key={f} className="space-y-1">
+                                    <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{labels[f]}</label>
+                                    {f.startsWith("vn") ? (
+                                      <PowerPaletteInput
+                                        type={f === "vnNear1" ? "nv" : "dv"}
+                                        label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
+                                        value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
+                                        onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
+                                        placeholder={f === "vnNear1" ? "N6" : "6/6"}
+                                        className="h-11 text-center text-sm font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                        disabled={isLocked}
+                                      />
+                                    ) : (
+                                      <PowerPaletteInput
+                                        type={f === "sphere1" ? "sph" : f === "cylinder1" ? "cyl" : f === "axis1" ? "axis" : "add"}
+                                        label={`Prev Glasses ${formData.pgPower.activeTab === "glass" ? "Spectacles" : "Contact Lens"} ${eye} - ${labels[f]}`}
+                                        value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
+                                        onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
+                                        placeholder={f === "axis1" ? "0" : "0.00"}
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                        disabled={isLocked}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </DiagnosticCard>
 
-                            {eye === "OD" && (
-                              <div className="flex items-center gap-2 bg-emerald-50 px-2 py-0.5 border border-emerald-100 shadow-sm">
-                                <span className="text-[9px] font-black uppercase text-emerald-950 tracking-wider pl-1">Modality:</span>
-                                <div className="flex gap-1.5">
-                                  {[
-                                    { label: "Dilated (Dil RR)", value: "DilRR" },
-                                    { label: "Cycloplegic (Cyclo RR)", value: "cycloRR" }
-                                  ].map((opt) => {
-                                    const isSelected = (formData.objectiveRefraction?.type || "DilRR") === opt.value;
-                                    return (
-                                      <button
-                                        key={opt.value}
-                                        type="button"
-                                        onClick={() => setFormData(p => ({ ...p, objectiveRefraction: { ...p.objectiveRefraction, type: opt.value } as any }))}
-                                        className={cn(
-                                          "px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none",
-                                          isSelected
-                                            ? "bg-teal-600 text-white border-teal-700 shadow-md"
-                                            : "bg-white text-slate-400 border-slate-100 hover:border-teal-200 hover:text-teal-600"
-                                        )}
-                                      >
-                                        {opt.label}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
+
+
+                  {/* Automated Refraction (AR/REK) */}
+                  <DiagnosticCard
+                    title="Automated Refraction (AR/REK)"
+                    icon={Activity}
+                    sectionId="autoRef"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-purple-50 text-purple-900 border-l-purple-600"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {["OD", "OS"].map((eye) => (
+                        <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4">
+                          <div className="flex items-center gap-3 border-b border-purple-100 pb-2">
+                            <span className={cn(
+                              "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                              eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
+                            )}>{eye}</span>
+                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Digital Sensing {eye === "OD" ? "Right" : "Left"}</span>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
-                              <PowerPaletteInput
-                                type="sph"
-                                label={`Objective Refraction Modality ${eye} - SPH`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", val)}
-                                placeholder="0.00"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
+                            {["sphere1", "cylinder1", "axis1"].map((f) => (
+                              <div key={f} className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-slate-500 tracking-widest pl-1">{f.replace("1", "").toUpperCase()}</label>
+                                <PowerPaletteInput
+                                  type={f.startsWith("sphere") ? "sph" : f.startsWith("cylinder") ? "cyl" : "axis"}
+                                  label={`Auto Ref ${eye} - ${f.replace("1", "").toUpperCase()}`}
+                                  value={(formData.autoRef as any)[eye]?.[f] || ""}
+                                  onChange={(val) => updateEyeGrid("autoRef", eye, f, val)}
+                                  placeholder={f === "axis1" ? "0" : "0.00"}
+                                  className="h-11 text-center text-base font-black bg-white border-purple-100 rounded-none focus:border-purple-400 text-slate-900"
+                                  disabled={isLocked}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DiagnosticCard>
+
+                  {/* Keratometry Matrix */}
+                  {/* Keratometry Matrix */}
+                  <DiagnosticCard
+                    title="Keratometry Matrix (K1/K2/Axis)"
+                    icon={Activity}
+                    sectionId="keratometry"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-indigo-50 text-indigo-900 border-l-indigo-600"
+                  >
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3 bg-white p-4 border border-slate-100 shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-7 h-7 flex items-center justify-center border border-blue-200 text-blue-600 font-black text-[9px] bg-blue-50">OD</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Right Eye Clinical Readings</span>
+                          </div>
+                          <TagInput
+                            placeholder="K1/K2 @ Axis (e.g. 44.00/45.00 @ 90)"
+                            values={formData.keratometry?.OD || []}
+                            isKeratometry={true}
+                            gender={getPatientGenderString(patient)}
+                            onAdd={(val) => setFormData(p => ({
+                              ...p,
+                              keratometry: { ...p.keratometry, OD: [...(Array.isArray(p.keratometry?.OD) ? p.keratometry.OD : []), sanitizeOptometryInput(val, 'notes')] }
+                            }))}
+                            onRemove={(idx) => setFormData(p => {
+                              const arr = [...(Array.isArray(p.keratometry?.OD) ? p.keratometry.OD : [])];
+                              arr.splice(idx, 1);
+                              return { ...p, keratometry: { ...p.keratometry, OD: arr } };
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-3 bg-white p-4 border border-slate-100 shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-7 h-7 flex items-center justify-center border border-emerald-200 text-emerald-600 font-black text-[9px] bg-emerald-50">OS</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Left Eye Clinical Readings</span>
+                          </div>
+                          <TagInput
+                            placeholder="K1/K2 @ Axis (e.g. 44.00/45.00 @ 90)"
+                            values={formData.keratometry?.OS || []}
+                            isKeratometry={true}
+                            gender={getPatientGenderString(patient)}
+                            onAdd={(val) => setFormData(p => ({
+                              ...p,
+                              keratometry: { ...p.keratometry, OS: [...(Array.isArray(p.keratometry?.OS) ? p.keratometry.OS : []), sanitizeOptometryInput(val, 'notes')] }
+                            }))}
+                            onRemove={(idx) => setFormData(p => {
+                              const arr = [...(Array.isArray(p.keratometry?.OS) ? p.keratometry.OS : [])];
+                              arr.splice(idx, 1);
+                              return { ...p, keratometry: { ...p.keratometry, OS: arr } };
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </DiagnosticCard>
+
+                  {/* Objective Refraction & Retinoscopy */}
+                  <DiagnosticCard
+                    title="Objective Refraction (Retinoscopy)"
+                    icon={Crosshair}
+                    sectionId="objective"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-teal-50 text-teal-900 border-l-teal-600"
+                    badge={formData.objectiveRefraction?.type === "DilRR" ? "Dilated" : "Cycloplegic"}
+                  >
+                    <div className="space-y-6">
+                      <div className="space-y-8">
+                        {["OD", "OS"].map((eye) => (
+                          <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              {/* Dry RR */}
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-3 border-b border-emerald-100 pb-2 min-h-[44px]">
+                                  <span className={cn(
+                                    "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                    eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                                  )}>{eye}</span>
+                                  <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">Dry RR</span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                    <PowerPaletteInput
+                                      type="sph"
+                                      label={`Objective Refraction Dry ${eye} - SPH`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.sphere || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "sphere", val)}
+                                      placeholder="0.00"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                    <PowerPaletteInput
+                                      type="cyl"
+                                      label={`Objective Refraction Dry ${eye} - CYL`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.cylinder || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cylinder", val)}
+                                      placeholder="0.00"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                    <PowerPaletteInput
+                                      type="axis"
+                                      label={`Objective Refraction Dry ${eye} - AXIS`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.axis || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "axis", val)}
+                                      placeholder="0"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Modality RR */}
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between border-b border-emerald-100 pb-2 min-h-[44px]">
+                                  <div className="flex items-center gap-3">
+                                    <span className={cn(
+                                      "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                      eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                                    )}>{eye}</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-emerald-50 px-2 py-0.5">{formData.objectiveRefraction?.type === "DilRR" ? "Dil RR" : "Cyclo RR"}</span>
+                                  </div>
+
+                                  {eye === "OD" && (
+                                    <div className="flex items-center gap-2 bg-emerald-50 px-2 py-0.5 border border-emerald-100 shadow-sm">
+                                      <span className="text-[9px] font-black uppercase text-emerald-950 tracking-wider pl-1">Modality:</span>
+                                      <div className="flex gap-1.5">
+                                        {[
+                                          { label: "Dilated (Dil RR)", value: "DilRR" },
+                                          { label: "Cycloplegic (Cyclo RR)", value: "cycloRR" }
+                                        ].map((opt) => {
+                                          const isSelected = (formData.objectiveRefraction?.type || "DilRR") === opt.value;
+                                          return (
+                                            <button
+                                              key={opt.value}
+                                              type="button"
+                                              onClick={() => setFormData(p => ({ ...p, objectiveRefraction: { ...p.objectiveRefraction, type: opt.value } as any }))}
+                                              className={cn(
+                                                "px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none",
+                                                isSelected
+                                                  ? "bg-teal-600 text-white border-teal-700 shadow-md"
+                                                  : "bg-white text-slate-400 border-slate-100 hover:border-teal-200 hover:text-teal-600"
+                                              )}
+                                            >
+                                              {opt.label}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                    <PowerPaletteInput
+                                      type="sph"
+                                      label={`Objective Refraction Modality ${eye} - SPH`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.cycloSphere || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloSphere", val)}
+                                      placeholder="0.00"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                    <PowerPaletteInput
+                                      type="cyl"
+                                      label={`Objective Refraction Modality ${eye} - CYL`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", val)}
+                                      placeholder="0.00"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                    <PowerPaletteInput
+                                      type="axis"
+                                      label={`Objective Refraction Modality ${eye} - AXIS`}
+                                      value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""}
+                                      onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", val)}
+                                      placeholder="0"
+                                      className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
+                                      disabled={isLocked}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                              <PowerPaletteInput
-                                type="cyl"
-                                label={`Objective Refraction Modality ${eye} - CYL`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloCylinder || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloCylinder", val)}
-                                placeholder="0.00"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </DiagnosticCard>
+
+                  {/* Acceptance (Subjective Refraction) */}
+                  <div data-section="acceptance" id="sec-acceptance">
+                    <DualEyePrescriptionBlock
+                      title="Acceptance (Subjective Refraction)"
+                      stateKey="acceptance"
+                      data={formData.acceptance}
+                      setFormData={setFormData}
+                      disabled={isLocked}
+                      onSync={syncObjectiveToAcceptance}
+                      syncTitle="Sync from Obj"
+                      isOpen={!!openSections['acceptance']}
+                      onToggle={() => toggleSection('acceptance')}
+                      headerClassName="bg-orange-50 text-orange-600 border-l-orange-600"
+                    />
+                  </div>
+
+                  {/* Refining (JCC & Duo-Chrome) */}
+                  <DiagnosticCard
+                    title="Subjective Refining (JCC & Duo-Chrome)"
+                    icon={Crosshair}
+                    sectionId="refining"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-fuchsia-50 text-fuchsia-900 border-l-fuchsia-600"
+                  >
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                        <div className="md:col-span-12 space-y-4">
+                          <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2">
+                            <Crosshair className="w-3.5 h-3.5 text-fuchsia-600" /> Jackson Cross Cylinder (JCC) Refining
+                          </label>
+                          <div className="bg-white border border-fuchsia-100 p-1 flex items-stretch min-h-[120px] shadow-sm">
+                            <Textarea
+                              className="flex-1 border-none focus-visible:ring-0 resize-none font-bold text-sm bg-transparent p-4"
+                              placeholder="Detailed JCC findings, refining axis and power... (e.g. Cyl +0.25 rejected, Axis shifted 5°)"
+                              value={formData.jcc || ""}
+                              onChange={(e) => setFormData(p => ({ ...p, jcc: sanitizeOptometryInput(e.target.value, 'notes') }))}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-12 space-y-4">
+                          <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2 text-emerald-600">
+                            <Droplets className="w-3.5 h-3.5" /> Duo-Chrome Test Verification
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <span className={cn("text-[9px] font-black uppercase pl-1", eyeLabelClass("OD"))}>Right Eye (OD)</span>
+                              <Input className="h-14 text-center font-bold border-slate-200 bg-white rounded-none focus:border-blue-500 text-blue-700" placeholder="OD Result" value={formData.refining?.duochrome?.OD || ""} onChange={(e) => setFormData(p => {
+                                const currentRef = p.refining || {};
+                                const currentDuo = currentRef.duochrome || {};
+                                return { ...p, refining: { ...currentRef, duochrome: { ...currentDuo, OD: sanitizeOptometryInput(e.target.value, 'va') } } };
+                              })} />
                             </div>
-                            <div className="space-y-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                              <PowerPaletteInput
-                                type="axis"
-                                label={`Objective Refraction Modality ${eye} - AXIS`}
-                                value={(formData.objectiveRefraction as any)?.[eye]?.cycloAxis || ""}
-                                onChange={(val) => updateEyeGrid("objectiveRefraction" as any, eye, "cycloAxis", val)}
-                                placeholder="0"
-                                className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 text-slate-900 focus:border-emerald-400"
-                                disabled={isLocked}
-                              />
+                            <div className="space-y-2">
+                              <span className={cn("text-[9px] font-black uppercase pl-1", eyeLabelClass("OS"))}>Left Eye (OS)</span>
+                              <Input className="h-14 text-center font-bold border-slate-200 bg-white rounded-none focus:border-emerald-500 text-emerald-700" placeholder="OS Result" value={formData.refining?.duochrome?.OS || ""} onChange={(e) => setFormData(p => {
+                                const currentRef = p.refining || {};
+                                const currentDuo = currentRef.duochrome || {};
+                                return { ...p, refining: { ...currentRef, duochrome: { ...currentDuo, OS: sanitizeOptometryInput(e.target.value, 'va') } } };
+                              })} />
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </DiagnosticCard>
+                  </DiagnosticCard>
+                  {/* Final Glass Prescription Correction */}
+                  <DiagnosticCard
+                    title="Final Glass Prescription Correction"
+                    icon={CheckCircle2}
+                    sectionId="glass"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-pink-50 text-pink-900 border-l-pink-600"
+                    action={
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 px-4 bg-pink-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          syncAcceptanceToFinal();
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Sync from Subjective
+                      </Button>
+                    }
+                  >
+                    <div className="space-y-6">
 
-            {/* Acceptance (Subjective Refraction) */}
-            <div data-section="acceptance">
-              <DualEyePrescriptionBlock 
-                title="Acceptance (Subjective Refraction)" 
-                stateKey="acceptance" 
-                data={formData.acceptance} 
-                setFormData={setFormData}
-                disabled={isLocked}
-                onSync={syncObjectiveToAcceptance}
-                syncTitle="Sync from Obj"
-                isOpen={!!openSections['acceptance']}
-                onToggle={() => toggleSection('acceptance')}
-                headerClassName="bg-orange-50 text-orange-600 border-l-orange-600"
-              />
-            </div>
+                      <div className="clinical-group !bg-transparent !border-none !p-0">
+                        <div className="space-y-6 pb-6 mb-6 border-b border-pink-100">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Lens Architecture</label>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {[
+                                { label: "Single Vision (SVN)", value: "SVN" },
+                                { label: "Bifocals (KBF)", value: "KBF" },
+                                { label: "Progressive (PAL)", value: "PAL" },
+                                { label: "Double D Bifocal (DBF)", value: "DBF" },
+                                { label: "Reading Glass", value: "READING" }
+                              ].map((opt) => {
+                                const isSelected = (formData.glassPrescription?.glassType || "SVN") === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, glassPrescription: { ...p.glassPrescription, glassType: opt.value } }))}
+                                    className={cn(
+                                      "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                      isSelected
+                                        ? "bg-pink-600 text-white border-pink-600 shadow-md"
+                                        : "bg-white text-slate-400 border-slate-100 hover:border-pink-200 hover:text-pink-600"
+                                    )}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-4 pt-2">
+                          {["OD", "OS"].map((eye) => (
+                            <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {/* Distance Vision Block */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
+                                    <span className={cn(
+                                      "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                      eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                                    )}>{eye}</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Distance</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                      <PowerPaletteInput
+                                        type="sph"
+                                        label={`Glasses Rx Distance ${eye} - SPH`}
+                                        value={formData.glassPrescription[eye]?.sphere || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "sphere", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                      <PowerPaletteInput
+                                        type="cyl"
+                                        label={`Glasses Rx Distance ${eye} - CYL`}
+                                        value={formData.glassPrescription[eye]?.cylinder || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "cylinder", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                      <PowerPaletteInput
+                                        type="axis"
+                                        label={`Glasses Rx Distance ${eye} - AXIS`}
+                                        value={formData.glassPrescription[eye]?.axis || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "axis", val)}
+                                        placeholder="0"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1"><span className={cn("text-[8px] font-black uppercase text-center block", eyeLabelClass(eye))}>BCVA</span>
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Glasses Rx Distance ${eye} - BCVA`}
+                                        value={formData.glassPrescription[eye]?.bcva || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "bcva", val)}
+                                        placeholder="6/6"
+                                        className={cn("h-11 font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm", eyeVaInputClass(eye))}
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">PD (mm)</span>
+                                      <PowerPaletteInput
+                                        type="pd"
+                                        label={`Glasses Rx Distance ${eye} - PD`}
+                                        value={formData.glassPrescription?.distPD?.[eye as "OD" | "OS"] || ""}
+                                        onChange={(val) => updateGlassPd("distPD", eye as "OD" | "OS", val)}
+                                        placeholder="32"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
 
-            {/* Refining (JCC & Duo-Chrome) */}
-            <DiagnosticCard
-              title="Subjective Refining (JCC & Duo-Chrome)"
-              icon={Crosshair}
-              sectionId="refining"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-fuchsia-50 text-fuchsia-900 border-l-fuchsia-600"
-            >
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                  <div className="md:col-span-12 space-y-4">
-                    <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2">
-                      <Crosshair className="w-3.5 h-3.5 text-fuchsia-600" /> Jackson Cross Cylinder (JCC) Refining
-                    </label>
-                    <div className="bg-white border border-fuchsia-100 p-1 flex items-stretch min-h-[120px] shadow-sm">
-                      <Textarea 
-                        className="flex-1 border-none focus-visible:ring-0 resize-none font-bold text-sm bg-transparent p-4" 
-                        placeholder="Detailed JCC findings, refining axis and power... (e.g. Cyl +0.25 rejected, Axis shifted 5°)" 
-                        value={formData.jcc || ""} 
-                        onChange={(e) => setFormData(p => ({ ...p, jcc: sanitizeOptometryInput(e.target.value, 'notes') }))} 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-12 space-y-4">
-                    <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2 text-emerald-600">
-                      <Droplets className="w-3.5 h-3.5" /> Duo-Chrome Test Verification
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase pl-1">Right Eye (OD)</span>
-                        <Input className="h-14 text-center font-bold border-slate-200 bg-white rounded-none focus:border-emerald-400 text-slate-900" placeholder="OD Result" value={formData.refining?.duochrome?.OD || ""} onChange={(e) => setFormData(p => {
-                          const currentRef = p.refining || {};
-                          const currentDuo = currentRef.duochrome || {};
-                          return { ...p, refining: { ...currentRef, duochrome: { ...currentDuo, OD: sanitizeOptometryInput(e.target.value, 'va') } } };
-                        })} />
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
+                                    <span className={cn(
+                                      "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                      eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
+                                    )}>{eye}</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Near Vision Correction</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
+                                      <PowerPaletteInput
+                                        type="sph"
+                                        label={`Glasses Rx Near ${eye} - DSPH`}
+                                        value={formData.glassPrescription[eye]?.nearDsph || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearDsph", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                      <PowerPaletteInput
+                                        type="cyl"
+                                        label={`Glasses Rx Near ${eye} - CYL`}
+                                        value={formData.glassPrescription[eye]?.nearCylinder || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearCylinder", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                      <PowerPaletteInput
+                                        type="axis"
+                                        label={`Glasses Rx Near ${eye} - AXIS`}
+                                        value={formData.glassPrescription[eye]?.nearAxis || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAxis", val)}
+                                        placeholder="0"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
+                                      <PowerPaletteInput
+                                        type="add"
+                                        label={`Glasses Rx Near ${eye} - ADD`}
+                                        value={formData.glassPrescription[eye]?.nearAdd || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAdd", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1"><span className={cn("text-[8px] font-black uppercase text-center block", eyeLabelClass(eye))}>BCVA</span>
+                                      <PowerPaletteInput
+                                        type="nv"
+                                        label={`Glasses Rx Near ${eye} - BCVA`}
+                                        value={formData.glassPrescription[eye]?.nearBcva || ""}
+                                        onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearBcva", val)}
+                                        placeholder="N6"
+                                        className={cn("h-11 font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm", eyeVaInputClass(eye))}
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">PD (mm)</span>
+                                      <PowerPaletteInput
+                                        type="pd"
+                                        label={`Glasses Rx Near ${eye} - Near PD`}
+                                        value={formData.glassPrescription?.nearPD?.[eye as "OD" | "OS"] || ""}
+                                        onChange={(val) => updateGlassPd("nearPD", eye as "OD" | "OS", val)}
+                                        placeholder="30"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span>
+                                      <Input
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
+                                        value={formData.glassPrescription[eye]?.nearCm || ""}
+                                        onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearCm", e.target.value)}
+                                        placeholder="33"
+                                        title="Near working distance in centimetres"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase pl-1">Left Eye (OS)</span>
-                        <Input className="h-14 text-center font-bold border-slate-200 bg-white rounded-none focus:border-emerald-400 text-slate-900" placeholder="OS Result" value={formData.refining?.duochrome?.OS || ""} onChange={(e) => setFormData(p => {
-                          const currentRef = p.refining || {};
-                          const currentDuo = currentRef.duochrome || {};
-                          return { ...p, refining: { ...currentRef, duochrome: { ...currentDuo, OS: sanitizeOptometryInput(e.target.value, 'va') } } };
-                        })} />
+                    </div>
+                  </DiagnosticCard>
+
+                  {/* Final Contact Lens Prescription */}
+                  <DiagnosticCard
+                    title="Final Contact Lens Prescription"
+                    icon={CheckCircle2}
+                    sectionId="contactLens"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-violet-50 text-violet-900 border-l-violet-600"
+                    action={
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 px-4 bg-violet-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          syncAcceptanceToCL();
+                        }}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Sync from Subjective
+                      </Button>
+                    }
+                  >
+                    <div className="space-y-6">
+                      <div className="clinical-group !bg-transparent !border-none !p-0">
+                        <div className="space-y-6 pb-6 mb-6 border-b border-violet-100">
+                          <div className="flex flex-col md:flex-row gap-6 md:gap-12">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Soft CL", "RGP", "Scleral"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  const isDisabled = type === "RGP" || type === "Scleral";
+                                  return (
+                                    <button key={type} type="button" disabled={isDisabled} onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Disposable", "Yearly"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  return (
+                                    <button key={type} type="button" onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {["Spherical", "Toric", "Multifocal"].map((type) => {
+                                  const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
+                                  const isSelected = currentTypes.includes(type);
+                                  return (
+                                    <button key={type} type="button" onClick={() => {
+                                      const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
+                                      setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 pt-2">
+                          {["OD", "OS"].map((eye) => (
+                            <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {/* Distance Vision Block */}
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-3 border-b border-violet-100 pb-2">
+                                    <span className={cn(
+                                      "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                      eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+                                    )}>{eye}</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Distance</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
+                                      <PowerPaletteInput
+                                        type="sph"
+                                        label={`Contact Lens Distance ${eye} - SPH`}
+                                        value={formData.contactLensPrescription[eye]?.sphere || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "sphere", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                      <PowerPaletteInput
+                                        type="cyl"
+                                        label={`Contact Lens Distance ${eye} - CYL`}
+                                        value={formData.contactLensPrescription[eye]?.cylinder || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "cylinder", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                      <PowerPaletteInput
+                                        type="axis"
+                                        label={`Contact Lens Distance ${eye} - AXIS`}
+                                        value={formData.contactLensPrescription[eye]?.axis || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "axis", val)}
+                                        placeholder="0"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1"><span className={cn("text-[8px] font-black uppercase text-center block", eyeLabelClass(eye))}>BCVA</span>
+                                      <PowerPaletteInput
+                                        type="dv"
+                                        label={`Contact Lens Distance ${eye} - BCVA`}
+                                        value={formData.contactLensPrescription[eye]?.bcva || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "bcva", val)}
+                                        placeholder="6/6"
+                                        className={cn("h-11 font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm", eyeVaInputClass(eye))}
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-3 border-b border-violet-100 pb-2">
+                                    <span className={cn(
+                                      "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
+                                      eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
+                                    )}>{eye}</span>
+                                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Near Vision Correction</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
+                                      <PowerPaletteInput
+                                        type="sph"
+                                        label={`Contact Lens Near ${eye} - DSPH`}
+                                        value={formData.contactLensPrescription[eye]?.nearDsph || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearDsph", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
+                                      <PowerPaletteInput
+                                        type="cyl"
+                                        label={`Contact Lens Near ${eye} - CYL`}
+                                        value={formData.contactLensPrescription[eye]?.nearCylinder || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearCylinder", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
+                                      <PowerPaletteInput
+                                        type="axis"
+                                        label={`Contact Lens Near ${eye} - AXIS`}
+                                        value={formData.contactLensPrescription[eye]?.nearAxis || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAxis", val)}
+                                        placeholder="0"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
+                                      <PowerPaletteInput
+                                        type="add"
+                                        label={`Contact Lens Near ${eye} - ADD`}
+                                        value={formData.contactLensPrescription[eye]?.nearAdd || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAdd", val)}
+                                        placeholder="0.00"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1"><span className={cn("text-[8px] font-black uppercase text-center block", eyeLabelClass(eye))}>BCVA</span>
+                                      <PowerPaletteInput
+                                        type="nv"
+                                        label={`Contact Lens Near ${eye} - BCVA`}
+                                        value={formData.contactLensPrescription[eye]?.nearBcva || ""}
+                                        onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearBcva", val)}
+                                        placeholder="N6"
+                                        className={cn("h-11 font-black rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm", eyeVaInputClass(eye))}
+                                        disabled={isLocked}
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span>
+                                      <Input
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
+                                        value={formData.contactLensPrescription[eye]?.nearCm || ""}
+                                        onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearCm", e.target.value)}
+                                        placeholder="33"
+                                        title="Near working distance in centimetres"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </DiagnosticCard>
-            {/* Final Glass Prescription Correction */}
-            <DiagnosticCard
-              title="Final Glass Prescription Correction"
-              icon={CheckCircle2}
-              sectionId="glass"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-pink-50 text-pink-900 border-l-pink-600"
-              action={
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-8 px-4 bg-pink-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    syncAcceptanceToFinal();
-                  }}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Sync from Subjective
-                </Button>
-              }
-            >
-              <div className="space-y-6">
-                
-                <div className="clinical-group !bg-transparent !border-none !p-0">
-                  <div className="space-y-6 pb-6 mb-6 border-b border-pink-100">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Lens Architecture</label>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {[
-                          { label: "Single Vision (SVN)", value: "SVN" },
-                          { label: "Bifocals (KBF)", value: "KBF" },
-                          { label: "Progressive (PAL)", value: "PAL" }
-                        ].map((opt) => {
-                          const isSelected = (formData.glassPrescription?.glassType || "SVN") === opt.value;
-                          return (
+                  </DiagnosticCard>
+
+                  <TonometrySection
+                    formData={formData}
+                    setFormData={setFormData}
+                    openSections={openSections}
+                    toggleSection={toggleSection}
+                    disabled={isLocked}
+                  />
+
+                  {/* Secondary Assessments */}
+                  <DiagnosticCard
+                    title="Secondary Assessments (Color, Dryness, Amsler, Contrast)"
+                    icon={AlertCircle}
+                    sectionId="secondary"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-cyan-50 text-cyan-900 border-l-cyan-600"
+                    badge={(formData.ishiharaTest?.status || formData.schirmerTest?.OD || formData.schirmerTest?.OS || formData.amslerGrid || formData.contrastSensitivity) ? "Data Entered" : undefined}
+                  >
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        {/* Ishihara (Color Vision) */}
+                        <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
+                          <div className="space-y-6 bg-slate-50 p-6">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] border-b border-slate-200 pb-2 flex items-center gap-2">
+                              <Activity className="w-4 h-4 text-emerald-600" /> Ishihara (Color Vision)
+                            </label>
+                            <div className="space-y-4">
+                              <div className="flex gap-3">
+                                {[
+                                  { label: "CLEAR (Normal)", value: "CLEAR" },
+                                  { label: "DEFICIENCY REPORTED", value: "DEFICIENCY" }
+                                ].map((opt) => {
+                                  const isSelected = formData.ishiharaTest?.status === opt.value;
+                                  return (
+                                    <button
+                                      key={opt.value}
+                                      type="button"
+                                      onClick={() => setFormData(p => ({
+                                        ...p,
+                                        ishiharaTest: {
+                                          ...(p.ishiharaTest || {}),
+                                          status: opt.value,
+                                          notes: opt.value === "CLEAR" ? "" : p.ishiharaTest?.notes
+                                        }
+                                      }))}
+                                      className={cn(
+                                        "flex-1 h-14 px-4 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                        isSelected
+                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
+                                          : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                      )}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-2 transition-opacity duration-300", formData.ishiharaTest?.status === "DEFICIENCY" ? "opacity-100" : "opacity-30 pointer-events-none")}>
+                                {["Red", "Green", "Red-Green", "Total"].map((def) => {
+                                  const isDefSelected = formData.ishiharaTest?.notes === def;
+                                  let colorClass = "";
+                                  if (isDefSelected) {
+                                    if (def === "Red") colorClass = "bg-red-500 text-white border-red-500";
+                                    else if (def === "Green") colorClass = "bg-emerald-500 text-white border-emerald-500";
+                                    else if (def === "Red-Green") colorClass = "bg-gradient-to-r from-red-500 to-emerald-500 text-white border-transparent";
+                                    else if (def === "Total") colorClass = "bg-slate-700 text-white border-slate-700";
+                                  } else {
+                                    if (def === "Red") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-red-400 hover:text-red-600";
+                                    else if (def === "Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600";
+                                    else if (def === "Red-Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600";
+                                    else if (def === "Total") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-slate-500 hover:text-slate-700";
+                                  }
+
+                                  return (
+                                    <button
+                                      key={def}
+                                      type="button"
+                                      onClick={() => setFormData(p => {
+                                        const current = p.ishiharaTest || {};
+                                        return { ...p, ishiharaTest: { ...current, notes: current.notes === def ? "" : def } };
+                                      })}
+                                      className={cn(
+                                        "h-12 text-[9px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                        colorClass
+                                      )}
+                                    >
+                                      {def}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Schirmer's Test */}
+                        <div className="border-2 border-slate-100 bg-white/50 p-4 md:border-0 md:bg-transparent md:p-0">
+                          <div className="space-y-6 bg-slate-50 p-6">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] border-b border-slate-200 pb-2 flex items-center gap-2">
+                              <Droplets className="w-4 h-4 text-blue-600" /> Schirmer's Test (mm)
+                            </label>
+                            <div className="grid grid-cols-2 gap-6">
+                              {["OD", "OS"].map((eye) => (
+                                <div key={eye} className="space-y-2">
+                                  <span className="text-[9px] font-black text-slate-400 uppercase text-center block">{eye} Assessment</span>
+                                  <Select value={(formData.schirmerTest as any)[eye] || ""} onValueChange={(val) => setFormData(p => {
+                                    const current = p.schirmerTest || {};
+                                    return { ...p, schirmerTest: { ...current, [eye]: val } };
+                                  })}>
+                                    <SelectTrigger className="h-14 font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="Normal (> 15 mm)" /></SelectTrigger>
+                                    <SelectContent className="max-h-[300px] font-bold">
+                                      {SCHIRMER_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Amsler & Contrast Sensitivity */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-100 pt-6">
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2">
+                            <Scan className="w-3.5 h-3.5 text-orange-600" /> Amsler Grid Assessment
+                          </label>
+                          <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-orange-400 text-slate-900" placeholder="Macular Grid Result" value={formData.amslerGrid || ""} onChange={(e) => setFormData(p => ({ ...p, amslerGrid: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2 text-rose-600">
+                            <Eye className="w-3.5 h-3.5" /> Contrast Sensitivity
+                          </label>
+                          <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-rose-400 text-slate-900" placeholder="LogMAR / Pelli-Robson" value={formData.contrastSensitivity || ""} onChange={(e) => setFormData(p => ({ ...p, contrastSensitivity: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                        </div>
+                      </div>
+                    </div>
+                  </DiagnosticCard>
+
+
+                  {/* 12. Final Clinical Remarks */}
+                  <DiagnosticCard
+                    title="Final Clinical Remarks"
+                    icon={ClipboardList}
+                    sectionId="remarks"
+                    openSections={openSections}
+                    onToggle={toggleSection}
+                    headerClassName="bg-slate-100 text-slate-900 border-l-slate-600"
+                    badge={formData.optometristNotes ? "Remarks Added" : undefined}
+                  >
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                        <div className="space-y-4 md:space-y-6">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5 block">Binocular Functionality</label>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              { label: "EOM Full", value: "eom" },
+                              { label: "Worth 4-Dot", value: "worth_four_dot" },
+                              { label: "Stereopsis", value: "stereopsis" },
+                              { label: "Prism Cover", value: "prism" },
+                              { label: "Diplopia Charting", value: "diplopia" }
+                            ].map((opt) => {
+                              const isSelected = formData.binocular === opt.value;
+                              return (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => setFormData(v => ({ ...v, binocular: opt.value }))}
+                                  className={cn(
+                                    "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
+                                    isSelected
+                                      ? "bg-slate-600 text-white border-slate-700 shadow-md"
+                                      : "bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-900"
+                                  )}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5 block">Clinical Optometrist's Notes</label>
                             <button
-                              key={opt.value}
                               type="button"
-                              onClick={() => setFormData(p => ({ ...p, glassPrescription: { ...p.glassPrescription, glassType: opt.value } }))}
-                              className={cn(
-                                "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                isSelected
-                                  ? "bg-pink-600 text-white border-pink-600 shadow-md"
-                                  : "bg-white text-slate-400 border-slate-100 hover:border-pink-200 hover:text-pink-600"
-                              )}
+                              onClick={() => setFormData(v => ({ ...v, optometristNotes: "" }))}
+                              className="text-[9px] font-black uppercase tracking-wider text-rose-600 hover:text-rose-700 transition-colors"
                             >
-                              {opt.label}
+                              Clear Notes
                             </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4 pt-2">
-                    {["OD", "OS"].map((eye) => (
-                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                          {/* Distance Vision Block */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
-                                <span className={cn(
-                                  "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                  eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                                )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Distance</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
-                                <PowerPaletteInput
-                                  type="sph"
-                                  label={`Glasses Rx Distance ${eye} - SPH`}
-                                  value={formData.glassPrescription[eye]?.sphere || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "sphere", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                                <PowerPaletteInput
-                                  type="cyl"
-                                  label={`Glasses Rx Distance ${eye} - CYL`}
-                                  value={formData.glassPrescription[eye]?.cylinder || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "cylinder", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                                <PowerPaletteInput
-                                  type="axis"
-                                  label={`Glasses Rx Distance ${eye} - AXIS`}
-                                  value={formData.glassPrescription[eye]?.axis || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "axis", val)}
-                                  placeholder="0"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <PowerPaletteInput
-                                  type="dv"
-                                  label={`Glasses Rx Distance ${eye} - BCVA`}
-                                  value={formData.glassPrescription[eye]?.bcva || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "bcva", val)}
-                                  placeholder="-"
-                                  className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                            </div>
                           </div>
 
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-pink-100 pb-2">
-                              <span className={cn(
-                                "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
-                              )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-pink-50 px-2 py-0.5">Near Vision Correction</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
-                                <PowerPaletteInput
-                                  type="sph"
-                                  label={`Glasses Rx Near ${eye} - DSPH`}
-                                  value={formData.glassPrescription[eye]?.nearDsph || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearDsph", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                                <PowerPaletteInput
-                                  type="cyl"
-                                  label={`Glasses Rx Near ${eye} - CYL`}
-                                  value={formData.glassPrescription[eye]?.nearCylinder || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearCylinder", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                                <PowerPaletteInput
-                                  type="axis"
-                                  label={`Glasses Rx Near ${eye} - AXIS`}
-                                  value={formData.glassPrescription[eye]?.nearAxis || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAxis", val)}
-                                  placeholder="0"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
-                                <PowerPaletteInput
-                                  type="add"
-                                  label={`Glasses Rx Near ${eye} - ADD`}
-                                  value={formData.glassPrescription[eye]?.nearAdd || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearAdd", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <PowerPaletteInput
-                                  type="nv"
-                                  label={`Glasses Rx Near ${eye} - BCVA`}
-                                  value={formData.glassPrescription[eye]?.nearBcva || ""}
-                                  onChange={(val) => updateEyeGrid("glassPrescription", eye, "nearBcva", val)}
-                                  placeholder="-"
-                                  className="h-11 font-black bg-white rounded-none border-pink-100 focus:border-pink-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1 sm:col-span-1 xl:col-span-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-pink-100 text-slate-900 focus:border-pink-400" value={formData.glassPrescription[eye]?.nearCm || ""} onChange={(e) => updateEyeGrid("glassPrescription", eye, "nearCm", e.target.value)} placeholder="33cm" /></div>
-                            </div>
+                          {/* Notes Preset Templates */}
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {[
+                              { name: "Normal/NAD", text: "Visual acuity stable. Pupils equal, round, and reactive to light. Ocular motility full and painless. Anterior segment clear. Normal intraocular pressures." },
+                              { name: "Refractive Error", text: "Patient presents with progressive blurred vision. Refraction reveals myopic/astigmatic refractive error. Prescribed appropriate spectacle correction for constant/reading use." },
+                              { name: "Dry Eye", text: "Symptoms of ocular irritation, foreign body sensation, and dryness. Tear film instability observed. Advised artificial tears, lid hygiene, and environmental modifications." },
+                              { name: "Presbyopia", text: "Age-related near vision blur reported. Prescribed near reading spectacles. Advised on proper reading distance and lighting." },
+                              { name: "Cataract Obs.", text: "Early nuclear sclerosis noted bilaterally, consistent with age. Visual acuity corrected to acceptable level. Advised monitoring and regular checkups." },
+                              { name: "Glaucoma Susp.", text: "Borderline intraocular pressure noted. Optic disc cup-to-disc ratio is 0.4. Recommended visual field testing and pachymetry. Follow up advised." },
+                              { name: "Allergic Conj.", text: "Itching, redness, and watery discharge reported. Mild follicular reaction on tarsal conjunctiva. Advised cold compresses and avoidance of allergens." }
+                            ].map((tmpl) => (
+                              <button
+                                key={tmpl.name}
+                                type="button"
+                                onClick={() => {
+                                  setFormData(v => {
+                                    const current = v.optometristNotes || "";
+                                    const updated = current ? `${current}\n\n${tmpl.text}` : tmpl.text;
+                                    return { ...v, optometristNotes: sanitizeOptometryInput(updated, 'notes') };
+                                  });
+                                }}
+                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-orange-50 text-slate-500 hover:text-orange-600 border border-slate-200 hover:border-orange-200 active:scale-95 transition-all rounded-none"
+                              >
+                                {tmpl.name}
+                              </button>
+                            ))}
                           </div>
+
+                          <Textarea
+                            className="min-h-[200px] font-bold p-6 bg-slate-50 border-2 border-slate-100 focus:border-slate-400 focus-visible:ring-0 rounded-none font-mono text-sm shadow-inner transition-all"
+                            placeholder="Enter final clinical observations, findings, and patient instructions..."
+                            value={formData.optometristNotes || ""}
+                            onChange={(e) => setFormData(v => ({ ...v, optometristNotes: sanitizeOptometryInput(e.target.value, 'notes') }))}
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  </DiagnosticCard>
+
+                  <Card className="clinical-card bg-white shadow-md overflow-hidden border-slate-200">
+                    <div className="p-8">
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10">
+                        {/* Left Side: Identification and Certification */}
+                        <div className="space-y-6 flex-1">
+                          <div className="flex items-center gap-5">
+                            <div className="p-3 bg-orange-600 text-white shadow-lg"><Check className="w-6 h-6 shrink-0" /></div>
+                            <div className="flex flex-col">
+                              <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Optometry Finalization</span>
+                              <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">Diagnostic Verification</h3>
+                            </div>
+                          </div>
+                          <p className="text-slate-500 text-sm max-w-2xl italic border-l-4 border-orange-200 pl-6 font-medium leading-relaxed">
+                            I hereby certify that the above clinical findings are accurate and have been verified according to clinical protocols.
+                          </p>
+                        </div>
+
+                        {/* Right Side: Action Buttons */}
+                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                          <Button
+                            type="button"
+                            size="lg"
+                            onClick={() => {
+                              if (!isAtLeastOneSectionCompleted(formData, selectedChips)) {
+                                toast({
+                                  variant: "destructive",
+                                  title: "Verification Blocked",
+                                  description: "Please complete at least one section before generating or viewing the refraction report."
+                                });
+                                return;
+                              }
+                              setShowReportDialog(true);
+                            }}
+                            className="h-14 px-8 rounded-none font-black uppercase tracking-[0.2em] transition-all text-[10px] w-full sm:w-auto bg-[#1a365d] hover:bg-slate-800 text-white shadow-xl flex items-center justify-center gap-2 shrink-0 border-0"
+                          >
+                            <ClipboardList className="w-4 h-4 shrink-0" />
+                            View Report
+                          </Button>
+
+                          <div
+                            className={cn(
+                              "flex items-center gap-4 px-8 py-4 cursor-pointer border-2 transition-all w-full sm:w-auto shadow-sm h-14",
+                              isVerified ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-emerald-500/10" : "bg-slate-50 border-slate-200 text-slate-400 hover:border-orange-200 hover:text-orange-600"
+                            )}
+                            onClick={() => {
+                              if (!isVerified) {
+                                if (!isAtLeastOneSectionCompleted(formData, selectedChips)) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Verification Blocked",
+                                    description: "Please complete at least one section before verifying the refraction data."
+                                  });
+                                  return;
+                                }
+                              }
+                              setIsVerified(!isVerified);
+                            }}
+                          >
+                            <Checkbox checked={isVerified} className="w-5 h-5 border-2 border-slate-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white" />
+                            <span className="font-black uppercase tracking-widest text-[10px]">Verify Data</span>
+                          </div>
+
+                          <Button
+                            size="lg"
+                            disabled={!isVerified || isSubmitting}
+                            className={cn(
+                              "h-14 px-12 rounded-none font-black uppercase tracking-[0.2em] transition-all text-[10px] w-full sm:w-auto shadow-xl",
+                              isVerified ? "bg-orange-600 text-white hover:bg-black" : "bg-slate-100 text-slate-300 pointer-events-none"
+                            )}
+                            onClick={async () => {
+                              if (!isVerified || !patient?.id) return;
+                              setIsSubmitting(true);
+                              try {
+                                let finalFormData = { ...formData };
+                                if (formData.ctrr?.startsWith('data:image')) {
+                                  const cloudSyncedUrl = await handleCTRRUpload();
+                                  if (cloudSyncedUrl) finalFormData.ctrr = cloudSyncedUrl;
+                                }
+                                await api.saveRefraction(patient.id, {
+                                  ...finalFormData,
+                                  complaint: Array.isArray(finalFormData.complaints)
+                                    ? finalFormData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
+                                    : "",
+                                  systemicHistory: selectedChips,
+                                  refractionistName: userName
+                                });
+                                toast({ title: "Clinical Record Persistence Successful", description: "Record moved to Diagnostic Archive." });
+                                setHasExistingRecord(true);
+                                localStorage.removeItem(storageKey);
+                                window.dispatchEvent(new Event("patientQueueUpdated"));
+                              } catch (err: any) {
+                                toast({ variant: "destructive", title: "Persistence Failure", description: err.message });
+                              } finally {
+                                setIsSubmitting(false);
+                              }
+                            }}
+                          >
+                            {isSubmitting ? "Processing..." : hasExistingRecord ? "Update Changes" : "Finish and Signout"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
                 </div>
               </div>
-            </DiagnosticCard>
+            </fieldset>
 
-            {/* Final Contact Lens Prescription */}
-            <DiagnosticCard
-              title="Final Contact Lens Prescription"
-              icon={CheckCircle2}
-              sectionId="contactLens"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-violet-50 text-violet-900 border-l-violet-600"
-              action={
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-8 px-4 bg-violet-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    syncAcceptanceToCL();
+            {/* Refraction Report Summary Modal */}
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+              <DialogContent className="print:hidden no-print max-w-[95vw] md:max-w-6xl max-h-[90vh] overflow-y-auto bg-white p-6 shadow-2xl rounded-xl border border-slate-100">
+                <DialogHeader className="border-b border-slate-100 pb-4 mb-4 flex flex-row items-start justify-between">
+                  <div className="flex-1">
+                    <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5 text-orange-600" />
+                      Clinical Refraction Report Summary
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
+                      Comprehensive summary of patient diagnostics, visual acuity matrix, objective results, subjective acceptance protocols, and prescription recommends.
+                    </DialogDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-9 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] gap-2 rounded-none shadow-sm mr-6 no-print shrink-0 border-0"
+                    onClick={() => handlePrintRefractionReport()}
+                  >
+                    <Printer className="w-4 h-4" /> Print Refraction
+                  </Button>
+                </DialogHeader>
+
+                <RefractionSummaryView
+                  refractionData={{
+                    ...formData,
+                    ocularComplaint: Array.isArray(formData.complaints)
+                      ? formData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
+                      : "",
+                    systemicHistory: selectedChips,
+                    optometristName: userName,
+                    consultantName: patient?.consultingDoctorName || (patient as any)?.doctor?.name || "Dr. Gajendran MBBS DO"
                   }}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Sync from Subjective
-                </Button>
-              }
-            >
-              <div className="space-y-6">
-                <div className="clinical-group !bg-transparent !border-none !p-0">
-                  <div className="space-y-6 pb-6 mb-6 border-b border-violet-100">
-                    <div className="flex flex-col md:flex-row gap-6 md:gap-12">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Type / Material</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {["Soft CL", "RGP", "Scleral"].map((type) => {
-                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
-                            const isSelected = currentTypes.includes(type);
-                            const isDisabled = type === "RGP" || type === "Scleral";
-                            return (
-                              <button key={type} type="button" disabled={isDisabled} onClick={() => {
-                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
-                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Wear Schedule</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {["Disposable", "Yearly"].map((type) => {
-                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
-                            const isSelected = currentTypes.includes(type);
-                            return (
-                              <button key={type} type="button" onClick={() => {
-                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
-                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Lens Design</label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {["Spherical", "Toric", "Multifocal"].map((type) => {
-                            const currentTypes = Array.isArray(formData.contactLensPrescription?.clType) ? formData.contactLensPrescription.clType : [];
-                            const isSelected = currentTypes.includes(type);
-                            return (
-                              <button key={type} type="button" onClick={() => {
-                                const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
-                                setFormData(p => ({ ...p, contactLensPrescription: { ...p.contactLensPrescription, clType: nextTypes } }));
-                              }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-violet-600 text-white border-violet-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-violet-200 hover:text-violet-600")}>{type}</button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  patient={patient}
+                  hideHeader={true}
+                />
+              </DialogContent>
+            </Dialog>
 
-                  <div className="space-y-4 pt-2">
-                    {["OD", "OS"].map((eye) => (
-                      <div key={eye} className="border-2 border-slate-100 bg-white/50 p-2 md:border-0 md:bg-transparent md:p-0 space-y-4 mb-4 last:mb-0">
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                          {/* Distance Vision Block */}
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-violet-100 pb-2">
-                                <span className={cn(
-                                  "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                  eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
-                                )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Distance</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">SPH</span>
-                                <PowerPaletteInput
-                                  type="sph"
-                                  label={`Contact Lens Distance ${eye} - SPH`}
-                                  value={formData.contactLensPrescription[eye]?.sphere || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "sphere", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                                <PowerPaletteInput
-                                  type="cyl"
-                                  label={`Contact Lens Distance ${eye} - CYL`}
-                                  value={formData.contactLensPrescription[eye]?.cylinder || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "cylinder", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                                <PowerPaletteInput
-                                  type="axis"
-                                  label={`Contact Lens Distance ${eye} - AXIS`}
-                                  value={formData.contactLensPrescription[eye]?.axis || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "axis", val)}
-                                  placeholder="0"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <PowerPaletteInput
-                                  type="dv"
-                                  label={`Contact Lens Distance ${eye} - BCVA`}
-                                  value={formData.contactLensPrescription[eye]?.bcva || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "bcva", val)}
-                                  placeholder="-"
-                                  className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-3 border-b border-violet-100 pb-2">
-                              <span className={cn(
-                                "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
-                                eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : "border-emerald-600 text-emerald-600"
-                              )}>{eye}</span>
-                              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-violet-50 px-2 py-0.5">Near Vision Correction</span>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2">
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">DSPH</span>
-                                <PowerPaletteInput
-                                  type="sph"
-                                  label={`Contact Lens Near ${eye} - DSPH`}
-                                  value={formData.contactLensPrescription[eye]?.nearDsph || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearDsph", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">CYL</span>
-                                <PowerPaletteInput
-                                  type="cyl"
-                                  label={`Contact Lens Near ${eye} - CYL`}
-                                  value={formData.contactLensPrescription[eye]?.nearCylinder || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearCylinder", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">AXIS</span>
-                                <PowerPaletteInput
-                                  type="axis"
-                                  label={`Contact Lens Near ${eye} - AXIS`}
-                                  value={formData.contactLensPrescription[eye]?.nearAxis || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAxis", val)}
-                                  placeholder="0"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase text-center block">ADD</span>
-                                <PowerPaletteInput
-                                  type="add"
-                                  label={`Contact Lens Near ${eye} - ADD`}
-                                  value={formData.contactLensPrescription[eye]?.nearAdd || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearAdd", val)}
-                                  placeholder="0.00"
-                                  className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                              <div className="space-y-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">BCVA</span>
-                                <PowerPaletteInput
-                                  type="nv"
-                                  label={`Contact Lens Near ${eye} - BCVA`}
-                                  value={formData.contactLensPrescription[eye]?.nearBcva || ""}
-                                  onChange={(val) => updateEyeGrid("contactLensPrescription", eye, "nearBcva", val)}
-                                  placeholder="-"
-                                  className="h-11 font-black bg-white rounded-none border-violet-100 focus:border-violet-400 focus-visible:ring-0 focus-visible:ring-offset-0 text-center text-sm text-slate-950"
-                                  disabled={isLocked}
-                                />
-                              </div>
-                                  <div className="space-y-1 sm:col-span-1 xl:col-span-1"><span className="text-[8px] font-black text-slate-400 uppercase text-center block">CM</span><Input className="h-11 text-center text-base font-black bg-white rounded-none border-violet-100 text-slate-900 focus:border-violet-400" value={formData.contactLensPrescription[eye]?.nearCm || ""} onChange={(e) => updateEyeGrid("contactLensPrescription", eye, "nearCm", e.target.value)} placeholder="33cm" /></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </DiagnosticCard>
-
-            {/* 10. Specialized Diagnostics (Amsler/Contrast) */}
-            <DiagnosticCard
-              title="Specialized Diagnostics (Amsler & Contrast)"
-              icon={Stethoscope}
-              sectionId="specialized"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-slate-50 text-slate-600 border-l-slate-400"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-3">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2">
-                        <Scan className="w-3.5 h-3.5 text-orange-600" /> Amsler Grid Assessment
-                      </label>
-                      <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-orange-400 text-slate-900" placeholder="Macular Grid Result" value={formData.amslerGrid || ""} onChange={(e) => setFormData(p => ({ ...p, amslerGrid: sanitizeOptometryInput(e.target.value, 'notes') }))} />
-                    </div>
-
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2 text-rose-600">
-                        <Eye className="w-3.5 h-3.5" /> Contrast Sensitivity
-                      </label>
-                      <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-rose-400 text-slate-900" placeholder="LogMAR / Pelli-Robson" value={formData.contrastSensitivity || ""} onChange={(e) => setFormData(p => ({ ...p, contrastSensitivity: sanitizeOptometryInput(e.target.value, 'notes') }))} />
-                    </div>
-                  </div>
-            </DiagnosticCard>
-
-
-            {/* 12. Final Clinical Remarks */}
-            <DiagnosticCard
-              title="Final Clinical Remarks"
-              icon={ClipboardList}
-              sectionId="remarks"
-              openSections={openSections}
-              onToggle={toggleSection}
-              headerClassName="bg-slate-100 text-slate-900 border-l-slate-600"
-              badge={formData.optometristNotes ? "Remarks Added" : undefined}
-            >
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
-                    <div className="space-y-4 md:space-y-6">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5 block">Binocular Functionality</label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { label: "EOM Full", value: "eom" },
-                          { label: "Worth 4-Dot", value: "worth_four_dot" },
-                          { label: "Stereopsis", value: "stereopsis" },
-                          { label: "Prism Cover", value: "prism" }
-                        ].map((opt) => {
-                          const isSelected = formData.binocular === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => setFormData(v => ({ ...v, binocular: opt.value }))}
-                              className={cn(
-                                "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
-                                isSelected
-                                  ? "bg-slate-600 text-white border-slate-700 shadow-md"
-                                  : "bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-900"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1.5 block">Clinical Optometrist's Notes</label>
-                      <Textarea
-                        className="min-h-[200px] font-bold p-6 bg-slate-50 border-2 border-slate-100 focus:border-slate-400 focus-visible:ring-0 rounded-none font-mono text-sm shadow-inner transition-all"
-                        placeholder="Enter final clinical observations, findings, and patient instructions..."
-                        value={formData.optometristNotes || ""}
-                        onChange={(e) => setFormData(v => ({ ...v, optometristNotes: sanitizeOptometryInput(e.target.value, 'notes') }))}
-                      />
-                    </div>
-                    </div>
-                </div>
-            </DiagnosticCard>
-
-            <Card className="clinical-card bg-white shadow-md overflow-hidden border-slate-200">
-              <div className="p-8">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10">
-                  {/* Left Side: Identification and Certification */}
-                  <div className="space-y-6 flex-1">
-                    <div className="flex items-center gap-5">
-                      <div className="p-3 bg-orange-600 text-white shadow-lg"><Check className="w-6 h-6 shrink-0" /></div>
-                      <div className="flex flex-col">
-                        <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Optometry Finalization</span>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">Diagnostic Verification</h3>
-                      </div>
-                    </div>
-                    <p className="text-slate-500 text-sm max-w-2xl italic border-l-4 border-orange-200 pl-6 font-medium leading-relaxed">
-                      I hereby certify that the above clinical findings are accurate and have been verified according to clinical protocols.
-                    </p>
-                  </div>
-
-                  {/* Right Side: Action Buttons */}
-                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-                    <div
-                      className={cn(
-                        "flex items-center gap-4 px-8 py-4 cursor-pointer border-2 transition-all w-full sm:w-auto shadow-sm h-14",
-                        isVerified ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-emerald-500/10" : "bg-slate-50 border-slate-200 text-slate-400 hover:border-orange-200 hover:text-orange-600"
-                      )}
-                      onClick={() => setIsVerified(!isVerified)}
-                    >
-                      <Checkbox checked={isVerified} className="w-5 h-5 border-2 border-slate-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white" />
-                      <span className="font-black uppercase tracking-widest text-[10px]">Verify Data</span>
-                    </div>
-
-                    <Button
-                      size="lg"
-                      disabled={!isVerified || isSubmitting}
-                      className={cn(
-                        "h-14 px-12 rounded-none font-black uppercase tracking-[0.2em] transition-all text-[10px] w-full sm:w-auto shadow-xl",
-                        isVerified ? "bg-orange-600 text-white hover:bg-black" : "bg-slate-100 text-slate-300 pointer-events-none"
-                      )}
-                      onClick={async () => {
-                        if (!isVerified || !patient?.id) return;
-                        setIsSubmitting(true);
-                        try {
-                          let finalFormData = { ...formData };
-                          if (formData.ctrr?.startsWith('data:image')) {
-                            const cloudSyncedUrl = await handleCTRRUpload();
-                            if (cloudSyncedUrl) finalFormData.ctrr = cloudSyncedUrl;
-                          }
-                          await api.saveRefraction(patient.id, { 
-                            ...finalFormData, 
-                            complaint: Array.isArray(finalFormData.complaints)
-                              ? finalFormData.complaints.map((c: any) => formatComplaintToStatement(c)).join(", ")
-                              : "",
-                            systemicHistory: selectedChips,
-                            refractionistName: userName 
-                          });
-                          toast({ title: "Clinical Record Persistence Successful", description: "Record moved to Diagnostic Archive." });
-                          localStorage.removeItem(storageKey);
-                          window.dispatchEvent(new Event("patientQueueUpdated"));
-                        } catch (err: any) {
-                          toast({ variant: "destructive", title: "Persistence Failure", description: err.message });
-                        } finally {
-                          setIsSubmitting(false);
-                        }
-                      }}
-                    >
-                      {isSubmitting ? "Processing..." : "Finish and Signout"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </fieldset>
+            {printType && printVisit && createPortal(
+              <div id="print-section" className="hidden print:block fixed inset-0 bg-white z-[9999] p-8 m-0 overflow-visible print-section">
+                <SharedPrintLayout printData={printVisit} printType={printType} />
+              </div>,
+              document.body
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
   );
 }
 

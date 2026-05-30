@@ -44,7 +44,7 @@ const Login = () => {
         return null;
     });
 
-    // Pre-fill credentials if it is the reception, refraction or doctor station demo
+    // Pre-fill credentials if it is the reception, refraction, doctor, optical or pharmacy station demo
     useEffect(() => {
         if (stationId === "reception") {
             setUsername("reception");
@@ -56,6 +56,14 @@ const Login = () => {
             setLockoutTime(null);
         } else if (stationId === "doctor") {
             setUsername("doctor");
+            setPassword("demo123");
+            setLockoutTime(null);
+        } else if (stationId === "optical") {
+            setUsername("optical");
+            setPassword("demo123");
+            setLockoutTime(null);
+        } else if (stationId === "pharmacy") {
+            setUsername("pharmacy");
             setPassword("demo123");
             setLockoutTime(null);
         } else {
@@ -262,6 +270,70 @@ const Login = () => {
             return;
         }
 
+        // Demo login bypass for optical station
+        if (stationId === "optical") {
+            if (username !== "optical" || password !== "demo123") {
+                toast({
+                    variant: "destructive",
+                    title: "Login Failed",
+                    description: "Invalid demo credentials.",
+                });
+                return;
+            }
+
+            setIsLoading(true);
+            setTimeout(() => {
+                localStorage.setItem("token", "demo_optical_token");
+                localStorage.setItem("user_session", JSON.stringify({
+                    username: "optical",
+                    role: "OPTICALS",
+                    name: "Demo Optician",
+                    stationId: "optical",
+                    loginTime: new Date().toISOString()
+                }));
+
+                toast({
+                    title: "Login Successful",
+                    description: "Welcome to the Optical demo workspace",
+                });
+                setIsLoading(false);
+                navigate("/dashboard");
+            }, 800);
+            return;
+        }
+
+        // Demo login bypass for pharmacy station
+        if (stationId === "pharmacy") {
+            if (username !== "pharmacy" || password !== "demo123") {
+                toast({
+                    variant: "destructive",
+                    title: "Login Failed",
+                    description: "Invalid demo credentials.",
+                });
+                return;
+            }
+
+            setIsLoading(true);
+            setTimeout(() => {
+                localStorage.setItem("token", "demo_pharmacy_token");
+                localStorage.setItem("user_session", JSON.stringify({
+                    username: "pharmacy",
+                    role: "PHARMACIST",
+                    name: "Demo Pharmacist",
+                    stationId: "pharmacy",
+                    loginTime: new Date().toISOString()
+                }));
+
+                toast({
+                    title: "Login Successful",
+                    description: "Welcome to the Pharmacy demo workspace",
+                });
+                setIsLoading(false);
+                navigate("/dashboard");
+            }, 800);
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -388,7 +460,7 @@ const Login = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-6">
-                        {(stationId === "reception" || stationId === "refraction" || stationId === "doctor") && (
+                        {(stationId === "reception" || stationId === "refraction" || stationId === "doctor" || stationId === "optical" || stationId === "pharmacy") && (
                             <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 text-xs text-blue-800">
                                 <Lock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
@@ -411,12 +483,12 @@ const Login = () => {
                                     placeholder="Enter your name"
                                     className={cn(
                                         "pl-10 h-11 border-slate-200 rounded-xl",
-                                        (stationId === "reception" || stationId === "refraction" || stationId === "doctor") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                        (stationId === "reception" || stationId === "refraction" || stationId === "doctor" || stationId === "optical" || stationId === "pharmacy") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
                                     )}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     disabled={isLoading}
-                                    readOnly={stationId === "reception" || stationId === "refraction" || stationId === "doctor"}
+                                    readOnly={stationId === "reception" || stationId === "refraction" || stationId === "doctor" || stationId === "optical" || stationId === "pharmacy"}
                                 />
                             </div>
                         </div>
@@ -432,12 +504,12 @@ const Login = () => {
                                     placeholder="••••••••"
                                     className={cn(
                                         "pl-10 h-11 border-slate-200 rounded-xl",
-                                        (stationId === "reception" || stationId === "refraction" || stationId === "doctor") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
+                                        (stationId === "reception" || stationId === "refraction" || stationId === "doctor" || stationId === "optical" || stationId === "pharmacy") && "bg-slate-50 text-slate-500 cursor-not-allowed select-none border-slate-100"
                                     )}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     disabled={isLoading}
-                                    readOnly={stationId === "reception" || stationId === "refraction" || stationId === "doctor"}
+                                    readOnly={stationId === "reception" || stationId === "refraction" || stationId === "doctor" || stationId === "optical" || stationId === "pharmacy"}
                                 />
                             </div>
                         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Activity, Calendar, ShieldCheck, Plus, Pencil, ShieldOff, Stethoscope } from "lucide-react";
+import { Users, Activity, Calendar, ShieldCheck, Plus, Pencil, ShieldOff, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { API_BASE_URL } from "@/config";
 import { AdminSidebar, type AdminView } from "@/components/AdminSidebar";
+import { AdminReports } from "@/components/AdminReports";
+import { AdminFamilies } from "@/components/AdminFamilies";
+import { AdminLogs } from "@/components/AdminLogs";
+import { api } from "@/lib/api";
 
 import { Trash2 } from "lucide-react";
 
@@ -41,9 +45,12 @@ type Specialization = {
 
 type DashboardStats = {
     totalPatients: number;
-    totalVisits: number;
+    totalVisits?: number;
     totalUsers: number;
     todayVisits: number;
+    completedToday?: number;
+    pendingToday?: number;
+    withDoctorToday?: number;
 };
 
 type BlockedIp = {
@@ -127,42 +134,18 @@ const Admin = () => {
 
         const fetchAdminData = async () => {
             try {
-                const [statsRes, usersRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/admin/stats`, { headers: { "Authorization": `Bearer ${token}` } }),
-                    fetch(`${API_BASE_URL}/api/admin/users`, { headers: { "Authorization": `Bearer ${token}` } }),
+                const [statsData, usersData] = await Promise.all([
+                    api.getAdminStats(),
+                    api.getAdminUsers(1, 50),
                 ]);
-                
-                if (statsRes.status === 401 || statsRes.status === 403 || usersRes.status === 401 || usersRes.status === 403) {
-                    throw new Error("SESSION_EXPIRED");
-                }
-
-                if (!statsRes.ok) throw new Error("Failed to fetch statistics");
-                if (!usersRes.ok) throw new Error("Failed to fetch personnel roster");
-                
-                setStats(await statsRes.json());
-                setUsers(await usersRes.json());
+                setStats(statsData);
+                setUsers(usersData.users || []);
             } catch (error: any) {
-                if (error.message === "SESSION_EXPIRED") {
-                    toast({
-                        variant: "destructive",
-                        title: "Session Expired",
-                        description: "Your session has expired or is invalid. Please log in again.",
-                    });
-                    handleLogout();
-                } else if (error.name === 'TypeError' || error.message.includes('fetch')) {
-                    // This is a network error (server down/restarting)
-                    toast({
-                        variant: "destructive",
-                        title: "Server Connecting",
-                        description: "Connecting to clinical server... please wait a moment.",
-                    });
-                } else {
-                    toast({
-                        variant: "destructive",
-                        title: "Access Error",
-                        description: error.message || "Failed to load admin data",
-                    });
-                }
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: error.message || "Failed to load admin data",
+                });
             } finally {
                 setIsInitialLoading(false);
             }
@@ -179,143 +162,44 @@ const Admin = () => {
         fetch(`${API_BASE_URL}/api/admin/blocked-ips`, { headers: { "Authorization": `Bearer ${token}` } })
             .then((r) => r.json())
             .then((data) => setBlockedIps(Array.isArray(data) ? data : []))
-            .catch(() => toast({ variant: "destructive", title: "Error", description: "Failed to fetch blocked IPs." }))
+            .catch(() => setBlockedIps([]))
             .finally(() => setLoadingIps(false));
     }, [activeView, isSuperAdmin, toast]);
 
     // Fetch data when view is activated
     useEffect(() => {
-        if (activeView === "scantypes") fetchScanTypes();
-        if (activeView === "specializations") fetchSpecializations();
+        // No special view-level fetching needed for reports/families/logs - they handle their own data
     }, [activeView]);
 
     const fetchScanTypes = async () => {
-        const token = localStorage.getItem("token");
-        setLoadingScanTypes(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/scan-types`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error("Failed to fetch scan types");
-            const data = await res.json();
-            setScanTypes(data);
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setLoadingScanTypes(false);
-        }
+        // Scan types not supported in demo mode
+        setLoadingScanTypes(false);
     };
 
     const handleAddScanType = async () => {
-        if (!newScanTypeName.trim()) return;
-        const token = localStorage.getItem("token");
-        setIsAddingScanType(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/scan-types`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ name: newScanTypeName.trim() }),
-            });
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || "Failed to add scan type");
-            }
-            const added = await res.json();
-            setScanTypes((prev) => [...prev, added]);
-            setNewScanTypeName("");
-            toast({ title: "Success", description: "Scan type added successfully" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setIsAddingScanType(false);
-        }
+        // Not supported in demo mode
     };
 
-    const handleDeleteScanType = async (id: string) => {
-        const token = localStorage.getItem("token");
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/scan-types/${id}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${token}` },
-            });
-            if (!res.ok) throw new Error("Failed to delete scan type");
-            setScanTypes((prev) => prev.filter((s) => s.id !== id));
-            toast({ title: "Success", description: "Scan type deleted successfully" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
+    const handleDeleteScanType = async (_id: string) => {
+        // Scan types not supported in demo mode
     };
 
     const fetchSpecializations = async () => {
-        const token = localStorage.getItem("token");
-        setLoadingSpecializations(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/specializations`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error("Failed to fetch specializations");
-            const data = await res.json();
-            setSpecializations(data);
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setLoadingSpecializations(false);
-        }
+        // Specializations not supported in demo mode
     };
 
     const handleAddSpecialization = async () => {
-        if (!newSpecializationName.trim()) return;
-        const token = localStorage.getItem("token");
-        setIsAddingSpecialization(true);
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/specializations`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ name: newSpecializationName.trim() }),
-            });
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || "Failed to add specialization");
-            }
-            const added = await res.json();
-            setSpecializations((prev) => [...prev, added]);
-            setNewSpecializationName("");
-            toast({ title: "Success", description: "Specialization added successfully" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        } finally {
-            setIsAddingSpecialization(false);
-        }
+        // Not supported in demo mode
     };
 
-    const handleDeleteSpecialization = async (id: string) => {
-        const token = localStorage.getItem("token");
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/specializations/${id}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || "Failed to delete specialization");
-            }
-            setSpecializations((prev) => prev.filter((s) => s.id !== id));
-            toast({ title: "Success", description: "Specialization deleted successfully" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
+    const handleDeleteSpecialization = async (_id: string) => {
+        // Not supported in demo mode
     };
 
     const handleUnblockIp = async (ip: string) => {
-        const token = localStorage.getItem("token");
         setUnblockingIp(ip);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/unblock-ip`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ ip }),
-            });
-            if (!res.ok) throw new Error("Failed to unblock IP");
+            await api.unblockIp(ip);
             setBlockedIps((prev) => prev.filter((b) => b.ip !== ip));
             toast({ title: "IP Unblocked", description: `${ip} has been successfully unblocked.` });
         } catch (error: any) {
@@ -338,24 +222,16 @@ const Admin = () => {
             return;
         }
         setIsCreating(true);
-        const token = localStorage.getItem("token");
         try {
-            const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ 
-                    username: newUsername, 
-                    name: newName, 
-                    password: newPassword, 
-                    role: newRole,
-                    specializationId: newRole === 'DOCTOR' && newSpecializationId !== 'none' ? newSpecializationId : undefined,
-                    isActive: newIsActive
-                }),
+            const newUser = await api.createAdminUser({ 
+                username: newUsername, 
+                name: newName, 
+                password: newPassword, 
+                role: newRole,
+                isActive: newIsActive
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to create user");
             toast({ title: "User Created", description: "The new user has been successfully added." });
-            setUsers((prev) => [data.user, ...prev]);
+            setUsers((prev) => [newUser, ...prev]);
             setIsCreateOpen(false);
             setNewUsername(""); setNewName(""); setNewPassword(""); setNewRole("RECEPTIONIST");
         } catch (error: any) {
@@ -384,23 +260,12 @@ const Admin = () => {
             return;
         }
         setIsUpdating(true);
-        const token = localStorage.getItem("token");
         try {
-            const updateData: any = { username: editUsername, name: editName, role: editRole };
+            const updateData: any = { username: editUsername, name: editName, role: editRole, isActive: editIsActive };
             if (editPassword) updateData.password = editPassword;
-            if (editRole === 'DOCTOR' && editSpecializationId !== 'none') {
-                updateData.specializationId = editSpecializationId;
-            }
-            updateData.isActive = editIsActive;
-            const res = await fetch(`${API_BASE_URL}/api/admin/users/${editingUserId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify(updateData),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to update user");
+            const updatedUser = await api.updateAdminUser(editingUserId!, updateData);
             toast({ title: "User Updated", description: "The user has been successfully updated." });
-            setUsers((prev) => prev.map((u) => u.id === editingUserId ? data.user : u));
+            setUsers((prev) => prev.map((u) => u.id === editingUserId ? { ...u, ...updatedUser } : u));
             setIsEditOpen(false);
             setEditingUserId(null);
         } catch (error: any) {
@@ -729,141 +594,21 @@ const Admin = () => {
                     </div>
                 )}
 
-                {/* ── SCAN TYPES (CMS) ── */}
-                {activeView === "scantypes" && (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col gap-1">
-                                 <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
-                                     Scan Types CMS
-                                 </h1>
-                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Manage auxiliary diagnostic modalities and report categories</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Add new scan type (e.g. OCT)"
-                                    className="max-w-[250px] rounded-xl"
-                                    value={newScanTypeName}
-                                    onChange={(e) => setNewScanTypeName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddScanType()}
-                                />
-                                <Button
-                                    onClick={handleAddScanType}
-                                    disabled={isAddingScanType || !newScanTypeName.trim()}
-                                    className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20"
-                                >
-                                    <Plus className="w-4 h-4" /> Add
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-slate-50/80">
-                                    <TableRow>
-                                        <TableHead className="font-semibold text-slate-900">Scan Name</TableHead>
-                                        <TableHead className="font-semibold text-slate-900 hidden md:table-cell">Added On</TableHead>
-                                        <TableHead className="w-16" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loadingScanTypes ? (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center text-slate-500">Loading scan types...</TableCell></TableRow>
-                                    ) : scanTypes.length === 0 ? (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center text-slate-500">No scan types found.</TableCell></TableRow>
-                                    ) : (
-                                        scanTypes.map((type) => (
-                                            <TableRow key={type.id} className="hover:bg-slate-50/50">
-                                                <TableCell className="font-medium">{type.name}</TableCell>
-                                                <TableCell className="text-slate-500 hidden md:table-cell text-sm">
-                                                    {new Date(type.createdAt).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleDeleteScanType(type.id)}
-                                                        className="h-8 w-8 text-slate-400 hover:text-red-500"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
+                {/* ── REPORTS ── */}
+                {activeView === "reports" && (
+                    <AdminReports />
                 )}
 
-                {/* ── SPECIALIZATIONS (CMS) ── */}
-                {activeView === "specializations" && (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex flex-col gap-1">
-                                 <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
-                                     Specializations CMS
-                                 </h1>
-                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Manage clinical sub-specializations and doctor designations</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Add specialty (e.g. Otolaryngologist)"
-                                    className="max-w-[250px] rounded-xl"
-                                    value={newSpecializationName}
-                                    onChange={(e) => setNewSpecializationName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddSpecialization()}
-                                />
-                                <Button
-                                    onClick={handleAddSpecialization}
-                                    disabled={isAddingSpecialization || !newSpecializationName.trim()}
-                                    className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg shadow-primary/20"
-                                >
-                                    <Plus className="w-4 h-4" /> Add
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-slate-50/80">
-                                    <TableRow>
-                                        <TableHead className="font-semibold text-slate-900">Specialization Name</TableHead>
-                                        <TableHead className="font-semibold text-slate-900 hidden md:table-cell">Added On</TableHead>
-                                        <TableHead className="w-16" />
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loadingSpecializations ? (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center text-slate-500">Loading specializations...</TableCell></TableRow>
-                                    ) : specializations.length === 0 ? (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center text-slate-500">No specializations found.</TableCell></TableRow>
-                                    ) : (
-                                        specializations.map((spec) => (
-                                            <TableRow key={spec.id} className="hover:bg-slate-50/50">
-                                                <TableCell className="font-medium">{spec.name}</TableCell>
-                                                <TableCell className="text-slate-500 hidden md:table-cell text-sm">
-                                                    {new Date(spec.createdAt).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => handleDeleteSpecialization(spec.id)}
-                                                        className="h-8 w-8 text-slate-400 hover:text-red-500"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
+                {/* ── FAMILY GROUPS ── */}
+                {activeView === "families" && (
+                    <AdminFamilies />
                 )}
+
+                {/* ── SYSTEM LOGS ── */}
+                {activeView === "logs" && (
+                    <AdminLogs />
+                )}
+
             </main>
         </div>
     );

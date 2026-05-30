@@ -5,6 +5,39 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** OD = blue (right eye), OS = green (left eye) — shared across refraction/doctor stations */
+export function eyeLabelClass(eye: string) {
+  return eye === "OD" ? "text-blue-600" : eye === "OS" ? "text-emerald-600" : "text-slate-600";
+}
+
+export function eyeValueClass(eye: string) {
+  return eye === "OD" ? "text-blue-700" : eye === "OS" ? "text-emerald-700" : "text-slate-900";
+}
+
+export function eyeMutedLabelClass(eye: string) {
+  return eye === "OD" ? "text-blue-500" : eye === "OS" ? "text-emerald-500" : "text-slate-400";
+}
+
+export function eyeVaInputClass(eye: string) {
+  return eye === "OD"
+    ? "border-blue-100 text-blue-700 focus:border-blue-500 bg-blue-50/30"
+    : eye === "OS"
+      ? "border-emerald-100 text-emerald-700 focus:border-emerald-500 bg-emerald-50/30"
+      : "border-slate-200 text-slate-900 focus:border-orange-600 bg-white";
+}
+
+export function eyeRowBgClass(eye: string) {
+  return eye === "OD" ? "bg-blue-50/20" : eye === "OS" ? "bg-emerald-50/20" : "bg-slate-50/20";
+}
+
+export function eyeBoxClass(eye: string, size = "w-9 h-9") {
+  return cn(
+    size,
+    "flex items-center justify-center font-black text-xs border-2 bg-transparent shrink-0",
+    eye === "OD" ? "border-blue-600 text-blue-600" : eye === "OS" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
+  );
+}
+
 export function toTitleCase(str: string): string {
   if (!str) return "";
   return str
@@ -80,6 +113,35 @@ export function getPatientAgeNumber(patient: any): number {
     return Math.floor((todayMonth - birthMonth) / 12);
   }
   return patient?.age ? parseInt(patient.age, 10) || 0 : 0;
+}
+
+export function getPatientGenderString(patient: any): string {
+  if (!patient) return "—";
+  
+  const age = getPatientAgeNumber(patient);
+  const rawGender = patient.gender || patient.patient?.gender || "";
+  const genderLower = rawGender.toLowerCase().trim();
+
+  if (age < 18 && age >= 0) {
+    // If it's a minor
+    const isMale = genderLower.startsWith("m") || genderLower === "boy" || genderLower === "master";
+    const isFemale = genderLower.startsWith("f") || genderLower === "girl" || genderLower === "miss";
+    if (isMale) return "Master";
+    if (isFemale) return "Miss";
+  }
+
+  // Check if age is defined but 0 (might be days/months, which is < 18)
+  const ageStr = getPatientAgeString(patient);
+  if (ageStr && (ageStr.endsWith("mo") || ageStr.endsWith("days") || ageStr.includes("days") || ageStr.includes("mo"))) {
+    const isMale = genderLower.startsWith("m") || genderLower === "boy" || genderLower === "master";
+    const isFemale = genderLower.startsWith("f") || genderLower === "girl" || genderLower === "miss";
+    if (isMale) return "Master";
+    if (isFemale) return "Miss";
+  }
+
+  if (genderLower.startsWith("m")) return "Male";
+  if (genderLower.startsWith("f")) return "Female";
+  return rawGender || "—";
 }
 
 export function truncateFileName(name: string, maxLength?: number) {

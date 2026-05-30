@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, ClipboardList, Activity, Thermometer, FileText, Zap, ExternalLink, Glasses, ShieldCheck, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/config";
+import { cn, eyeLabelClass, eyeValueClass, eyeVaInputClass } from "@/lib/utils";
 
 function SectionHeader({ icon: Icon, title, category = "Clinical Assessment" }: { icon: any, title: string, category?: string }) {
   return (
@@ -32,7 +33,8 @@ export function RefractionSummaryView({
 
   const getImageUrl = (path: string) => {
     if (!path) return "";
-    return path;
+    if (path.startsWith('data:image') || path.startsWith('http')) return path;
+    return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
   };
 
   const ctrrUrl = getImageUrl(rd.ctrr);
@@ -59,10 +61,30 @@ export function RefractionSummaryView({
     return va;
   };
 
+  const formatLensSign = (val?: string) => {
+    if (!val) return "—";
+    const trimmed = val.trim();
+    if (trimmed === "" || trimmed === "—") return "—";
+    const cleanVal = trimmed.replace(/^\++/, '');
+    const num = parseFloat(cleanVal);
+    if (isNaN(num)) return val;
+    if (num > 0) {
+      return `+${cleanVal}`;
+    }
+    return cleanVal;
+  };
+
   const renderLens = (val: string, threshold = 1.5) => {
-    if (!val || val === "—") return "—";
-    if (isAbnormalLens(val, threshold)) return <span className="inline-block px-1.5 py-0.5 bg-red-100/80 text-red-700 font-black rounded border border-red-200 animate-pulse shadow-sm">{val}</span>;
-    return val;
+    const formatted = formatLensSign(val);
+    if (!formatted || formatted === "—") return "—";
+    if (isAbnormalLens(formatted, threshold)) {
+      return (
+        <span className="inline-block px-1.5 py-0.5 bg-red-100/80 text-red-700 font-black rounded border border-red-200 animate-pulse shadow-sm">
+          {formatted}
+        </span>
+      );
+    }
+    return formatted;
   };
 
   const isAbnormalIOP = (val: string) => {
@@ -162,12 +184,12 @@ export function RefractionSummaryView({
       {/* 2. Vision Matrix (Visual Acuity) */}
       <div className="space-y-4">
         <SectionHeader icon={Eye} title="Vision Matrix (Visual Acuity)" />
-        <Table className="border border-slate-200">
+        <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
           <TableHeader className="bg-orange-50 border-y border-orange-100">
             <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
               <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 w-[200px]">Modality</TableHead>
-              <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">OD (Right)</TableHead>
-              <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">OS (Left)</TableHead>
+              <TableHead className={cn("font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30", eyeLabelClass("OD"))}>OD (Right)</TableHead>
+              <TableHead className={cn("font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30", eyeLabelClass("OS"))}>OS (Left)</TableHead>
               <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30 bg-orange-100/50">OU (Both)</TableHead>
             </TableRow>
           </TableHeader>
@@ -180,42 +202,153 @@ export function RefractionSummaryView({
             ].map((row, i) => (
               <TableRow key={i} className="hover:bg-orange-50 border-b border-slate-100">
                 <TableCell className="text-[12px] font-black uppercase text-slate-600">{row.label}</TableCell>
-                <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(row.od)}</TableCell>
-                <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(row.os)}</TableCell>
+                <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OD"))}>{renderVA(row.od)}</TableCell>
+                <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OS"))}>{renderVA(row.os)}</TableCell>
                 <TableCell className="text-center font-bold text-orange-600 border-l border-slate-100 bg-orange-50/50">{renderVA(row.ou)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+        </Table></div>
       </div>
+
+      {/* Previous Prescription (PG / CL) */}
+      {(() => {
+        const pg = rd.pgPower || {};
+        const glass = pg.glass || {};
+        const contact = pg.contact || {};
+        const hasGlass = ['OD', 'OS'].some(eye => glass[eye]?.sphere1 || glass[eye]?.cylinder1 || glass[eye]?.axis1 || glass[eye]?.add || glass[eye]?.vn1 || glass[eye]?.vnNear1);
+        const hasContact = ['OD', 'OS'].some(eye => contact[eye]?.sphere1 || contact[eye]?.cylinder1 || contact[eye]?.axis1 || contact[eye]?.add || contact[eye]?.vn1 || contact[eye]?.vnNear1);
+        const notes = pg.notes || "";
+
+        if (!hasGlass && !hasContact && !notes) return null;
+
+        return (
+          <div className="space-y-6">
+            <SectionHeader icon={Glasses} title="Previous Prescription History" />
+            
+            {hasGlass && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Previous Spectacles Prescription</span>
+                  {glass.glassType && (
+                    <Badge variant="outline" className="text-[9px] uppercase tracking-widest bg-orange-50 text-orange-600 border-orange-200">
+                      {glass.glassType === 'SVN' ? 'Single Vision' : glass.glassType === 'KBF' ? 'Bifocals' : glass.glassType === 'PAL' ? 'Progressive' : glass.glassType === 'DBF' ? 'Double D Bifocal' : glass.glassType === 'READING' ? 'Reading Glass' : glass.glassType}
+                    </Badge>
+                  )}
+                </div>
+                <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
+                  <TableHeader className="bg-orange-50 border-y border-orange-100">
+                    <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 w-[120px]">Eye</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">SPH</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">CYL</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">AXIS</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">ADD</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">VA (DV)</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">VA (NV)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {['OD', 'OS'].map((eye) => (
+                      <TableRow key={eye} className="hover:bg-orange-50 border-b border-slate-100">
+                        <TableCell className={cn("text-[12px] font-black uppercase border-r border-slate-100", eye === 'OD' ? "text-blue-600 bg-blue-50/50" : "text-emerald-600 bg-emerald-50/50")}>
+                          {eye === 'OD' ? 'Right Eye (OD)' : 'Left Eye (OS)'}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(glass[eye]?.sphere1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(glass[eye]?.cylinder1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{glass[eye]?.axis1 ? `${glass[eye].axis1}°` : "—"}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(glass[eye]?.add)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(glass[eye]?.vn1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(glass[eye]?.vnNear1)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table></div>
+              </div>
+            )}
+
+            {hasContact && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block">Previous Contact Lens Prescription</span>
+                  {contact.clType && (
+                    <div className="flex gap-1">
+                      {(Array.isArray(contact.clType) ? contact.clType : [contact.clType]).map((type: string) => (
+                        <Badge key={type} variant="outline" className="text-[9px] uppercase tracking-widest bg-orange-50 text-orange-600 border-orange-200">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
+                  <TableHeader className="bg-orange-50 border-y border-orange-100">
+                    <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 w-[120px]">Eye</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">SPH</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">CYL</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">AXIS</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">ADD</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">VA (DV)</TableHead>
+                      <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">VA (NV)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {['OD', 'OS'].map((eye) => (
+                      <TableRow key={eye} className="hover:bg-orange-50 border-b border-slate-100">
+                        <TableCell className={cn("text-[12px] font-black uppercase border-r border-slate-100", eye === 'OD' ? "text-blue-600 bg-blue-50/50" : "text-emerald-600 bg-emerald-50/50")}>
+                          {eye === 'OD' ? 'Right Eye (OD)' : 'Left Eye (OS)'}
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(contact[eye]?.sphere1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(contact[eye]?.cylinder1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{contact[eye]?.axis1 ? `${contact[eye].axis1}°` : "—"}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(contact[eye]?.add)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(contact[eye]?.vn1)}</TableCell>
+                        <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderVA(contact[eye]?.vnNear1)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table></div>
+              </div>
+            )}
+
+            {notes && (
+              <div className="p-3 bg-slate-50 border border-slate-200 text-xs">
+                <span className="font-black uppercase text-slate-500 tracking-wider block mb-1">Previous Rx Notes</span>
+                <p className="font-semibold text-slate-700">{notes}</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 3. Objective Measurements */}
       <div className="space-y-4">
         <SectionHeader icon={Zap} title="Objective measurements" />
-        <Table className="border border-slate-200">
+        <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
           <TableHeader className="bg-orange-50 border-y border-orange-100">
             <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
               <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 w-[200px]">Method</TableHead>
-              <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">OD (Right Eye)</TableHead>
-              <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30">OS (Left Eye)</TableHead>
+              <TableHead className={cn("font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30", eyeLabelClass("OD"))}>OD (Right Eye)</TableHead>
+              <TableHead className={cn("font-black uppercase text-[12px] tracking-widest h-10 text-center border-l border-orange-200/30", eyeLabelClass("OS"))}>OS (Left Eye)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow className="hover:bg-orange-50 border-b border-slate-100">
               <TableCell className="text-[12px] font-black uppercase text-slate-600">Autoref (AR)</TableCell>
-              <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+              <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OD"))}>
                 {renderLens(rd.autoRef?.OD?.sphere1 || "0.00")} / {renderLens(rd.autoRef?.OD?.cylinder1 || "0.00")} × {rd.autoRef?.OD?.axis1 || "0"}°
               </TableCell>
-              <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+              <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OS"))}>
                 {renderLens(rd.autoRef?.OS?.sphere1 || "0.00")} / {renderLens(rd.autoRef?.OS?.cylinder1 || "0.00")} × {rd.autoRef?.OS?.axis1 || "0"}°
               </TableCell>
             </TableRow>
             <TableRow className="hover:bg-orange-50 border-b border-slate-100">
               <TableCell className="text-[12px] font-black uppercase text-slate-600">Clinical Retinoscopy</TableCell>
-              <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+              <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OD"))}>
                 {renderLens((rd.objectiveRefraction?.OD?.sphere || rd.retinoscopy?.OD?.sphere) || "—")} / {renderLens((rd.objectiveRefraction?.OD?.cylinder || rd.retinoscopy?.OD?.cylinder) || "—")} × {(rd.objectiveRefraction?.OD?.axis || rd.retinoscopy?.OD?.axis) || "0"}°
               </TableCell>
-              <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+              <TableCell className={cn("text-center font-bold border-l border-slate-100", eyeValueClass("OS"))}>
                 {renderLens((rd.objectiveRefraction?.OS?.sphere || rd.retinoscopy?.OS?.sphere) || "—")} / {renderLens((rd.objectiveRefraction?.OS?.cylinder || rd.retinoscopy?.OS?.cylinder) || "—")} × {(rd.objectiveRefraction?.OS?.axis || rd.retinoscopy?.OS?.axis) || "0"}°
               </TableCell>
             </TableRow>
@@ -245,13 +378,13 @@ export function RefractionSummaryView({
               );
             })()}
           </TableBody>
-        </Table>
+        </Table></div>
       </div>
 
       {/* 4. Subjective Acceptance Protocol */}
       <div className="space-y-4">
         <SectionHeader icon={ShieldCheck} title="Subjective Acceptance Protocol" />
-        <Table className="border border-slate-200">
+        <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
           <TableHeader className="bg-orange-50 border-y border-orange-100">
             <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
               <TableHead className="text-orange-600 font-black uppercase text-[12px] tracking-widest h-10 w-[100px]">Eye</TableHead>
@@ -266,24 +399,63 @@ export function RefractionSummaryView({
             {['OD', 'OS'].map((eye) => (
               <React.Fragment key={eye}>
                 <TableRow className="hover:bg-orange-50 border-b border-slate-100">
-                  <TableCell rowSpan={2} className={cn("text-[12px] font-black uppercase border-r border-slate-100 bg-orange-50/50", eye === 'OD' ? "text-blue-600" : "text-emerald-600")}>{eye === 'OD' ? 'Right Eye' : 'Left Eye'}</TableCell>
+                  <TableCell rowSpan={2} className={cn("text-[12px] font-black uppercase border-r border-slate-100", eye === 'OD' ? "text-blue-600 bg-blue-50/50" : "text-emerald-600 bg-emerald-50/50")}>{eye === 'OD' ? 'Right Eye' : 'Left Eye'}</TableCell>
                   <TableCell className="text-[11px] font-bold uppercase text-slate-500">Distance</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(getAcceptanceValue('distance', eye as any, 'sphere'))}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(getAcceptanceValue('distance', eye as any, 'cylinder'))}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{getAcceptanceValue('distance', eye as any, 'axis')}</TableCell>
-                  <TableCell className="text-center font-black text-orange-600 border-l border-slate-100 bg-orange-50/30">{renderVA(getAcceptanceValue('distance', eye as any, 'vn'))}</TableCell>
+                  <TableCell className={cn("text-center font-black border-l border-slate-100", eyeVaInputClass(eye))}>{renderVA(getAcceptanceValue('distance', eye as any, 'vn'))}</TableCell>
                 </TableRow>
                 <TableRow className="hover:bg-orange-50 border-b border-slate-100">
                   <TableCell className="text-[11px] font-bold uppercase text-slate-500">Near</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(getAcceptanceValue('near', eye as any, 'sphere'))}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{renderLens(getAcceptanceValue('near', eye as any, 'cylinder'))}</TableCell>
                   <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">{getAcceptanceValue('near', eye as any, 'axis')}</TableCell>
-                  <TableCell className="text-center font-black text-orange-600 border-l border-slate-100 bg-orange-50/30">{renderVA(getAcceptanceValue('near', eye as any, 'vn'))}</TableCell>
+                  <TableCell className={cn("text-center font-black border-l border-slate-100", eyeVaInputClass(eye))}>{renderVA(getAcceptanceValue('near', eye as any, 'vn'))}</TableCell>
                 </TableRow>
               </React.Fragment>
             ))}
           </TableBody>
-        </Table>
+        </Table></div>
+      </div>
+
+      {/* 4.5. Subjective Refining & Binocular Tests */}
+      <div className="space-y-4">
+        <SectionHeader icon={Activity} title="Subjective Refining & Binocular Tests" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Binocular Functionality Card */}
+          <div className="p-4 border border-slate-200 bg-slate-50/30 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Binocular Functionality</span>
+            <div className="text-sm font-bold text-slate-800 uppercase">
+              {(() => {
+                const map: Record<string, string> = {
+                  eom: "EOM Full",
+                  worth_four_dot: "Worth 4-Dot",
+                  stereopsis: "Stereopsis",
+                  prism: "Prism Cover",
+                  diplopia: "Diplopia Charting"
+                };
+                return map[rd.binocular] || rd.binocular || "—";
+              })()}
+            </div>
+          </div>
+
+          {/* Duo-Chrome Verification Card */}
+          <div className="p-4 border border-slate-200 bg-slate-50/30 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Duo-Chrome Verification</span>
+            <div className="text-sm font-bold text-slate-800">
+              OD: <span className="text-blue-600 font-black">{rd.refining?.duochrome?.OD || "—"}</span> | OS: <span className="text-emerald-600 font-black">{rd.refining?.duochrome?.OS || "—"}</span>
+            </div>
+          </div>
+
+          {/* JCC Refining Findings Card */}
+          <div className="p-4 border border-slate-200 bg-slate-50/30 space-y-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">JCC Refining Notes</span>
+            <div className="text-xs text-slate-700 italic leading-relaxed">
+              {rd.jcc || "—"}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 5. Final Optometrist Recommendation */}
@@ -299,34 +471,57 @@ export function RefractionSummaryView({
                   <h4 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-tight">Final Spectacles RX</h4>
                   {rd.glassPrescription?.glassType && (
                     <Badge className="bg-slate-100 text-slate-600 hover:bg-slate-200 border-none rounded-sm px-2 text-[10px]">
-                      {rd.glassPrescription.glassType}
+                      {rd.glassPrescription.glassType === 'SVN' ? 'Single Vision' : rd.glassPrescription.glassType === 'KBF' ? 'Bifocals' : rd.glassPrescription.glassType === 'PAL' ? 'Progressive' : rd.glassPrescription.glassType === 'DBF' ? 'Double D Bifocal' : rd.glassPrescription.glassType === 'READING' ? 'Reading Glass' : rd.glassPrescription.glassType}
                     </Badge>
                   )}
                 </div>
               </div>
             </div>
-            <Table className="border border-orange-200">
+            <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-orange-200">
               <TableHeader className="bg-orange-600">
                 <TableRow className="hover:bg-orange-600 border-b-0">
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8">Eye</TableHead>
+                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">Vision</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">SPH</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">CYL</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">AXIS</TableHead>
-                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">ADD</TableHead>
+                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">VA</TableHead>
+                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">PD (mm)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {['OD', 'OS'].map((eye) => (
-                  <TableRow key={eye} className="hover:bg-orange-50/30 border-b border-orange-100">
-                    <TableCell className={cn("text-[12px] font-black uppercase", eye === 'OD' ? "text-blue-600" : "text-emerald-600")}>{eye}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.sphere)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.cylinder)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.glassPrescription?.[eye]?.axis || "—"}</TableCell>
-                    <TableCell className="text-center font-bold text-orange-600 bg-orange-50/50 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.nearAdd, 3.0)}</TableCell>
-                  </TableRow>
+                  <React.Fragment key={eye}>
+                    <TableRow className="hover:bg-orange-50/30 border-b border-orange-100">
+                      <TableCell rowSpan={2} className={cn("text-[12px] font-black uppercase align-middle", eye === 'OD' ? "text-blue-600 bg-blue-50/30" : "text-emerald-600 bg-emerald-50/30")}>{eye}</TableCell>
+                      <TableCell className="text-[11px] font-bold uppercase text-slate-500 border-l border-orange-100">DV</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.sphere)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.cylinder)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.glassPrescription?.[eye]?.axis || "—"}</TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeVaInputClass(eye))}>{renderVA(rd.glassPrescription?.[eye]?.bcva)}</TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeValueClass(eye))}>
+                        {rd.glassPrescription?.distPD?.[eye] ? `${rd.glassPrescription.distPD[eye]} mm` : "—"}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="hover:bg-orange-50/30 border-b border-orange-100">
+                      <TableCell className="text-[11px] font-bold uppercase text-slate-500 border-l border-orange-100">NV</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.nearDsph || rd.glassPrescription?.[eye]?.nearAdd)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.glassPrescription?.[eye]?.nearCylinder)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.glassPrescription?.[eye]?.nearAxis || "—"}</TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeVaInputClass(eye))}>
+                        {renderVA(rd.glassPrescription?.[eye]?.nearBcva)}
+                        {rd.glassPrescription?.[eye]?.nearCm ? (
+                          <span className="block text-[9px] font-bold text-slate-500 mt-0.5">{rd.glassPrescription[eye].nearCm} cm</span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeValueClass(eye))}>
+                        {rd.glassPrescription?.nearPD?.[eye] ? `${rd.glassPrescription.nearPD[eye]} mm` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  </React.Fragment>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
           </div>
 
           {/* Contact Lens Table */}
@@ -349,28 +544,39 @@ export function RefractionSummaryView({
                 </div>
               </div>
             </div>
-            <Table className="border border-orange-200">
+            <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-orange-200">
               <TableHeader className="bg-orange-600">
                 <TableRow className="hover:bg-orange-600 border-b-0">
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8">Eye</TableHead>
+                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">Vision</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">SPH</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">CYL</TableHead>
                   <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">AXIS</TableHead>
-                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">BCVA</TableHead>
+                  <TableHead className="text-white font-black uppercase text-[12px] tracking-widest h-8 text-center border-l border-white/20">VA</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {['OD', 'OS'].map((eye) => (
-                  <TableRow key={eye} className="hover:bg-orange-50/30 border-b border-orange-100">
-                    <TableCell className={cn("text-[12px] font-black uppercase", eye === 'OD' ? "text-blue-600" : "text-emerald-600")}>{eye}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.sphere)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.cylinder)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.contactLensPrescription?.[eye]?.axis || "—"}</TableCell>
-                    <TableCell className="text-center font-bold text-orange-600 bg-orange-50/50 border-l border-orange-100">{renderVA(rd.contactLensPrescription?.[eye]?.bcva)}</TableCell>
-                  </TableRow>
+                  <React.Fragment key={eye}>
+                    <TableRow className="hover:bg-orange-50/30 border-b border-orange-100">
+                      <TableCell rowSpan={2} className={cn("text-[12px] font-black uppercase align-middle", eye === 'OD' ? "text-blue-600 bg-blue-50/30" : "text-emerald-600 bg-emerald-50/30")}>{eye}</TableCell>
+                      <TableCell className="text-[11px] font-bold uppercase text-slate-500 border-l border-orange-100">DV</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.sphere)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.cylinder)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.contactLensPrescription?.[eye]?.axis || "—"}</TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeVaInputClass(eye))}>{renderVA(rd.contactLensPrescription?.[eye]?.bcva)}</TableCell>
+                    </TableRow>
+                    <TableRow className="hover:bg-orange-50/30 border-b border-orange-100">
+                      <TableCell className="text-[11px] font-bold uppercase text-slate-500 border-l border-orange-100">NV</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.nearDsph || rd.contactLensPrescription?.[eye]?.nearAdd)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{renderLens(rd.contactLensPrescription?.[eye]?.nearCylinder)}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 border-l border-orange-100">{rd.contactLensPrescription?.[eye]?.nearAxis || "—"}</TableCell>
+                      <TableCell className={cn("text-center font-bold border-l border-orange-100", eyeVaInputClass(eye))}>{renderVA(rd.contactLensPrescription?.[eye]?.nearBcva)}</TableCell>
+                    </TableRow>
+                  </React.Fragment>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
           </div>
         </div>
       </div>
@@ -380,12 +586,12 @@ export function RefractionSummaryView({
         <SectionHeader icon={Thermometer} title="Supplementary Protocol Matrix" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Tonometry Table */}
-          <Table className="border border-slate-200">
+          <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
             <TableHeader className="bg-orange-50 border-y border-orange-100">
               <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
                 <TableHead className="text-orange-600 font-black uppercase text-[12px] h-10">Tonometry (mmHg)</TableHead>
-                <TableHead className="text-orange-600 font-black uppercase text-[12px] h-10 text-center border-l border-slate-200">OD</TableHead>
-                <TableHead className="text-orange-600 font-black uppercase text-[12px] h-10 text-center border-l border-slate-200">OS</TableHead>
+                <TableHead className={cn("font-black uppercase text-[12px] h-10 text-center border-l border-slate-200", eyeLabelClass("OD"))}>OD</TableHead>
+                <TableHead className={cn("font-black uppercase text-[12px] h-10 text-center border-l border-slate-200", eyeLabelClass("OS"))}>OS</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -435,10 +641,10 @@ export function RefractionSummaryView({
                 </TableCell>
               </TableRow>
             </TableBody>
-          </Table>
+          </Table></div>
 
           {/* Ophthalmic Tests Table */}
-          <Table className="border border-slate-200">
+          <div className="overflow-x-auto w-full max-w-full pb-2"><Table className="border border-slate-200">
             <TableHeader className="bg-orange-50 border-y border-orange-100">
               <TableRow className="hover:bg-orange-50 border-y border-orange-100 border-b-0">
                 <TableHead className="text-orange-600 font-black uppercase text-[12px] h-10">Clinical Tests</TableHead>
@@ -474,8 +680,20 @@ export function RefractionSummaryView({
                   })()}
                 </TableCell>
               </TableRow>
+              <TableRow className="hover:bg-orange-50">
+                <TableCell className="text-[12px] font-black uppercase text-slate-500">Amsler Grid Test</TableCell>
+                <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+                  {rd.amslerGrid || "—"}
+                </TableCell>
+              </TableRow>
+              <TableRow className="hover:bg-orange-50">
+                <TableCell className="text-[12px] font-black uppercase text-slate-500">Contrast Sensitivity</TableCell>
+                <TableCell className="text-center font-bold text-slate-900 border-l border-slate-100">
+                  {rd.contrastSensitivity || "—"}
+                </TableCell>
+              </TableRow>
             </TableBody>
-          </Table>
+          </Table></div>
         </div>
       </div>
 

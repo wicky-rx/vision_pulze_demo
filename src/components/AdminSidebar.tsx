@@ -1,7 +1,7 @@
-import { LayoutDashboard, Users, ShieldAlert, LogOut, Activity, Stethoscope } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, LogOut, Activity, FileText, Network, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type AdminView = "overview" | "personnel" | "security" | "scantypes" | "specializations";
+export type AdminView = "overview" | "personnel" | "security" | "reports" | "families" | "logs";
 
 interface AdminSidebarProps {
     activeView: AdminView;
@@ -15,8 +15,9 @@ interface AdminSidebarProps {
 const navItems: { id: AdminView; label: string; icon: React.FC<any>; superAdminOnly?: boolean }[] = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "personnel", label: "Personnel Roster", icon: Users },
-    { id: "scantypes", label: "Scan Types", icon: Activity },
-    { id: "specializations", label: "Specializations", icon: Stethoscope },
+    { id: "reports", label: "Hospital Reports", icon: FileText },
+    { id: "families", label: "Family Groups", icon: Network },
+    { id: "logs", label: "System Logs", icon: History, superAdminOnly: true },
     { id: "security", label: "Security", icon: ShieldAlert, superAdminOnly: true },
 ];
 
