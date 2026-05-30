@@ -23,7 +23,7 @@ export function eyeVaInputClass(eye: string) {
     ? "border-blue-100 text-blue-700 focus:border-blue-500 bg-blue-50/30"
     : eye === "OS"
       ? "border-emerald-100 text-emerald-700 focus:border-emerald-500 bg-emerald-50/30"
-      : "border-slate-200 text-slate-900 focus:border-orange-600 bg-white";
+      : "border-slate-200 text-slate-900 focus:border-brand bg-white";
 }
 
 export function eyeRowBgClass(eye: string) {

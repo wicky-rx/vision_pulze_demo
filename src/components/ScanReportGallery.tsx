@@ -266,29 +266,29 @@ export function ScanReportGallery({
       return (
         <div className="space-y-3">
           {showStatus && (
-            <div className="p-3 rounded-xl bg-orange-50 border border-orange-100 flex flex-col gap-1 min-h-[140px]">
-                <div className="flex items-center justify-between border-b border-orange-200 pb-1.5 mb-1.5 ">
-                    <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Scans Uploaded: {documents.length}</span>
-                    <Check className="w-3 h-3 text-orange-400" />
+            <div className="p-3 rounded-xl bg-brand/10 border border-brand/10 flex flex-col gap-1 min-h-[140px]">
+                <div className="flex items-center justify-between border-b border-brand/20 pb-1.5 mb-1.5 ">
+                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Scans Uploaded: {documents.length}</span>
+                    <Check className="w-3 h-3 text-brand/40" />
                 </div>
                 
                  {documents.length === 0 ? (
-                    <p className="text-[10px] text-orange-400 italic py-6 text-center">No reports uploaded yet.</p>
+                    <p className="text-[10px] text-brand/40 italic py-6 text-center">No reports uploaded yet.</p>
                 ) : (
-                    <div className="grid grid-cols-1 gap-1.5 max-h-[110px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent pr-1.5">
+                    <div className="grid grid-cols-1 gap-1.5 max-h-[110px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-brand/20 scrollbar-track-transparent pr-1.5">
                        {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between group py-1 border-b border-orange-100/50 last:border-0 hover:bg-orange-50/50 px-1 transition-colors">
+                        <div key={doc.id} className="flex items-center justify-between group py-1 border-b border-brand/10/50 last:border-0 hover:bg-brand/5 px-1 transition-colors">
                             <div 
-                              className="flex items-center gap-2 cursor-pointer hover:text-orange-700 transition-colors flex-1 min-w-0"
+                              className="flex items-center gap-2 cursor-pointer hover:text-brand-hover transition-colors flex-1 min-w-0"
                               onClick={() => setSelectedDoc(doc)}
                             >
                                 <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="font-semibold text-orange-850 uppercase text-[9px] truncate">{doc.category}</span>
+                                    <span className="font-semibold text-brand-hover uppercase text-[9px] truncate">{doc.category}</span>
                                     <span className="text-[8px] text-slate-400 font-bold">{new Date(doc.uploadedAt).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: '2-digit'})}</span>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0 px-1">
-                                    <Eye className="w-3.5 h-3.5 text-orange-400 group-hover:text-orange-650 transition-colors" />
-                                    <Check className="w-2.5 h-2.5 text-orange-500 shrink-0" />
+                                    <Eye className="w-3.5 h-3.5 text-brand/40 group-hover:text-brand-hover transition-colors" />
+                                    <Check className="w-2.5 h-2.5 text-brand shrink-0" />
                                 </div>
                             </div>
                             
@@ -297,7 +297,7 @@ export function ScanReportGallery({
                                    e.stopPropagation();
                                    handleDeleteDocument(doc.id, e);
                               }}
-                              className="p-1 rounded-md hover:bg-red-50 text-orange-300 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                              className="p-1 rounded-md hover:bg-red-50 text-brand/30 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
                               title="Delete Scan"
                             >
                               <X className="w-2.5 h-2.5" />
@@ -313,7 +313,7 @@ export function ScanReportGallery({
               <Button 
                   size="sm" 
                   variant="outline" 
-                  className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm w-full md:w-auto transition-all font-bold"
+                  className="gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 shadow-sm w-full md:w-auto transition-all font-bold"
                   onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -330,8 +330,8 @@ export function ScanReportGallery({
     }
 
     return (
-      <div className="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
-        <div className="pb-3 border-b border-orange-100 flex flex-row items-center justify-between space-y-0 mb-4">
+      <div className="bg-brand/5 p-4 rounded-xl border border-brand/10">
+        <div className="pb-3 border-b border-brand/10 flex flex-row items-center justify-between space-y-0 mb-4">
           <p className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 text-slate-900">
             <FileText className="w-4 h-4 text-slate-900/70" />
             Patient Scan Reports
@@ -340,7 +340,7 @@ export function ScanReportGallery({
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 gap-2 border-orange-200 text-orange-600 hover:bg-orange-50"
+              className="h-8 gap-2 border-brand/20 text-brand hover:bg-brand/10"
               onClick={() => setIsUploadOpen(true)}
             >
               <Upload className="w-3.5 h-3.5" />
@@ -367,7 +367,7 @@ export function ScanReportGallery({
                           if (el) el.scrollBy({ left: -SCROLL_AMOUNT, behavior: 'smooth' });
                       }}
                   >
-                      <ChevronLeft className="w-4 h-4 text-orange-600" />
+                      <ChevronLeft className="w-4 h-4 text-brand" />
                   </Button>
                   <Button
                       variant="ghost"
@@ -378,7 +378,7 @@ export function ScanReportGallery({
                           if (el) el.scrollBy({ left: SCROLL_AMOUNT, behavior: 'smooth' });
                       }}
                   >
-                      <ChevronRight className="w-4 h-4 text-orange-600" />
+                      <ChevronRight className="w-4 h-4 text-brand" />
                   </Button>
                   </>
               )}
@@ -400,7 +400,7 @@ export function ScanReportGallery({
                     )}
                     onClick={() => setSelectedDoc(doc)}
                   >
-                    <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center pointer-events-none">
+                    <div className="w-12 h-12 rounded-lg bg-brand/10 flex items-center justify-center pointer-events-none">
                       <ImageIcon className="w-6 h-6 text-slate-900/50" />
                     </div>
                     <div className="text-center overflow-hidden w-full px-1 pointer-events-none">
@@ -409,7 +409,7 @@ export function ScanReportGallery({
                       <p className="text-[8px] text-muted-foreground/90 font-bold">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
                     </div>
                     
-                    <Badge variant="outline" className="text-[8px] px-1 py-0 bg-orange-50 border-orange-200 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none">
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 bg-brand/10 border-brand/20 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none">
                       View Details
                     </Badge>
                     
@@ -493,7 +493,7 @@ export function ScanReportGallery({
           
           <div className="flex flex-col gap-4 mt-4 overflow-hidden h-[75vh]">
              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-orange-50 border border-orange-100 flex flex-col gap-1">
+                <div className="p-3 rounded-xl bg-brand/10 border border-brand/10 flex flex-col gap-1">
                     <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Scan Report</span>
                     <span className="text-sm font-semibold truncate">{selectedDoc?.category}</span>
                 </div>
@@ -511,7 +511,7 @@ export function ScanReportGallery({
                 {selectedDoc?.webViewLink && (
                     <Button 
                         onClick={() => window.open(selectedDoc.webViewLink, '_blank')}
-                        className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm grow md:grow-0 transition-all font-bold"
+                        className="gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <ExternalLink className="w-4 h-4" />
                         Open on Google Drive
@@ -521,7 +521,7 @@ export function ScanReportGallery({
                     <Button 
                         variant="outline"
                         onClick={() => window.open(selectedDoc.webContentLink, '_blank')}
-                        className="gap-2 bg-white hover:bg-orange-50 text-slate-700 border border-slate-200 hover:border-orange-200 hover:text-orange-600 shadow-sm grow md:grow-0 transition-all font-bold"
+                        className="gap-2 bg-white hover:bg-brand/10 text-slate-700 border border-slate-200 hover:border-brand/20 hover:text-brand shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <Download className="w-4 h-4" />
                         Download File
@@ -530,7 +530,7 @@ export function ScanReportGallery({
                 {selectedDoc?.filePath && (
                     <Button 
                         onClick={() => window.open(`${API_BASE_URL}/${selectedDoc.filePath}`, '_blank')}
-                        className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 shadow-sm grow md:grow-0 transition-all font-bold"
+                        className="gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 shadow-sm grow md:grow-0 transition-all font-bold"
                     >
                         <FileText className="w-4 h-4" />
                         View Server File
@@ -572,7 +572,7 @@ export function ScanReportGallery({
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-600">
+            <DialogTitle className="flex items-center gap-2 text-brand">
               <Upload className="w-4 h-4" />
               Upload Scan Reports
             </DialogTitle>
@@ -599,7 +599,7 @@ export function ScanReportGallery({
                 className={cn(
                   "border-2 border-dashed rounded-xl p-6 text-center transition-colors",
                   "hover:border-accent/40 hover:bg-accent/5 cursor-pointer",
-                  uploadFiles.length > 0 ? "border-orange-200 bg-orange-50" : "border-muted"
+                  uploadFiles.length > 0 ? "border-brand/20 bg-brand/10" : "border-muted"
                 )}
                 onClick={() => document.getElementById('file-upload-gallery')?.click()}
               >
@@ -626,7 +626,7 @@ export function ScanReportGallery({
                 {uploadFiles.map((file, idx) => (
                   <div key={idx} className="space-y-1.5 p-2 rounded-lg bg-muted/50 border border-border">
                     <div className="flex items-center gap-2 text-xs">
-                      <FileText className={cn("w-3.5 h-3.5", file.size > 15 * 1024 * 1024 ? "text-amber-500" : "text-orange-600")} />
+                      <FileText className={cn("w-3.5 h-3.5", file.size > 15 * 1024 * 1024 ? "text-amber-500" : "text-brand")} />
                       <span className="flex-1 truncate font-medium min-w-0" title={file.name}>
                         {truncateFileName(file.name)}
                       </span>
@@ -647,7 +647,7 @@ export function ScanReportGallery({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 text-[9px] gap-1.5 text-orange-600 hover:text-orange-600 hover:bg-accent/10 py-0"
+                          className="h-6 text-[9px] gap-1.5 text-brand hover:text-brand hover:bg-accent/10 py-0"
                           onClick={() => handleOptimizeImage(idx)}
                         >
                           <Zap className="w-2.5 h-2.5" />
@@ -668,7 +668,7 @@ export function ScanReportGallery({
             <Button 
               onClick={handleUploadFiles} 
               disabled={isUploading || !selectedScanType || uploadFiles.length === 0}
-              className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 gap-2 transition-all font-bold"
+              className="bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 gap-2 transition-all font-bold"
             >
               {isUploading ? (
                 <>

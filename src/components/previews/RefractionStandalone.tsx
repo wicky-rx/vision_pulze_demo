@@ -28,12 +28,12 @@ function LocalTopHeader() {
   const userName = "DEMO OPTOMETRIST";
 
   return (
-    <header className="h-16 md:h-20 border-b border-[#8b3d87]/20 bg-white/85 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0">
+    <header className="h-16 md:h-20 border-b border-brand/20 bg-white/85 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0">
       <div className="flex items-center gap-6 md:gap-10">
         <div className="flex items-center lg:pr-10 lg:border-r border-slate-200/60 shrink-0">
           <div className="flex flex-col leading-none gap-0.5">
             <span style={{ fontFamily: "'Outfit', sans-serif" }} className="font-extrabold text-xl tracking-tight leading-none text-slate-900">
-              Vision<span className="text-blue-600">Pulze</span>
+              Vision<span className="text-brand">Pulze</span>
             </span>
             <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
               Ophthalmic Ecosystem
@@ -43,7 +43,7 @@ function LocalTopHeader() {
 
         <div className="space-y-0.5">
           <h2 className="text-sm lg:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#8b3d87] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
             Refraction Room
           </h2>
           <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -60,7 +60,7 @@ function LocalTopHeader() {
 
       <div className="flex items-center gap-3 md:gap-6">
         <div className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/50">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-[#8b3d87] to-rose-500 text-white shadow-lg shadow-[#8b3d87]/20">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-brand to-rose-500 text-white shadow-lg shadow-brand/20">
             <User className="w-5 h-5" />
           </div>
           <div className="hidden lg:flex flex-col items-start text-left">
@@ -79,14 +79,14 @@ function LocalPatientQueue({ selectedPatientId }: { selectedPatientId: string })
       <div className="px-4 py-4 border-b border-slate-200 bg-white shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#8b3d87]" />
+            <Users className="w-4 h-4 text-brand" />
             <h3 className="text-sm font-semibold text-slate-800">Live Queue</h3>
-            <Badge className="bg-[#8b3d87]/10 text-[#8b3d87] border-0 text-[11px]">{mockPatients.length}</Badge>
+            <Badge className="bg-brand/10 text-brand border-0 text-[11px]">{mockPatients.length}</Badge>
           </div>
         </div>
 
         <div className="flex gap-1 p-0.5 bg-slate-100 rounded-lg">
-          <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center bg-[#8b3d87] text-white shadow-sm cursor-default">
+          <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center bg-brand text-white shadow-sm cursor-default">
             All
           </div>
           <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center text-slate-400 cursor-default">
@@ -107,7 +107,7 @@ function LocalPatientQueue({ selectedPatientId }: { selectedPatientId: string })
             key={patient.id}
             className={cn(
               "w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50/80 transition-colors border-l-4 cursor-default",
-              selectedPatientId === patient.id ? "bg-[#8b3d87]/10 border-l-[#8b3d87]" : "border-l-transparent"
+              selectedPatientId === patient.id ? "bg-brand/10 border-l-brand" : "border-l-transparent"
             )}
           >
             <div className="min-w-0 flex-1">
@@ -145,13 +145,13 @@ function DiagnosticCard({
 }) {
   return (
     <Card className="border border-slate-200 rounded-none shadow-sm overflow-hidden bg-white">
-      <div className="px-5 py-3 flex items-center justify-between border-l-4 border-l-[#8b3d87] bg-[#8b3d87]/10">
+      <div className="px-5 py-3 flex items-center justify-between border-l-4 border-l-brand bg-brand/10">
         <div className="flex items-center gap-3 relative">
-          <Icon className="w-4 h-4 text-[#8b3d87]" />
+          <Icon className="w-4 h-4 text-brand" />
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">{title}</h3>
         </div>
         <div className="flex items-center gap-3">
-          {badge && <Badge variant="outline" className="border-[#8b3d87]/30 text-[#8b3d87] text-[8px] font-black uppercase tracking-widest rounded-none bg-white">{badge}</Badge>}
+          {badge && <Badge variant="outline" className="border-brand/30 text-brand text-[8px] font-black uppercase tracking-widest rounded-none bg-white">{badge}</Badge>}
           <ChevronDown className="w-4 h-4 text-slate-400" />
         </div>
       </div>
@@ -178,20 +178,20 @@ export function RefractionStandalone() {
           <LocalPatientQueue selectedPatientId={activePatient.id} />
 
           {/* Center/Main Column: Refraction Workspace */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#8b3d87]/5 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-brand/5 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
 
             <div className="p-6 lg:p-8 space-y-6 relative z-10 flex-1">
               {/* Premium Diagnostic Header */}
               <div className="bg-white border border-slate-200 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-xl shadow-sm gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-br from-[#8b3d87] to-[#722f6e] text-white p-3 rounded-lg shrink-0 shadow-lg shadow-[#8b3d87]/20">
+                  <div className="bg-gradient-to-br from-brand to-brand-hover text-white p-3 rounded-lg shrink-0 shadow-lg shadow-brand/20">
                     <Eye className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">{activePatient.name}</h2>
-                      <Badge className="bg-[#8b3d87] text-white text-[10px] px-2 font-mono rounded-full font-bold">MR-{activePatient.mrNumber}</Badge>
+                      <Badge className="bg-brand text-white text-[10px] px-2 font-mono rounded-full font-bold">MR-{activePatient.mrNumber}</Badge>
                       <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[10px] px-2 font-bold rounded-full">Token-{activePatient.tokenNumber}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
@@ -199,7 +199,7 @@ export function RefractionStandalone() {
                       <span>•</span>
                       <span>{activePatient.age}</span>
                       <span>•</span>
-                      <span className="text-[#8b3d87] font-bold">Diagnostic Phase</span>
+                      <span className="text-brand font-bold">Diagnostic Phase</span>
                     </div>
                   </div>
                 </div>
@@ -220,7 +220,7 @@ export function RefractionStandalone() {
                   <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
                       {["Diabetes", "Hypertension"].map((cond) => (
-                        <span key={cond} className="px-3 py-1.5 bg-[#8b3d87]/10 text-[#8b3d87] border border-[#8b3d87]/20 text-xs font-black uppercase tracking-wider">
+                        <span key={cond} className="px-3 py-1.5 bg-brand/10 text-brand border border-brand/20 text-xs font-black uppercase tracking-wider">
                           {cond}
                         </span>
                       ))}
@@ -395,13 +395,13 @@ export function RefractionStandalone() {
                 {/* 6. Verify and Complete Panel */}
                 <div className="border border-slate-200 bg-white p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 border border-slate-300 rounded bg-slate-50 flex items-center justify-center text-[#8b3d87]">
-                      <CheckCircle2 className="w-4 h-4 text-[#8b3d87]" />
+                    <div className="w-6 h-6 border border-slate-300 rounded bg-slate-50 flex items-center justify-center text-brand">
+                      <CheckCircle2 className="w-4 h-4 text-brand" />
                     </div>
                     <span className="text-xs font-bold text-slate-500">I verify that the above refraction readings are accurate.</span>
                   </div>
 
-                  <Button className="h-11 bg-[#8b3d87] hover:bg-[#722f6e] text-white font-bold uppercase tracking-wider px-8 rounded-none shadow-md gap-2">
+                  <Button className="h-11 bg-brand hover:bg-brand-hover text-white font-bold uppercase tracking-wider px-8 rounded-none shadow-md gap-2">
                     <Save className="w-4 h-4" />
                     Advance to Doctor
                   </Button>

@@ -123,7 +123,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden">
         {/* Header band */}
-        <div className="bg-gradient-to-r from-primary/90 to-primary px-6 py-5 flex items-center gap-3">
+        <div className="bg-gradient-to-r from-brand/90 to-brand px-6 py-5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
             <KeyRound className="w-5 h-5 text-white" />
           </div>
@@ -266,7 +266,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           <Button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="rounded-xl text-sm bg-primary hover:bg-primary/90 shadow-md shadow-primary/20 gap-2"
+            className="rounded-xl text-sm bg-brand hover:bg-brand-hover shadow-md shadow-brand/20 gap-2"
           >
             {isLoading ? (
               <>

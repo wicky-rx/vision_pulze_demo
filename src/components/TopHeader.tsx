@@ -45,7 +45,7 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
   };
 
   return (
-    <header className="h-16 md:h-20 border-b border-orange-200/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0 transition-all duration-500">
+    <header className="h-16 md:h-20 border-b border-brand/20/50 bg-white/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 shrink-0 shadow-sm z-50 sticky top-0 transition-all duration-500">
       <div className="flex items-center gap-6 md:gap-10">
         {/* Logo Section */}
         <div className="flex items-center lg:pr-10 lg:border-r border-slate-200/60 shrink-0">
@@ -55,7 +55,7 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
               className="font-extrabold text-xl tracking-tight leading-none"
             >
               <span style={{ color: "#0F172A" }}>Vision</span>
-              <span style={{ color: "#2563EB" }}>Pulze</span>
+              <span className="text-brand">Pulze</span>
             </span>
             <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
               Ophthalmic Ecosystem
@@ -65,7 +65,7 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
 
         <div className="space-y-0.5">
           <h2 className="text-sm lg:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-orange-600 animate-pulse hidden sm:block" />
+            <span className="w-2 h-2 rounded-full bg-brand animate-pulse hidden sm:block" />
             {stationTitles[activeStation] || "Dashboard"}
           </h2>
           <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -81,8 +81,8 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
       </div>
 
       {/* <div className="hidden lg:flex flex-1 flex-col items-center justify-center">
-        <div className="bg-orange-50/50 border border-orange-100 px-4 py-1.5 rounded-full shadow-sm">
-          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-orange-900/40 italic">Supported by Ragavarshini Traders</span>
+        <div className="bg-brand/5 border border-brand/10 px-4 py-1.5 rounded-full shadow-sm">
+          <span className="text-[10px] font-black uppercase tracking-[0.1em] text-brand/40 italic">Supported by Ragavarshini Traders</span>
         </div>
       </div> */}
 
@@ -91,19 +91,19 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="group flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200 shadow-sm hover:shadow-md">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-orange-500 to-rose-500 text-white shadow-lg shadow-orange-200 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gradient-to-tr from-brand to-rose-500 text-white shadow-lg shadow-brand/20 group-hover:scale-105 transition-transform">
                 <User className="w-5 h-5" />
               </div>
               <div className="hidden lg:flex flex-col items-start text-left">
                 <span className="text-[11px] font-black uppercase tracking-tight text-slate-900">{userName}</span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Practitioner</span>
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-orange-600 transition-colors" />
+              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-brand transition-colors" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64 rounded-2xl mt-3 p-1 shadow-2xl border-slate-200/60">
             <DropdownMenuLabel className="flex items-center gap-3 px-3 py-4 bg-slate-50/50 rounded-xl mb-1">
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand">
                 <User className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
@@ -114,7 +114,7 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
             <DropdownMenuSeparator className="bg-slate-100" />
             <div className="p-1">
               <DropdownMenuItem
-                className="text-xs font-bold rounded-xl py-2.5 px-3 cursor-pointer gap-3 focus:bg-orange-50 focus:text-orange-900 transition-colors"
+                className="text-xs font-bold rounded-xl py-2.5 px-3 cursor-pointer gap-3 focus:bg-brand/10 focus:text-brand-hover transition-colors"
                 onClick={() => setIsProfileOpen(true)}
               >
                 <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">

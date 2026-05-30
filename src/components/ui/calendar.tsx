@@ -36,16 +36,16 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         head_row: "flex",
         head_cell: "text-muted-foreground rounded-none w-9 font-normal text-[0.8rem]",
         row: "flex w-full",
-        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-none [&:has([aria-selected].day-outside)]:bg-orange-50/50 [&:has([aria-selected])]:bg-orange-50 first:[&:has([aria-selected])]:rounded-none last:[&:has([aria-selected])]:rounded-none focus-within:relative focus-within:z-20",
+        cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-none [&:has([aria-selected].day-outside)]:bg-brand/5 [&:has([aria-selected])]:bg-brand/10 first:[&:has([aria-selected])]:rounded-none last:[&:has([aria-selected])]:rounded-none focus-within:relative focus-within:z-20",
         day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-none"),
         day_range_end: "day-range-end",
         day_selected:
-          "bg-orange-600 text-white hover:bg-orange-700 hover:text-white focus:bg-orange-600 focus:text-white rounded-none",
+          "bg-brand text-white hover:bg-brand-hover hover:text-white focus:bg-brand focus:text-white rounded-none",
         day_today: "bg-slate-100 text-slate-900 rounded-none",
         day_outside:
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-orange-50/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-brand/5 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle: "aria-selected:bg-orange-50 aria-selected:text-orange-600",
+        day_range_middle: "aria-selected:bg-brand/10 aria-selected:text-brand",
         day_hidden: "invisible",
         ...classNames,
       }}

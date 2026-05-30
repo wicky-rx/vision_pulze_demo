@@ -63,8 +63,8 @@
      */
     --status-reception: 217 91% 60%;
     /* Blue   */
-    --status-optometrist: 25 95% 53%;
-    /* Orange */
+    --status-optometrist: 308 39% 39%;
+    /* Purple HSL (Matches #8b3d87) */
     --status-doctor: 271 76% 53%;
     /* Purple */
     --status-consulted: 325 90% 55%;
@@ -77,6 +77,22 @@
     /* Indigo */
     --status-completed: 142 71% 45%;
     /* Green  */
+
+    /* Brand Theme Colors */
+    --brand-color: 139 61 135;   /* #8b3d87 (Purple) */
+    --brand-hover: 114 47 110;   /* #722f6e */
+  }
+
+  [data-theme="teal"] {
+    --brand-color: 53 167 144;   /* #35a790 (Teal) */
+    --brand-hover: 42 134 115;   /* #2a8673 */
+    --status-optometrist: 168 52% 43%;
+  }
+
+  [data-theme="indigo"] {
+    --brand-color: 91 101 220;   /* #5B65DC (Indigo) */
+    --brand-hover: 71 80 196;    /* #4750c4 */
+    --status-optometrist: 235 66% 61%;
   }
 
   .dark {
@@ -113,8 +129,6 @@
     --clinic-surface: 213 55% 8%;
     --status-reception: 217 91% 60%;
     /* Blue   */
-    --status-optometrist: 25 95% 53%;
-    /* Orange */
     --status-doctor: 271 76% 53%;
     /* Purple */
     --status-consulted: 325 90% 55%;

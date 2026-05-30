@@ -17,12 +17,12 @@ const mockPatients: Patient[] = [
 
 function LocalTopHeader() {
   return (
-    <header className="h-16 border-b border-[#8b3d87]/20 bg-white/85 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 shadow-sm z-50 sticky top-0">
+    <header className="h-16 border-b border-brand/20 bg-white/85 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 shadow-sm z-50 sticky top-0">
       <div className="flex items-center gap-6">
         <div className="flex items-center lg:pr-6 lg:border-r border-slate-200/60 shrink-0">
           <div className="flex flex-col leading-none gap-0.5">
             <span style={{ fontFamily: "'Outfit', sans-serif" }} className="font-extrabold text-xl tracking-tight leading-none text-slate-900">
-              Vision<span className="text-blue-600">Pulze</span>
+              Vision<span className="text-brand">Pulze</span>
             </span>
             <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
               Ophthalmic Ecosystem
@@ -31,7 +31,7 @@ function LocalTopHeader() {
         </div>
         <div className="space-y-0.5">
           <h2 className="text-sm font-black tracking-tight text-slate-900 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#8b3d87] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
             Pharmacy Desk
           </h2>
           <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-slate-400">
@@ -42,7 +42,7 @@ function LocalTopHeader() {
       </div>
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 bg-slate-50/50">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-tr from-[#8b3d87] to-rose-500 text-white shadow-md">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-tr from-brand to-rose-500 text-white shadow-md">
             <User className="w-4 h-4" />
           </div>
           <div className="flex flex-col items-start text-left">
@@ -61,13 +61,13 @@ function LocalPatientQueue({ selectedPatientId }: { selectedPatientId: string })
       <div className="px-4 py-4 border-b border-slate-200 bg-white shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#8b3d87]" />
+            <Users className="w-4 h-4 text-brand" />
             <h3 className="text-sm font-semibold text-slate-800">Live Queue</h3>
-            <Badge className="bg-[#8b3d87]/10 text-[#8b3d87] border-0 text-[10px]">{mockPatients.length}</Badge>
+            <Badge className="bg-brand/10 text-brand border-0 text-[10px]">{mockPatients.length}</Badge>
           </div>
         </div>
         <div className="flex gap-1 p-0.5 bg-slate-100 rounded-lg">
-          <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center bg-[#8b3d87] text-white shadow-sm cursor-default">
+          <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center bg-brand text-white shadow-sm cursor-default">
             All
           </div>
           <div className="flex-1 px-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-md text-center text-slate-400 cursor-default">
@@ -81,7 +81,7 @@ function LocalPatientQueue({ selectedPatientId }: { selectedPatientId: string })
             key={patient.id}
             className={cn(
               "w-full px-4 py-3 flex items-center justify-between border-l-4 cursor-default",
-              selectedPatientId === patient.id ? "bg-[#8b3d87]/10 border-l-[#8b3d87]" : "border-l-transparent"
+              selectedPatientId === patient.id ? "bg-brand/10 border-l-brand" : "border-l-transparent"
             )}
           >
             <div className="min-w-0 flex-1">
@@ -104,13 +104,13 @@ function LocalPatientQueue({ selectedPatientId }: { selectedPatientId: string })
 function DiagnosticCard({ title, icon: Icon, badge, children }: { title: string; icon: any; badge?: string; children: React.ReactNode }) {
   return (
     <Card className="border border-slate-200 rounded-none shadow-sm overflow-hidden bg-white">
-      <div className="px-4 py-2.5 flex items-center justify-between border-l-4 border-l-[#8b3d87] bg-[#8b3d87]/10">
+      <div className="px-4 py-2.5 flex items-center justify-between border-l-4 border-l-brand bg-brand/10">
         <div className="flex items-center gap-2">
-          <Icon className="w-3.5 h-3.5 text-[#8b3d87]" />
+          <Icon className="w-3.5 h-3.5 text-brand" />
           <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-800">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
-          {badge && <Badge variant="outline" className="border-[#8b3d87]/30 text-[#8b3d87] text-[8px] font-black uppercase tracking-widest rounded-none bg-white">{badge}</Badge>}
+          {badge && <Badge variant="outline" className="border-brand/30 text-brand text-[8px] font-black uppercase tracking-widest rounded-none bg-white">{badge}</Badge>}
           <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
         </div>
       </div>
@@ -131,20 +131,20 @@ export function PharmacyStandalone() {
         <div className="flex-1 bg-white rounded-3xl border border-slate-200 overflow-hidden flex shadow-sm">
           <LocalPatientQueue selectedPatientId={activePatient.id} />
           
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-[#8b3d87]/5 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-brand/5 relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
             
             <div className="p-4 lg:p-6 space-y-4 relative z-10 flex-1">
               {/* Patient Header */}
               <div className="bg-white border border-slate-200 px-5 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-xl shadow-sm gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-[#8b3d87] to-[#722f6e] text-white p-2.5 rounded-lg shrink-0">
+                  <div className="bg-gradient-to-br from-brand to-brand-hover text-white p-2.5 rounded-lg shrink-0">
                     <Pill className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-sm font-black text-slate-900 uppercase tracking-tight">{activePatient.name}</h2>
-                      <Badge className="bg-[#722f6e] text-white text-[9px] px-1.5 font-mono rounded-full font-bold">MR-{activePatient.mrNumber}</Badge>
+                      <Badge className="bg-brand-hover text-white text-[9px] px-1.5 font-mono rounded-full font-bold">MR-{activePatient.mrNumber}</Badge>
                       <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] px-1.5 font-bold rounded-full">Token-{activePatient.tokenNumber}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -152,7 +152,7 @@ export function PharmacyStandalone() {
                       <span>•</span>
                       <span>{activePatient.age}</span>
                       <span>•</span>
-                      <span className="text-[#8b3d87] font-bold">Dispensing Desk</span>
+                      <span className="text-brand font-bold">Dispensing Desk</span>
                     </div>
                   </div>
                 </div>

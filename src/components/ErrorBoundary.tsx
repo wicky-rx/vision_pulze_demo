@@ -40,8 +40,8 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-orange-100 overflow-hidden">
-            <div className="bg-orange-600 p-8 flex justify-center">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-brand/10 overflow-hidden">
+            <div className="bg-brand p-8 flex justify-center">
               <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
                 <AlertCircle className="w-10 h-10 text-white" />
               </div>
@@ -67,7 +67,7 @@ class ErrorBoundary extends Component<Props, State> {
               <div className="flex flex-col gap-3">
                 <Button 
                   onClick={this.handleReset}
-                  className="w-full h-12 bg-orange-600 hover:bg-black text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-orange-200"
+                  className="w-full h-12 bg-brand hover:bg-black text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-brand/20"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" /> Try Again
                 </Button>

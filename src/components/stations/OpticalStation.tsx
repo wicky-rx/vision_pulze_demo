@@ -259,8 +259,8 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                                   <span className="font-black text-base text-slate-800 tracking-tighter">{distData.axis || "0"}°</span>
                                 </div>
                                 <div className="text-center">
-                                  <span className="text-[8px] text-[orange-600] block font-bold mb-0.5 uppercase">VA</span>
-                                  <span className="font-black text-sm text-[orange-600] tracking-tighter line-clamp-1">{distData.bcva || distData.vn || "—"}</span>
+                                  <span className="text-[8px] text-brand block font-bold mb-0.5 uppercase">VA</span>
+                                  <span className="font-black text-sm text-brand tracking-tighter line-clamp-1">{distData.bcva || distData.vn || "—"}</span>
                                 </div>
                               </div>
                               {hasNear && (
@@ -341,7 +341,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                   )}
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Lead Clinician</p>
-                    <p className="font-black text-[orange-600] text-sm uppercase">{consultation?.doctorName || consultation?.doctor?.name || "Pending Signature"}</p>
+                    <p className="font-black text-brand text-sm uppercase">{consultation?.doctorName || consultation?.doctor?.name || "Pending Signature"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -449,7 +449,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
               <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 mt-4 border-t border-slate-200 shrink-0">
                 <Button
                   variant="outline"
-                  className="h-12 w-full sm:w-auto px-8 rounded-none border-slate-300 font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 hover:text-white transition-all gap-3"
+                  className="h-12 w-full sm:w-auto px-8 rounded-none border-slate-300 font-black uppercase text-[10px] tracking-widest hover:bg-brand hover:text-white transition-all gap-3"
                   onClick={() => setShowPrint(true)}
                   disabled={!glassRx}
                 >
@@ -459,7 +459,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                 <Button
                   className={cn(
                     "h-12 w-full sm:w-auto px-8 rounded-none font-black uppercase text-[10px] tracking-widest shadow-lg transition-all gap-3 disabled:pointer-events-none disabled:cursor-not-allowed",
-                    completed ? "bg-orange-600 text-white opacity-80" : "bg-emerald-600 hover:bg-black text-white"
+                    completed ? "bg-brand text-white opacity-80" : "bg-emerald-600 hover:bg-black text-white"
                   )}
                   onClick={handleComplete}
                   disabled={completed || !glassRx || isSubmitting}
@@ -476,7 +476,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
         {/* Print Preview Modal */}
         <Dialog open={showPrint} onOpenChange={setShowPrint}>
           <DialogContent className="max-w-2xl p-0 border-0 rounded-none overflow-hidden shadow-2xl max-h-[92vh] flex flex-col">
-            <DialogHeader className="p-6 bg-orange-600 border-0 rounded-none flex flex-row items-center justify-between space-y-0 no-print shrink-0">
+            <DialogHeader className="p-6 bg-brand border-0 rounded-none flex flex-row items-center justify-between space-y-0 no-print shrink-0">
               <DialogTitle className="text-white font-black uppercase tracking-[0.3em] text-[10px]">Optical Order Specification</DialogTitle>
             </DialogHeader>
             <div id="print-section" className="bg-white p-8 space-y-6 overflow-y-auto flex-1 min-h-0 relative">
@@ -489,14 +489,14 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                 />
               </div>
               {/* Hospital Header in the style of Vision Xpress */}
-              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+              <div className="border border-brand p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
                 <img
                   src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
                   alt="VPN Logo"
                   className="h-10 w-auto object-contain shrink-0"
                 />
                 <div className="flex-1 text-center">
-                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                  <h1 className="text-sm font-black uppercase text-brand-hover tracking-wider">VPN EYE HOSPITAL</h1>
                   <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
                   <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                 </div>
@@ -520,7 +520,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
               </div>
 
               {/* Outer report container with double borders */}
-              <div className="report-print-container space-y-4 text-left border-2 border-orange-400 p-5 rounded-sm">
+              <div className="report-print-container space-y-4 text-left border-2 border-brand/40 p-5 rounded-sm">
                 {/* Patient Info Block structured as a clean 1px border table */}
                 <table className="w-full text-[8.5px]">
                   <tbody>
@@ -645,14 +645,14 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                   <p className="text-[10px] text-slate-400 font-bold max-w-xs leading-relaxed">This slip serves as a verified optical directive from VPN Eye Hospital. Authenticity can be verified via MRN-{patient?.mrNumber}.</p>
                   <div className="text-right">
                     <div className="w-32 h-px bg-slate-300 mb-2 ml-auto" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-orange-600">Official Optical Seal</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-brand">Official Optical Seal</p>
                   </div>
                 </div>
               </div>
             </div>
             <DialogFooter className="p-4 bg-slate-50 border-t items-center sm:justify-center no-print shrink-0">
               <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel & Edit</Button>
-              <Button className="rounded-none bg-orange-600 hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3 ml-4" onClick={() => window.print()}>
+              <Button className="rounded-none bg-brand hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3 ml-4" onClick={() => window.print()}>
                 <Printer className="w-4 h-4" />
                 Confirm & Print Slip
               </Button>

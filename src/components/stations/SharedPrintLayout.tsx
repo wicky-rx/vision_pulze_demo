@@ -281,14 +281,14 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
           />
         </div>
         {/* Hospital Header in the style of Vision Xpress */}
-        <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
+        <div className="border border-brand p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
           <img
             src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
             alt="VPN Logo"
             className="h-10 w-auto object-contain shrink-0"
           />
           <div className="flex-1 text-center pr-10">
-            <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+            <h1 className="text-sm font-black uppercase text-brand-hover tracking-wider">VPN EYE HOSPITAL</h1>
             <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
             <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
           </div>
@@ -298,7 +298,7 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
         </div>
 
         {/* Outer report container with single orange border */}
-        <div className="report-print-container space-y-4 p-4 border border-orange-500 bg-transparent">
+        <div className="report-print-container space-y-4 p-4 border border-brand bg-transparent">
           {/* Aravind Style Header Info Block */}
           <div className="flex justify-between items-start border-b border-slate-300 pb-3">
             {/* Left Side: Patient details */}
@@ -342,7 +342,7 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
           {hasGlassRxData && (
             <div>
               <h3 className="text-[8.5px] font-black uppercase text-slate-700 tracking-wider mb-1.5 flex items-center gap-1.5 text-left">
-                <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
+                <span className="w-1.5 h-1.5 bg-brand rounded-full"></span>
                 Spectacles Prescription (கண்ணாடி பரிந்துரைகள்)
               </h3>
               <table className="w-full border-collapse border border-slate-400 text-center text-[9px]">
@@ -405,10 +405,10 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
           {hasContactLensRxData && (
             <div className={hasGlassRxData ? "mt-4" : ""}>
               <h3 className="text-[8.5px] font-black uppercase text-slate-700 tracking-wider mb-1.5 flex items-center gap-1.5 text-left">
-                <span className="w-1.5 h-1.5 bg-orange-600 rounded-full"></span>
+                <span className="w-1.5 h-1.5 bg-brand rounded-full"></span>
                 Contact Lens Prescription (காண்டாக்ட் லென்ஸ் பரிந்துரைகள்)
                 {printData.clRx?.clType && Array.isArray(printData.clRx.clType) && printData.clRx.clType.length > 0 && (
-                  <span className="ml-2 px-2 py-0.5 text-[7px] font-bold bg-orange-50 text-orange-600 border border-orange-200">
+                  <span className="ml-2 px-2 py-0.5 text-[7px] font-bold bg-brand/10 text-brand border border-brand/20">
                     {printData.clRx.clType.join(", ")}
                   </span>
                 )}
@@ -492,12 +492,12 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
                                   ? { borderColor: '#ea580c', borderWidth: 2 }
                                   : { borderColor: '#cbd5e1' }}
                               >
-                                <span className={`text-[6px] text-center font-bold px-0.5 select-none leading-none ${opt.active ? 'text-orange-700 font-extrabold' : 'text-slate-400'}`}>
+                                <span className={`text-[6px] text-center font-bold px-0.5 select-none leading-none ${opt.active ? 'text-brand-hover font-extrabold' : 'text-slate-400'}`}>
                                   {opt.label}
                                 </span>
                               </div>
                               {/* Tick mark below circle — visible only for selected */}
-                              <span className={`text-[12px] font-black leading-none ${opt.active ? 'text-orange-600' : 'text-transparent'}`}>✓</span>
+                              <span className={`text-[12px] font-black leading-none ${opt.active ? 'text-brand' : 'text-transparent'}`}>✓</span>
                             </div>
                           ))}
                         </div>
@@ -567,14 +567,14 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
             className="print-watermark-img"
           />
         </div>
-        <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
+        <div className="border border-brand p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
           <img
             src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
             alt="VPN Logo"
             className="h-10 w-auto object-contain shrink-0"
           />
           <div className="flex-1 text-center pr-10">
-            <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+            <h1 className="text-sm font-black uppercase text-brand-hover tracking-wider">VPN EYE HOSPITAL</h1>
             <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
             <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
           </div>
@@ -583,7 +583,7 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
           <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Medical Prescription</span>
         </div>
 
-        <div className="report-print-container space-y-4 p-4 border border-orange-500 bg-transparent">
+        <div className="report-print-container space-y-4 p-4 border border-brand bg-transparent">
           <div className="flex justify-between items-start border-b border-slate-300 pb-3">
             <div className="space-y-1 text-left">
               <p className="text-[10px]"><strong className="text-gray-500">Name:</strong> <span className="font-extrabold text-slate-900">{printData.patientName}</span></p>
@@ -679,14 +679,14 @@ export function SharedPrintLayout({ printData, printType }: { printData: any, pr
           className="print-watermark-img"
         />
       </div>
-      <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
+      <div className="border border-brand p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-transparent">
         <img
           src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
           alt="VPN Logo"
           className="h-10 w-auto object-contain shrink-0"
         />
         <div className="flex-1 text-center">
-          <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+          <h1 className="text-sm font-black uppercase text-brand-hover tracking-wider">VPN EYE HOSPITAL</h1>
           <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
           <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
         </div>

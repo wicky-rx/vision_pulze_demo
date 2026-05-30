@@ -16,6 +16,10 @@ export default {
         display: ["DM Sans", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
+        brand: {
+          DEFAULT: "rgb(var(--brand-color) / <alpha-value>)",
+          hover: "rgb(var(--brand-hover) / <alpha-value>)",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

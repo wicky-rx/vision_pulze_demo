@@ -358,9 +358,9 @@ export function DoctorSchedulesPanel({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
             {viewMode === 'DAILY' ? (
-               <><CalendarIcon className="w-4 h-4 text-orange-600" /> Appointments Panel</>
+               <><CalendarIcon className="w-4 h-4 text-brand" /> Appointments Panel</>
             ) : (
-               <><Settings className="w-4 h-4 text-orange-600" /> Manage Slots</>
+               <><Settings className="w-4 h-4 text-brand" /> Manage Slots</>
             )}
           </h3>
           <Button 
@@ -379,7 +379,7 @@ export function DoctorSchedulesPanel({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+              className="h-9 w-9 text-slate-400 hover:text-brand hover:bg-brand/10 transition-colors"
               onClick={() => setDate(d => subDays(d, 1))}
               title="Previous Day"
             >
@@ -388,8 +388,8 @@ export function DoctorSchedulesPanel({
             
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="flex-1 justify-start text-sm h-10 font-bold bg-white border-slate-200 text-slate-700 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 data-[state=open]:bg-orange-50 data-[state=open]:text-orange-600 data-[state=open]:border-orange-200 transition-all duration-300 rounded-none shadow-sm group">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-orange-600 group-data-[state=open]:text-orange-600 transition-colors" />
+                <Button variant="outline" className="flex-1 justify-start text-sm h-10 font-bold bg-white border-slate-200 text-slate-700 hover:bg-brand/10 hover:text-brand hover:border-brand/20 data-[state=open]:bg-brand/10 data-[state=open]:text-brand data-[state=open]:border-brand/20 transition-all duration-300 rounded-none shadow-sm group">
+                  <CalendarIcon className="mr-2 h-4 w-4 text-slate-400 group-hover:text-brand group-data-[state=open]:text-brand transition-colors" />
                   {format(date, "MMMM do, yyyy")}
                 </Button>
               </PopoverTrigger>
@@ -406,7 +406,7 @@ export function DoctorSchedulesPanel({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+              className="h-9 w-9 text-slate-400 hover:text-brand hover:bg-brand/10 transition-colors"
               onClick={() => setDate(d => addDays(d, 1))}
               title="Next Day"
             >
@@ -424,8 +424,8 @@ export function DoctorSchedulesPanel({
                 {Array.isArray(allDoctors) && allDoctors.map(doc => (
                   <SelectItem key={doc.id} value={doc.id} className="text-xs group">
                     <div className="flex flex-col py-0.5">
-                      <span className="font-semibold group-hover:text-orange-900 group-focus:text-orange-900 group-data-[state=checked]:text-orange-900 transition-colors">{doc.name}</span>
-                      <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-900/80 group-focus:text-orange-900/80 group-data-[state=checked]:text-orange-900/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
+                      <span className="font-semibold group-hover:text-brand group-focus:text-brand-hover group-data-[state=checked]:text-brand-hover transition-colors">{doc.name}</span>
+                      <span className="text-[9px] text-muted-foreground/70 group-hover:text-brand/80 group-focus:text-brand-hover/80 group-data-[state=checked]:text-brand-hover/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General Specialist"}</span>
                     </div>
                   </SelectItem>
                 ))}
@@ -500,7 +500,7 @@ export function DoctorSchedulesPanel({
                                  <p className="text-xs text-slate-300 italic px-1">No bookings yet</p>
                               ) : (
                                  doc.todayAppointments.map((app: any) => (
-                                   <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-orange-50/30 border border-orange-100/30 hover:bg-orange-100/20 transition-all">
+                                   <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-brand/5 border border-brand/10/30 hover:bg-brand/10/20 transition-all">
                                       <div className="min-w-0 flex-1 mr-2">
                                           <div className="flex items-center gap-1.5 min-w-0">
                                              <p className="text-sm font-bold text-slate-900 truncate tracking-tight">
@@ -510,13 +510,13 @@ export function DoctorSchedulesPanel({
                                                 <TooltipProvider delayDuration={0}>
                                                   <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                      <div className="cursor-help transition-colors hover:text-orange-600">
+                                                      <div className="cursor-help transition-colors hover:text-brand">
                                                         <Info className="w-3.5 h-3.5 text-slate-400" />
                                                       </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent className="w-64 p-3 bg-slate-900 text-white border-0 shadow-xl rounded-lg text-xs space-y-2">
                                                       <div className="border-b border-white/10 pb-1.5">
-                                                        <p className="font-black text-sm uppercase text-orange-400 leading-tight">{app.patient?.name}</p>
+                                                        <p className="font-black text-sm uppercase text-brand/40 leading-tight">{app.patient?.name}</p>
                                                         <p className="text-[10px] font-mono font-bold text-slate-400 mt-0.5">MRN: {app.patient?.mrNumber}</p>
                                                       </div>
                                                       <div className="space-y-1 text-slate-300 font-medium">
@@ -534,7 +534,7 @@ export function DoctorSchedulesPanel({
                                                       </div>
                                                       {app.notes && (
                                                         <div className="border-t border-white/10 pt-1.5 mt-1.5">
-                                                          <p className="font-bold text-[10px] uppercase tracking-wider text-orange-400 opacity-80 mb-0.5">Instructional Note:</p>
+                                                          <p className="font-bold text-[10px] uppercase tracking-wider text-brand/40 opacity-80 mb-0.5">Instructional Note:</p>
                                                           <p className="text-slate-300 font-medium leading-relaxed italic">{app.notes}</p>
                                                         </div>
                                                       )}
@@ -545,11 +545,11 @@ export function DoctorSchedulesPanel({
                                           </div>
                                           <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
                                              {app.appointmentId && (
-                                               <p className="text-[11px] text-orange-600/70 font-bold shrink-0">ID: {app.appointmentId}</p>
+                                               <p className="text-[11px] text-brand/70 font-bold shrink-0">ID: {app.appointmentId}</p>
                                              )}
                                              {app.timeSlot && (
-                                               <div className="text-[11px] text-orange-600/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
-                                                  {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-orange-50 text-orange-600 px-1 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[16px] text-center border border-orange-200/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
+                                               <div className="text-[11px] text-brand/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
+                                                  {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-brand/10 text-brand px-1 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[16px] text-center border border-brand/20/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
                                                </div>
                                              )}
                                           </div>
@@ -561,7 +561,7 @@ export function DoctorSchedulesPanel({
                                               <Button
                                                 size="icon"
                                                 variant="ghost"
-                                                className="h-7 w-7 rounded-full bg-orange-50 hover:bg-orange-600 hover:text-white text-orange-600 border border-orange-200/50 transition-colors shrink-0"
+                                                className="h-7 w-7 rounded-full bg-brand/10 hover:bg-brand hover:text-white text-brand border border-brand/20/50 transition-colors shrink-0"
                                                 onClick={() => handleCreateVisit(app.id)}
                                                 title="Add to Visit Queue"
                                               >
@@ -597,14 +597,14 @@ export function DoctorSchedulesPanel({
 
             {/* Bottom: Follow-up Reminders Section */}
             <div className={cn(
-              "flex flex-col pt-2 pb-1 px-2.5 transition-all duration-300 border border-orange-100 bg-orange-50/10 rounded-lg shadow-sm mb-4",
+              "flex flex-col pt-2 pb-1 px-2.5 transition-all duration-300 border border-brand/10 bg-brand/10/10 rounded-lg shadow-sm mb-4",
               isFollowUpsCollapsed ? "h-auto min-h-0 flex-none" : "flex-1 min-h-[45%]"
             )}>
               <div
                 className={cn(
                   "flex items-center justify-between mb-2 cursor-pointer p-1.5 -m-1.5 transition-all rounded-sm",
                   hasUnattendedFollowUps && isFollowUpsCollapsed
-                    ? "bg-orange-50 border border-orange-200/50 hover:bg-orange-100/70 animate-pulse shadow-sm"
+                    ? "bg-brand/10 border border-brand/20/50 hover:bg-brand/10/70 animate-pulse shadow-sm"
                     : "hover:bg-slate-50/80"
                 )}
                 onClick={() => {
@@ -614,21 +614,21 @@ export function DoctorSchedulesPanel({
               >
                 <span className={cn(
                   "text-[10px] uppercase font-black tracking-wider flex items-center gap-1.5 select-none",
-                  hasFollowUps ? "text-orange-700" : "text-slate-400"
+                  hasFollowUps ? "text-brand-hover" : "text-slate-400"
                 )}>
                   <span className="relative inline-flex items-center">
-                    <PhoneCall className={cn("w-3.5 h-3.5", hasFollowUps ? "text-orange-600" : "text-slate-400")} />
+                    <PhoneCall className={cn("w-3.5 h-3.5", hasFollowUps ? "text-brand" : "text-slate-400")} />
                     {hasUnattendedFollowUps && (
                       <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-600"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
                       </span>
                     )}
                   </span>
                   <span>Follow-up Reminders</span>
                   <span className={cn(
                     "ml-1 px-1.5 py-0.5 text-[9px] font-black rounded-full leading-none min-w-[16px] text-center",
-                    hasFollowUps ? "bg-orange-600 text-white" : "bg-slate-200 text-slate-500"
+                    hasFollowUps ? "bg-brand text-white" : "bg-slate-200 text-slate-500"
                   )}>
                     {filteredFollowUps.length}
                   </span>
@@ -649,8 +649,8 @@ export function DoctorSchedulesPanel({
                         className={cn(
                           "px-1.5 py-0.5 text-[9px] font-black uppercase tracking-tighter border transition-all rounded-none",
                           followUpFilter === filterOpt
-                            ? "bg-orange-600 border-orange-600 text-white"
-                            : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600"
+                            ? "bg-brand border-brand text-white"
+                            : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-brand/10 hover:text-brand"
                         )}
                       >
                         {filterOpt}
@@ -730,7 +730,7 @@ export function DoctorSchedulesPanel({
                                 <TooltipProvider delayDuration={0}>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <div className="cursor-help text-slate-400 hover:text-orange-600 transition-colors shrink-0">
+                                      <div className="cursor-help text-slate-400 hover:text-brand transition-colors shrink-0">
                                         <Info className="w-3.5 h-3.5" />
                                       </div>
                                     </TooltipTrigger>
@@ -743,7 +743,7 @@ export function DoctorSchedulesPanel({
                                       {item.followUpTimeFrame && (
                                         <div className="pt-1.5 border-t border-white/10 space-y-0.5">
                                           <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Scheduled Interval</p>
-                                          <p className="font-semibold text-orange-400">{item.followUpTimeFrame}</p>
+                                          <p className="font-semibold text-brand/40">{item.followUpTimeFrame}</p>
                                         </div>
                                       )}
                                       {item.consultation?.notes && (
@@ -785,7 +785,7 @@ export function DoctorSchedulesPanel({
                                                   className={cn(
                                                     "px-1.5 py-0.5 text-[8px] font-black uppercase border rounded-sm transition-all cursor-pointer",
                                                     isSelected
-                                                      ? "bg-orange-600 border-orange-600 text-white"
+                                                      ? "bg-brand border-brand text-white"
                                                       : cn("bg-slate-800", statusOpt.color)
                                                   )}
                                                 >
@@ -813,7 +813,7 @@ export function DoctorSchedulesPanel({
                                   size="icon"
                                   variant="outline"
                                   onClick={() => onScheduleAppointment(item.patient?.mrNumber, item.patient?.name, item.id)}
-                                  className="h-6 w-6 border-orange-200 text-orange-600 hover:bg-orange-600 hover:text-white hover:border-orange-600 transition-all rounded-none shrink-0"
+                                  className="h-6 w-6 border-brand/20 text-brand hover:bg-brand hover:text-white hover:border-brand transition-all rounded-none shrink-0"
                                   title="Book Appointment"
                                 >
                                   <CalendarIcon className="w-3.5 h-3.5" />
@@ -824,7 +824,7 @@ export function DoctorSchedulesPanel({
                                 "text-[8px] font-black uppercase px-1.5 h-6 rounded-none shrink-0 border flex items-center justify-center",
                                 isToday
                                   ? "bg-red-50 text-red-600 border-red-200/50"
-                                  : "bg-orange-50 text-orange-600 border-orange-200/50"
+                                  : "bg-brand/10 text-brand border-brand/20/50"
                               )}>
                                 {format(scheduledDate, "MMM d")}
                               </Badge>
@@ -884,7 +884,7 @@ export function DoctorSchedulesPanel({
                      </div>
                   </div>
 
-                  <Button className="w-full h-8 gap-2 text-xs bg-orange-600 hover:bg-black text-white rounded-none border border-transparent shadow-sm hover:shadow transition-colors" onClick={handleAddSlot} disabled={isSubmitting}>
+                  <Button className="w-full h-8 gap-2 text-xs bg-brand hover:bg-black text-white rounded-none border border-transparent shadow-sm hover:shadow transition-colors" onClick={handleAddSlot} disabled={isSubmitting}>
                     <Plus className="w-3 h-3" />
                     {isSubmitting ? "Adding..." : "Add Slot"}
                   </Button>
@@ -926,19 +926,19 @@ export function DoctorSchedulesPanel({
                               return (
                                 <div key={day} className="space-y-2">
                                   <div className="flex items-center gap-2 px-1">
-                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
+                                    <p className="text-[10px] font-black text-brand uppercase tracking-widest">{DAYS.find(d => d.id === day)?.name}</p>
                                     <div className="h-px flex-1 bg-slate-100" />
                                   </div>
                                   <div className="space-y-1.5">
                                     {daySlots.map((s: any, idx: number) => (
-                                      <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-orange-200 hover:shadow-sm transition-all">
+                                      <div key={s.id} className="flex items-center justify-between p-2 rounded-none border border-slate-100 bg-white group hover:border-brand/20 hover:shadow-sm transition-all">
                                         <div className="flex items-center gap-3">
                                           <div className="w-7 h-7 rounded-none bg-slate-50 flex items-center justify-center text-[9px] font-black text-slate-400 border border-slate-100">
                                             S{idx + 1}
                                           </div>
                                           <div>
                                             <p className="text-[10px] font-black text-slate-700 flex items-center gap-1.5">
-                                              <Clock className="w-3 h-3 text-orange-500" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
+                                              <Clock className="w-3 h-3 text-brand" /> {formatToAMPM(s.startTime)} — {formatToAMPM(s.endTime)}
                                             </p>
                                           </div>
                                         </div>

@@ -34,7 +34,7 @@ export function AdminSidebar({ activeView, onViewChange, isSuperAdmin, onLogout,
                         className="font-extrabold text-xl tracking-tight leading-none"
                     >
                         <span style={{ color: "#FFFFFF" }}>Vision</span>
-                        <span style={{ color: "#3B82F6" }}>Pulze</span>
+                        <span className="text-brand">Pulze</span>
                     </span>
                     <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
                         Ophthalmic Ecosystem

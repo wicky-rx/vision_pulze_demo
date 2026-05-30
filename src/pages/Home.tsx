@@ -64,7 +64,7 @@ const Home = () => {
                             className="font-extrabold text-4xl tracking-tight leading-none"
                         >
                             <span style={{ color: "#0F172A" }}>Vision</span>
-                            <span style={{ color: "#2563EB" }}>Pulze</span>
+                            <span className="text-brand">Pulze</span>
                         </span>
                         <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 mt-2">
                             Ophthalmic Ecosystem

@@ -109,7 +109,7 @@ export function ConsultationSummaryView({
             <div className="h-8 w-px bg-slate-200" />
             <div className="text-right">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Visit Date</span>
-              <span className="text-sm font-black text-orange-600 uppercase">
+              <span className="text-sm font-black text-brand uppercase">
                 {new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               </span>
             </div>
@@ -118,7 +118,7 @@ export function ConsultationSummaryView({
                 <div className="h-8 w-px bg-slate-200 no-print" />
                 <Button
                   onClick={() => triggerPrint('all')}
-                  className="no-print bg-orange-600 hover:bg-orange-700 text-white rounded-none font-bold uppercase text-xs tracking-wider flex items-center gap-2 h-9"
+                  className="no-print bg-brand hover:bg-brand-hover text-white rounded-none font-bold uppercase text-xs tracking-wider flex items-center gap-2 h-9"
                 >
                   <Printer className="w-4 h-4" />
                   Print Report
@@ -144,7 +144,7 @@ export function ConsultationSummaryView({
           <div className="h-8 w-px bg-slate-200" />
           <div>
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">MR Number</span>
-            <Badge className="bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-mono px-2.5 py-0.5 rounded-none font-black">MR-{patientMRN}</Badge>
+            <Badge className="bg-brand/10 text-brand border border-brand/10 text-[10px] font-mono px-2.5 py-0.5 rounded-none font-black">MR-{patientMRN}</Badge>
           </div>
           {(selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber) && (
             <>
@@ -162,7 +162,7 @@ export function ConsultationSummaryView({
         <div className="w-full max-w-none bg-white p-6 sm:p-10 space-y-6 rounded-none">
           <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
             <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-              <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Eye className="w-4 h-4" /></div>
+              <div className="p-1.5 bg-brand/10 text-brand rounded"><Eye className="w-4 h-4" /></div>
               <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Optometry Evaluation</h4>
             </div>
             <div className="p-6">
@@ -178,7 +178,7 @@ export function ConsultationSummaryView({
             <>
               <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
                 <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Microscope className="w-4 h-4" /></div>
+                  <div className="p-1.5 bg-brand/10 text-brand rounded"><Microscope className="w-4 h-4" /></div>
                   <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Ocular Examination Findings</h4>
                 </div>
                 <div className="p-6 space-y-6">
@@ -195,7 +195,7 @@ export function ConsultationSummaryView({
 
                       return (
                         <div className="space-y-4">
-                          <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block border-b border-slate-200 pb-1">Anterior Segment (Slit Lamp)</span>
+                          <span className="text-[10px] font-black text-brand uppercase tracking-widest block border-b border-slate-200 pb-1">Anterior Segment (Slit Lamp)</span>
 
                           {activeKeys.length > 0 ? (
                             <div className="border border-slate-300 overflow-hidden rounded-none">
@@ -220,7 +220,7 @@ export function ConsultationSummaryView({
 
                           {slitLamp.dilation && (
                             <div className="p-3 bg-white border border-slate-300 rounded-none flex flex-row items-center justify-between text-xs">
-                              <span className="font-bold text-orange-600 uppercase tracking-wider">Pupillary Dilation</span>
+                              <span className="font-bold text-brand uppercase tracking-wider">Pupillary Dilation</span>
                               <span className="font-black text-slate-700">
                                 {typeof slitLamp.dilation === 'string' ? slitLamp.dilation : (
                                   `OD: ${slitLamp.dilation?.OD || "—"}  |  OS: ${slitLamp.dilation?.OS || "—"}`
@@ -252,7 +252,7 @@ export function ConsultationSummaryView({
 
                       return (
                         <div className="space-y-4 pt-4 border-t border-slate-300">
-                          <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest block border-b border-slate-200 pb-1">Posterior Segment (Fundus)</span>
+                          <span className="text-[10px] font-black text-brand uppercase tracking-widest block border-b border-slate-200 pb-1">Posterior Segment (Fundus)</span>
 
                           {activeKeys.length > 0 ? (
                             <div className="border border-slate-300 overflow-hidden rounded-none">
@@ -283,7 +283,7 @@ export function ConsultationSummaryView({
 
               <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
                 <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Activity className="w-4 h-4" /></div>
+                  <div className="p-1.5 bg-brand/10 text-brand rounded"><Activity className="w-4 h-4" /></div>
                   <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Clinical Diagnosis</h4>
                 </div>
                 <div className="p-6">
@@ -294,11 +294,11 @@ export function ConsultationSummaryView({
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="p-4 bg-white border border-slate-300 rounded-none">
-                          <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest block mb-1">Right Eye (OD)</span>
+                          <span className="text-[9px] font-black text-brand uppercase tracking-widest block mb-1">Right Eye (OD)</span>
                           <p className="text-sm font-black text-slate-800 uppercase leading-snug">{od}</p>
                         </div>
                         <div className="p-4 bg-white border border-slate-300 rounded-none">
-                          <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest block mb-1">Left Eye (OS)</span>
+                          <span className="text-[9px] font-black text-brand uppercase tracking-widest block mb-1">Left Eye (OS)</span>
                           <p className="text-sm font-black text-slate-800 uppercase leading-snug">{os}</p>
                         </div>
                       </div>
@@ -309,7 +309,7 @@ export function ConsultationSummaryView({
 
               <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
                 <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Pill className="w-4 h-4" /></div>
+                  <div className="p-1.5 bg-brand/10 text-brand rounded"><Pill className="w-4 h-4" /></div>
                   <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Medical Prescription</h4>
                 </div>
                 <div className="p-0 bg-white">
@@ -342,7 +342,7 @@ export function ConsultationSummaryView({
                                   <TableCell className="py-3 text-xs font-medium text-slate-600 border-r border-slate-200">{m.frequency || "—"}</TableCell>
                                   <TableCell className="py-3 text-xs font-medium text-slate-600 border-r border-slate-200">{m.duration || "—"}</TableCell>
                                   <TableCell className="pr-4 py-3 text-right">
-                                    <Badge className="bg-orange-50 text-orange-600 border border-orange-100/50 text-[9px] rounded-none px-2 font-black uppercase">
+                                    <Badge className="bg-brand/10 text-brand border border-brand/10/50 text-[9px] rounded-none px-2 font-black uppercase">
                                       {m.route?.toLowerCase() === "oral" ? (m.foodRelation || "After Food") : (m.eye || "Both")}
                                     </Badge>
                                   </TableCell>
@@ -360,7 +360,7 @@ export function ConsultationSummaryView({
 
               <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
                 <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><Glasses className="w-4 h-4" /></div>
+                  <div className="p-1.5 bg-brand/10 text-brand rounded"><Glasses className="w-4 h-4" /></div>
                   <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Glass RX</h4>
                 </div>
                 <div className="p-6 bg-white">
@@ -415,7 +415,7 @@ export function ConsultationSummaryView({
 
               <Card className="border border-slate-300 rounded-none bg-white overflow-hidden shadow-none">
                 <div className="p-4 border-b border-slate-300 bg-slate-50 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-100 text-orange-600 rounded"><FileText className="w-4 h-4" /></div>
+                  <div className="p-1.5 bg-brand/10 text-brand rounded"><FileText className="w-4 h-4" /></div>
                   <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">Clinical Remarks & Directions</h4>
                 </div>
                 <div className="p-6 space-y-6">

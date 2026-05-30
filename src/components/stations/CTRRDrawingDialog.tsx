@@ -31,7 +31,7 @@ interface CTRRDrawingDialogProps {
 export function CTRRDrawingDialog({ initialData, onSave, trigger }: CTRRDrawingDialogProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [color, setColor] = useState("orange-600");
+  const [color, setColor] = useState("brand");
   const [tool, setTool] = useState<"pen" | "eraser" | "text">("pen");
   const [brushSize, setBrushSize] = useState(2);
   const [text, setText] = useState("");
@@ -184,9 +184,9 @@ export function CTRRDrawingDialog({ initialData, onSave, trigger }: CTRRDrawingD
       <DialogTrigger asChild>
         {trigger || <Button variant="outline" size="sm">Open CTRR</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-[700px] bg-white border-2 border-[orange-600]">
+      <DialogContent className="max-w-[700px] bg-white border-2 border-brand">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-[orange-600]">
+          <DialogTitle className="flex items-center gap-2 text-brand">
             <Crosshair className="w-5 h-5" />
             Optical Cross Diagram (CTRR) Drawing
           </DialogTitle>
@@ -232,7 +232,7 @@ export function CTRRDrawingDialog({ initialData, onSave, trigger }: CTRRDrawingD
 
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
-                {["orange-600", "#c53030", "#2b6cb0", "#2f855a", "#000000"].map((c) => (
+                {["brand", "#c53030", "#2b6cb0", "#2f855a", "#000000"].map((c) => (
                   <button
                     key={c}
                     className={cn(
@@ -274,7 +274,7 @@ export function CTRRDrawingDialog({ initialData, onSave, trigger }: CTRRDrawingD
 
         <DialogFooter className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button size="sm" className="bg-[orange-600]" onClick={handleSave}>Save Drawing</Button>
+          <Button size="sm" className="bg-brand" onClick={handleSave}>Save Drawing</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

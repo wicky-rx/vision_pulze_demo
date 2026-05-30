@@ -573,9 +573,9 @@ export function PatientQueue({
         <div className="px-4 py-4 border-b border-border bg-card">
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-orange-600" />
+              <Users className="w-4 h-4 text-brand" />
               <h3 className="text-sm font-semibold text-foreground">Live Queue</h3>
-              <Badge className="ml-auto lg:ml-2 bg-orange-50 text-orange-600 border-0 text-[11px]">
+              <Badge className="ml-auto lg:ml-2 bg-brand/10 text-brand border-0 text-[11px]">
                 {patients.length} patients
               </Badge>
             </div>
@@ -599,7 +599,7 @@ export function PatientQueue({
                 className={cn(
                   "flex-1 px-2 py-1.5 text-[11px] font-bold uppercase tracking-tight rounded-none transition-all",
                   filter === f.id
-                    ? "bg-orange-600 text-white shadow-md"
+                    ? "bg-brand text-white shadow-md"
                     : "text-muted-foreground hover:bg-slate-100 hover:text-foreground"
                 )}
               >
@@ -633,7 +633,7 @@ export function PatientQueue({
                   className={cn(
                     "w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left group cursor-pointer border-l-4 relative",
                     selectedPatientId === patient.id
-                      ? "bg-orange-50/50 border-l-orange-600"
+                      ? "bg-brand/5 border-l-brand"
                       : "border-l-transparent"
                   )}
                 >
@@ -660,7 +660,7 @@ export function PatientQueue({
                         const slot = getSlotLabel(patient);
                         if (!slot) return null;
                         return (
-                          <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1 py-0.5 rounded-sm border border-orange-200/50 shrink-0">
+                          <span className="text-[10px] font-bold text-brand bg-brand/10 px-1 py-0.5 rounded-sm border border-brand/20/50 shrink-0">
                             {slot}
                           </span>
                         );
@@ -689,12 +689,12 @@ export function PatientQueue({
                     <button
                       onClick={(e) => openEditModal(patient, e)}
                       title="Edit patient details"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-orange-600 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                   ) : (
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-orange-600 opacity-0 group-hover:opacity-100 transition-all z-10">
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all z-10">
                       {userRole === "OPTOMETRIST" ? (
                         <Crosshair className="w-4 h-4" />
                       ) : userRole === "DOCTOR" ? (
@@ -720,8 +720,8 @@ export function PatientQueue({
         <DialogContent className="sm:max-w-[720px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle className="flex items-center gap-2 text-base">
-              <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <Pencil className="w-4 h-4 text-orange-600" />
+              <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                <Pencil className="w-4 h-4 text-brand" />
               </div>
               Edit Patient Details
             </DialogTitle>
@@ -1007,8 +1007,8 @@ export function PatientQueue({
                           className={cn(
                             "px-2.5 py-1 text-[9px] font-black tracking-wider uppercase border transition-all active:scale-95 rounded-none",
                             isSelected
-                              ? "bg-orange-600 border-orange-600 text-white shadow-sm"
-                              : "bg-white border-slate-200 text-slate-600 hover:border-orange-600/55 hover:text-orange-600"
+                              ? "bg-brand border-brand text-white shadow-sm"
+                              : "bg-white border-slate-200 text-slate-600 hover:border-brand/55 hover:text-brand"
                           )}
                         >
                           {comp}
@@ -1051,11 +1051,11 @@ export function PatientQueue({
                               const isEnded = (eh * 60 + em) <= currentTimeNum;
 
                               return (
-                                <SelectItem key={s.id} value={val} className="text-xs group focus:bg-orange-600 focus:text-white">
+                                <SelectItem key={s.id} value={val} className="text-xs group focus:bg-brand focus:text-white">
                                   <div className="flex items-center gap-2">
                                     <span className={cn(
                                       "px-1 py-0.5 text-[9px] font-black rounded-sm border",
-                                      isEnded ? "border-slate-200 text-slate-400 bg-slate-50" : "bg-orange-100 text-orange-700 border-orange-200 group-focus:bg-white group-focus:text-orange-600"
+                                      isEnded ? "border-slate-200 text-slate-400 bg-slate-50" : "bg-brand/10 text-brand-hover border-brand/20 group-focus:bg-white group-focus:text-brand"
                                     )}>S{idx + 1}</span>
                                     <span className={cn(isEnded && "text-muted-foreground line-through opacity-50")}>
                                       {formatToAMPM(s.startTime)} - {formatToAMPM(s.endTime)}
@@ -1089,7 +1089,7 @@ export function PatientQueue({
             </div>
           </div>
 
-          <DialogFooter className="p-6 border-t border-border bg-orange-50/30 flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <DialogFooter className="p-6 border-t border-border bg-brand/5 flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <ScanReportGallery
                 mrNumber={editingPatient?.mrNumber}
@@ -1123,7 +1123,7 @@ export function PatientQueue({
               <Button
                 onClick={handleEditSubmit}
                 disabled={editLoading}
-                className="bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 px-8 h-10 font-bold shadow-md transition-all"
+                className="bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 px-8 h-10 font-bold shadow-md transition-all"
               >
                 Save Changes
               </Button>

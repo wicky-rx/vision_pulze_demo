@@ -40,7 +40,7 @@ const backendStatusMap: Record<string, PatientStatus> = {
 };
 import { useToast } from "@/hooks/use-toast";
 import { toTitleCase, calculateAgeFromDob, parseDDMMYYYY, getPatientAgeString, getPatientGenderString } from "@/lib/utils";
-import { TN_PLACES } from "@/data/tnPlaces";
+import { US_CITIES } from "@/data/tnPlaces";
 import { DoctorSchedulesPanel } from "@/components/DoctorSchedulesPanel";
 import { format, addDays, subDays, startOfToday } from "date-fns";
 import { formatToAMPM } from "@/lib/dateUtils";
@@ -83,7 +83,7 @@ const ReasonForVisitInput = ({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="text-[10px] font-bold text-orange-600 hover:underline"
+            className="text-[10px] font-bold text-brand hover:underline"
           >
             Clear All
           </button>
@@ -107,10 +107,10 @@ const ReasonForVisitInput = ({
                 className={cn(
                   "px-3 py-1.5 text-xs font-bold tracking-wide uppercase border transition-all active:scale-95",
                   isSelected
-                    ? "bg-orange-600 border-orange-600 text-white shadow-sm"
+                    ? "bg-brand border-brand text-white shadow-sm"
                     : comp === "Review / Followup"
                       ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300"
-                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                      : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-brand/10 hover:text-brand hover:border-brand/20"
                 )}
               >
                 {comp}
@@ -124,23 +124,22 @@ const ReasonForVisitInput = ({
 };
 
 export function ReceptionStation() {
-  const INDIAN_STATES = [
-    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
-    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
-    "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
-    "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-    "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim",
-    "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+  const US_STATES = [
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
+    "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+    "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
+    "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+    "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
+    "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
+    "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
   ];
 
-  const TN_DISTRICTS = [
-    "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul",
-    "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai",
-    "Mayiladuthurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
-    "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni",
-    "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur",
-    "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"
-  ];
+  const US_COUNTIES = [
+    "Los Angeles County", "Cook County", "Harris County", "Maricopa County", "San Diego County",
+    "Orange County", "Miami-Dade County", "Dallas County", "Kings County", "Riverside County",
+    "Queens County", "King County", "Clark County", "Tarrant County", "Santa Clara County",
+    "Broward County", "Bexar County", "Wayne County", "Alameda County", "Middlesex County"
+  ].sort();
   const [showOPCard, setShowOPCard] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -153,8 +152,8 @@ export function ReceptionStation() {
     area: "",
     city: "",
     district: "",
-    state: "Tamil Nadu",
-    pincode: "",
+    state: "California",
+    zip: "",
     contactNumber: "",
     secondaryContact: "",
     relationship: "",
@@ -563,8 +562,8 @@ export function ReceptionStation() {
       filteredValue = value.replace(/[0-9]/g, "");
     } else if (field === "contactNumber" || field === "secondaryContact") {
       filteredValue = value.replace(/\D/g, "").slice(0, 10);
-    } else if (field === "pincode") {
-      filteredValue = value.replace(/\D/g, "").slice(0, 6);
+    } else if (field === "zip") {
+      filteredValue = value.replace(/\D/g, "").slice(0, 5);
     }
 
     setFormData((prev) => ({ ...prev, [field]: filteredValue }));
@@ -715,7 +714,7 @@ export function ReceptionStation() {
         city: p.city,
         district: p.district,
         state: p.state,
-        pincode: p.pincode,
+        zip: p.pincode != null ? String(p.pincode) : "",
         address: p.address, // Fallback
         co: p.co,
       });
@@ -776,11 +775,11 @@ export function ReceptionStation() {
       return;
     }
 
-    if (formData.pincode && formData.pincode.length !== 6) {
+    if (formData.zip && formData.zip.length !== 5) {
       toast({
         variant: "destructive",
-        title: "Invalid PIN Code",
-        description: "PIN code must be exactly 6 digits.",
+        title: "Invalid ZIP Code",
+        description: "ZIP code must be exactly 5 digits.",
       });
       return;
     }
@@ -801,12 +800,14 @@ export function ReceptionStation() {
 
       const submissionData: any = {
         ...formData,
+        pincode: formData.zip,
         name: formattedName,
         doctorId: selectedDoctorId || undefined,
         doctorName: doctor ? doctor.name : undefined,
         timeSlot: selectedTimeSlot || undefined,
         appointmentDate: selectedAppointmentDate || undefined
       };
+      delete submissionData.zip;
       delete submissionData.age;
 
       if (isMobileExisting && parentMrn) {
@@ -830,8 +831,8 @@ export function ReceptionStation() {
         area: "",
         city: "",
         district: "",
-        state: "Tamil Nadu",
-        pincode: "",
+        state: "California",
+        zip: "",
         contactNumber: "",
         secondaryContact: "",
         relationship: "",
@@ -884,8 +885,8 @@ export function ReceptionStation() {
       toast({ variant: "destructive", title: "Invalid Secondary Contact", description: "Secondary contact must be exactly 10 digits." });
       return;
     }
-    if (editPatientData.pincode && String(editPatientData.pincode).length !== 6) {
-      toast({ variant: "destructive", title: "Invalid PIN", description: "PIN code must be exactly 6 digits." });
+    if (editPatientData.zip && String(editPatientData.zip).length !== 5) {
+      toast({ variant: "destructive", title: "Invalid ZIP", description: "ZIP code must be exactly 5 digits." });
       return;
     }
     try {
@@ -903,7 +904,7 @@ export function ReceptionStation() {
         city: editPatientData.city || undefined,
         district: editPatientData.district || undefined,
         state: editPatientData.state || undefined,
-        pincode: editPatientData.pincode || undefined,
+        pincode: editPatientData.zip || undefined,
       };
       if (editMobileExisting && editParentMrn && editRelationship) {
         payload.parentMrn = editParentMrn;
@@ -927,13 +928,13 @@ export function ReceptionStation() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white relative">
-      <div className="bg-white border-b border-orange-100 px-4 md:px-8 py-3 flex items-center justify-between shrink-0 shadow-sm z-20 relative">
+      <div className="bg-white border-b border-brand/10 px-4 md:px-8 py-3 flex items-center justify-between shrink-0 shadow-sm z-20 relative">
         <div className="flex items-center gap-5">
-          <div className="p-3 bg-orange-600 text-white shadow-lg shrink-0">
+          <div className="p-3 bg-brand text-white shadow-lg shrink-0">
             <UserPlus className="w-6 h-6 shrink-0" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Patient Enrollment</span>
+            <span className="text-[12px] font-black uppercase tracking-widest text-brand mb-0.5">Patient Enrollment</span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-tighter">Registration Profile</h1>
           </div>
         </div>
@@ -951,7 +952,7 @@ export function ReceptionStation() {
         </div>
       </div>
 
-      <div className="flex-1 p-3 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-y-auto lg:overflow-y-hidden bg-orange-50/30 relative overflow-x-hidden">
+      <div className="flex-1 p-3 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 overflow-y-auto lg:overflow-y-hidden bg-brand/5 relative overflow-x-hidden">
         <div className="absolute inset-0 pointer-events-none bg-sprinkles z-0"></div>
         <Tabs defaultValue="new" className="w-full lg:flex-1 flex flex-col lg:min-h-0 lg:overflow-y-auto px-1 relative z-10
           lg:[&::-webkit-scrollbar]:w-1 
@@ -962,9 +963,9 @@ export function ReceptionStation() {
             <TabsTrigger
               value="new"
               className="h-full flex-1 rounded-none gap-1 sm:gap-2 font-black text-[10px] sm:text-[12px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
-              data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md
-              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-orange-600 data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
-              relative hover:bg-slate-50 hover:text-orange-600 px-1.5 sm:px-4"
+              data-[state=active]:bg-white data-[state=active]:text-brand data-[state=active]:shadow-md
+              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-brand data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
+              relative hover:bg-slate-50 hover:text-brand px-1.5 sm:px-4"
             >
               <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>New <span className="hidden sm:inline">Patient</span></span>
@@ -972,9 +973,9 @@ export function ReceptionStation() {
             <TabsTrigger
               value="returning"
               className="h-full flex-1 rounded-none gap-1 sm:gap-2 font-black text-[10px] sm:text-[12px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
-              data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md
-              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-orange-600 data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
-              relative hover:bg-slate-50 hover:text-orange-600 px-1.5 sm:px-4"
+              data-[state=active]:bg-white data-[state=active]:text-brand data-[state=active]:shadow-md
+              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-brand data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
+              relative hover:bg-slate-50 hover:text-brand px-1.5 sm:px-4"
             >
               <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Returning <span className="hidden sm:inline">Patient</span></span>
@@ -982,9 +983,9 @@ export function ReceptionStation() {
             <TabsTrigger
               value="records"
               className="h-full flex-1 rounded-none gap-1 sm:gap-2 font-black text-[10px] sm:text-[12px] uppercase tracking-wider transition-all duration-300 whitespace-nowrap
-              data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md
-              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-orange-600 data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
-              relative hover:bg-slate-50 hover:text-orange-600 px-1.5 sm:px-4"
+              data-[state=active]:bg-white data-[state=active]:text-brand data-[state=active]:shadow-md
+              data-[state=active]:after:w-full data-[state=active]:after:h-1 data-[state=active]:after:bg-brand data-[state=active]:after:absolute data-[state=active]:after:bottom-0 
+              relative hover:bg-slate-50 hover:text-brand px-1.5 sm:px-4"
             >
               <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span><span className="hidden sm:inline">Past </span>Records</span>
@@ -1084,8 +1085,8 @@ export function ReceptionStation() {
                              className={cn(
                                "flex-1 text-[11px] font-black uppercase tracking-wider transition-all border rounded-none h-full px-4 min-w-[70px]",
                                isSelected
-                                 ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                                 : "bg-white text-slate-500 border-slate-200 hover:bg-orange-50/50 hover:border-orange-200 hover:text-orange-600",
+                                 ? "bg-brand text-white border-brand-hover shadow-md"
+                                 : "bg-white text-slate-500 border-slate-200 hover:bg-brand/5 hover:border-brand/20 hover:text-brand",
                                appointmentDialogMode === "START_VISIT" && "opacity-50 cursor-not-allowed"
                              )}
                            >
@@ -1176,7 +1177,7 @@ export function ReceptionStation() {
                                   {isActive && (
                                     <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">ON DUTY</Badge>
                                   )}
-                                  <span className="text-[9px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                                  <span className="text-[9px] font-bold bg-brand/10 text-brand border border-brand/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
                                 </div>
                               </div>
                             );
@@ -1197,7 +1198,7 @@ export function ReceptionStation() {
                                     <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">ON DUTY</Badge>
                                   )}
                                 </div>
-                                <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
+                                <span className="text-[10px] font-bold bg-brand/10 text-brand border border-brand/10 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                               </div>
                             </SelectItem>
                           );
@@ -1225,7 +1226,7 @@ export function ReceptionStation() {
                           }
                         }}
                       >
-                        <SelectTrigger className="h-10 text-[11px] font-black uppercase tracking-widest gap-2 bg-blue-50/30 border-slate-200 text-orange-600 rounded-none shadow-sm">
+                        <SelectTrigger className="h-10 text-[11px] font-black uppercase tracking-widest gap-2 bg-blue-50/30 border-slate-200 text-brand rounded-none shadow-sm">
                           <div className="flex items-center gap-2 overflow-hidden flex-1">
                             <Clock className="w-3.5 h-3.5 shrink-0" />
                             <SelectValue placeholder="CHOOSE SLOT" />
@@ -1265,7 +1266,7 @@ export function ReceptionStation() {
                           <div className="border-t border-slate-100 mt-1">
                             <SelectItem
                               value="ACTION:SCHEDULE"
-                              className="text-[10px] font-bold text-orange-600 focus:bg-orange-50 focus:text-orange-600 rounded-none py-3 cursor-pointer flex items-center gap-2"
+                              className="text-[10px] font-bold text-brand focus:bg-brand/10 focus:text-brand rounded-none py-3 cursor-pointer flex items-center gap-2"
                             >
                               <CalendarIcon className="w-3.5 h-3.5" />
                               Schedule for later Date?
@@ -1277,7 +1278,7 @@ export function ReceptionStation() {
                       <Button
                         variant="outline"
                         disabled
-                        className="h-10 text-[10px] font-bold uppercase tracking-widest gap-2 bg-orange-50/50 border-dashed border-slate-200 text-slate-300 rounded-none cursor-not-allowed"
+                        className="h-10 text-[10px] font-bold uppercase tracking-widest gap-2 bg-brand/5 border-dashed border-slate-200 text-slate-300 rounded-none cursor-not-allowed"
                       >
                         Select Doctor first
                       </Button>
@@ -1329,7 +1330,7 @@ export function ReceptionStation() {
                         />
                         {cityPopoverOpen && formData.city.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {TN_PLACES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
+                            {US_CITIES.filter(d => d.toLowerCase().includes(formData.city.toLowerCase())).map((ct) => (
                               <div
                                 key={ct}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1347,9 +1348,9 @@ export function ReceptionStation() {
                       </div>
 
                       <div className="sm:col-span-4 relative group space-y-1">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">District</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">County</Label>
                         <Input
-                          placeholder="District"
+                          placeholder="County"
                           className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                           value={formData.district}
                           onChange={(e) => handleInputChange("district", e.target.value)}
@@ -1358,7 +1359,7 @@ export function ReceptionStation() {
                         />
                         {districtPopoverOpen && formData.district.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {TN_DISTRICTS.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
+                            {US_COUNTIES.filter(d => d.toLowerCase().includes(formData.district.toLowerCase())).map((dist) => (
                               <div
                                 key={dist}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1387,7 +1388,7 @@ export function ReceptionStation() {
                         />
                         {statePopoverOpen && formData.state.length >= 1 && (
                           <div className="absolute bottom-full left-0 w-64 z-50 mb-1 bg-white border border-border rounded-md shadow-xl max-h-40 overflow-y-auto">
-                            {INDIAN_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
+                            {US_STATES.filter(s => s.toLowerCase().includes(formData.state.toLowerCase())).map((st) => (
                               <div
                                 key={st}
                                 className="px-3 py-2 text-[13px] hover:bg-accent hover:text-accent-foreground cursor-pointer border-b border-border/50 last:border-0 transition-colors"
@@ -1405,13 +1406,13 @@ export function ReceptionStation() {
                       </div>
 
                       <div className="sm:col-span-3 space-y-1">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase">PIN</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase">ZIP</Label>
                         <Input
-                          placeholder="PIN"
+                          placeholder="ZIP"
                           className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
-                          value={formData.pincode}
-                          onChange={(e) => handleInputChange("pincode", e.target.value)}
-                          maxLength={6}
+                          value={formData.zip}
+                          onChange={(e) => handleInputChange("zip", e.target.value)}
+                          maxLength={5}
                         />
                       </div>
                     </div>
@@ -1442,8 +1443,8 @@ export function ReceptionStation() {
                               area: "",
                               city: "",
                               district: "",
-                              state: "Tamil Nadu",
-                              pincode: "",
+                              state: "California",
+                              zip: "",
                               contactNumber: "",
                               secondaryContact: "",
                               relationship: "",
@@ -1466,7 +1467,7 @@ export function ReceptionStation() {
                         disabled={loading}
                         className={cn(
                           "w-full lg:w-auto h-10 px-8 gap-2.5 font-black uppercase tracking-widest text-[11px] rounded-none shadow-lg hover:shadow-xl transition-all duration-300",
-                          "bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200"
+                          "bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20"
                         )}
                       >
                         {patientData ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
@@ -1485,7 +1486,7 @@ export function ReceptionStation() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by Name, MR Number, or Mobile..."
-                  className="pl-9 h-11 rounded-none border-slate-200 focus:ring-orange-600/20 bg-white"
+                  className="pl-9 h-11 rounded-none border-slate-200 focus:ring-brand/20 bg-white"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -1508,7 +1509,7 @@ export function ReceptionStation() {
                         <CardContent className="p-3 lg:p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
                           <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
                             <div className="w-10 h-10 rounded-none bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
-                              <span className="text-sm font-black text-orange-600">
+                              <span className="text-sm font-black text-brand">
                                 {p.name.split(" ").map((n) => n[0]).join("")}
                               </span>
                             </div>
@@ -1567,14 +1568,14 @@ export function ReceptionStation() {
                                   area: p.area || "",
                                   city: p.city || "",
                                   district: p.district || "",
-                                  state: p.state || "Tamil Nadu",
-                                  pincode: p.pincode != null ? String(p.pincode) : "",
+                                  state: p.state || "California",
+                                  zip: p.pincode != null ? String(p.pincode) : "",
                                 });
                                 setEditRelationship("");
                                 setEditMobileExisting(false);
                                 setEditPatientModalOpen(true);
                               }}
-                              className="w-9 h-9 p-0 shrink-0 text-slate-400 hover:text-orange-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all rounded-none"
+                              className="w-9 h-9 p-0 shrink-0 text-slate-400 hover:text-brand hover:bg-white border border-transparent hover:border-slate-200 transition-all rounded-none"
                               title="Edit Patient Details"
                             >
                               <Pencil className="w-4 h-4" />
@@ -1584,7 +1585,7 @@ export function ReceptionStation() {
                               variant="ghost"
                               onClick={() => handlePrintOPCard(p.mrNumber)}
                               disabled={printingOPCardMrn === p.mrNumber}
-                              className="w-9 h-9 p-0 shrink-0 text-slate-400 hover:text-orange-600 hover:bg-white border border-transparent hover:border-slate-200 transition-all rounded-none"
+                              className="w-9 h-9 p-0 shrink-0 text-slate-400 hover:text-brand hover:bg-white border border-transparent hover:border-slate-200 transition-all rounded-none"
                               title="Print OP Card"
                             >
                               <Printer className="w-4 h-4" />
@@ -1593,7 +1594,7 @@ export function ReceptionStation() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleOpenAppointmentDialog(p.mrNumber, p.name, "SCHEDULE")}
-                              className="h-9 px-3 gap-2 text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-orange-600 transition-all shrink-0 rounded-none shadow-sm flex-1 sm:flex-none"
+                              className="h-9 px-3 gap-2 text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-brand transition-all shrink-0 rounded-none shadow-sm flex-1 sm:flex-none"
                             >
                               <CalendarIcon className="w-3.5 h-3.5" />
                               Schedule
@@ -1602,7 +1603,7 @@ export function ReceptionStation() {
                               size="sm"
                               onClick={() => handleStartNewVisit(p.mrNumber)}
                               disabled={p.hasActiveVisitToday || startingVisitMrn === p.mrNumber}
-                              className="h-9 px-5 gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white font-black uppercase tracking-widest text-[10px] disabled:opacity-50 transition-all rounded-none border border-orange-200 shadow-sm hover:shadow-md flex-1 sm:flex-none"
+                              className="h-9 px-5 gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white font-black uppercase tracking-widest text-[10px] disabled:opacity-50 transition-all rounded-none border border-brand/20 shadow-sm hover:shadow-md flex-1 sm:flex-none"
                             >
                               {startingVisitMrn === p.mrNumber ? "Starting..." : p.hasActiveVisitToday ? "Active Today" : "Start Visit"}
                               {!p.hasActiveVisitToday && startingVisitMrn !== p.mrNumber && <ArrowRight className="w-3.5 h-3.5" />}
@@ -1624,7 +1625,7 @@ export function ReceptionStation() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by Name, MR Number, or Mobile to view history..."
-                  className="pl-9 h-11 rounded-none border-slate-200 focus:ring-orange-600/20 bg-white"
+                  className="pl-9 h-11 rounded-none border-slate-200 focus:ring-brand/20 bg-white"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -1645,7 +1646,7 @@ export function ReceptionStation() {
                     returningPatients.map((p) => (
                       <Card 
                         key={p.id} 
-                        className="shadow-sm hover:shadow-md transition-all duration-300 border-slate-100 hover:border-orange-200 cursor-pointer"
+                        className="shadow-sm hover:shadow-md transition-all duration-300 border-slate-100 hover:border-brand/20 cursor-pointer"
                         onClick={() => openRecordsModal(p)}
                       >
                         <CardContent className="p-3 lg:p-4 flex flex-col md:flex-row items-start md:items-center gap-4">
@@ -1668,7 +1669,7 @@ export function ReceptionStation() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center text-orange-600 font-bold text-xs uppercase tracking-widest">
+                          <div className="flex items-center text-brand font-bold text-xs uppercase tracking-widest">
                             View Records <ArrowRight className="w-4 h-4 ml-2" />
                           </div>
                         </CardContent>
@@ -1699,8 +1700,8 @@ export function ReceptionStation() {
           <DialogContent className="max-w-md">
             <DialogHeader className="print:hidden no-print">
               <DialogTitle className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                  <Printer className="w-4 h-4 text-orange-600" />
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <Printer className="w-4 h-4 text-brand" />
                 </div>
                 OP Card Generated
               </DialogTitle>
@@ -1764,13 +1765,20 @@ export function ReceptionStation() {
             </style>
 
             {/* Screen Preview (Hidden in Print) */}
-            <div className="border-4 border-orange-600/20 rounded-none p-8 bg-orange-50/50 space-y-6 print:hidden">
+            <div className="border-4 border-brand/20 rounded-none p-8 bg-brand/5 space-y-6 print:hidden">
               <div className="text-center border-b border-border pb-3 flex flex-col items-center">
-                <img
-                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png"
-                  alt="VPN Eye Hospital"
-                  className="h-12 w-auto object-contain mb-2"
-                />
+                <div className="flex flex-col leading-none gap-0.5 mb-2">
+                  <span
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                    className="font-extrabold text-xl tracking-tight leading-none"
+                  >
+                    <span className="text-slate-900">Vision</span>
+                    <span className="text-brand">Pulze</span>
+                  </span>
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
+                    Ophthalmic Ecosystem
+                  </span>
+                </div>
                 <p className="text-[11px] text-muted-foreground">25, Neela West Street, Velippalayam, Nagapattinam - 611001, Tamil Nadu</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 text-xs">
@@ -1806,7 +1814,7 @@ export function ReceptionStation() {
                       patientData?.city,
                       patientData?.district,
                       patientData?.state,
-                      patientData?.pincode
+                      patientData?.zip
                     ].filter(Boolean).join(", ")
                     ) || patientData?.address || "—"}
                   </p>
@@ -1834,7 +1842,7 @@ export function ReceptionStation() {
             {/* Print Version (Hidden on Screen, Tag Size 60x40mm) */}
             <div id="print-section" className="hidden print:flex print:flex-col print:justify-start print:bg-white print:text-black print:p-1 print:w-[60mm] print:h-[40mm] print:box-border overflow-hidden" style={{ fontFamily: 'monospace' }}>
               <div className="text-center border-b-2 border-black pb-0.5 mb-1 flex flex-col items-center shrink-0 w-full">
-                <h2 className="font-black text-[9px] m-0 p-0 leading-tight uppercase tracking-tighter text-center w-full">VPN Eye Hospital</h2>
+                <h2 className="font-black text-[9px] m-0 p-0 leading-tight uppercase tracking-tighter text-center w-full">VisionPulze</h2>
               </div>
 
               <div className="flex flex-row w-full flex-1 gap-1">
@@ -1873,7 +1881,7 @@ export function ReceptionStation() {
                         patientData?.city,
                         patientData?.district,
                         patientData?.state,
-                        patientData?.pincode
+                        patientData?.zip
                       ].filter(Boolean).join(", ")
                       ) || patientData?.address || "—"}
                     </span>
@@ -1891,7 +1899,7 @@ export function ReceptionStation() {
             </div>
             <DialogFooter className="print:hidden no-print">
               <Button variant="outline" onClick={() => setShowOPCard(false)}>Close</Button>
-              <Button onClick={() => window.print()} className="gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 font-bold transition-all shadow-md">
+              <Button onClick={() => window.print()} className="gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 font-bold transition-all shadow-md">
                 <Printer className="w-4 h-4" />
                 Print OP Card
               </Button>
@@ -1907,8 +1915,8 @@ export function ReceptionStation() {
               return (
                 <>
                   <div className="bg-white border-b border-slate-100 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
-                      <ClipboardList className="w-6 h-6 text-orange-600" />
+                    <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center shrink-0 border border-brand/10">
+                      <ClipboardList className="w-6 h-6 text-brand" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
@@ -1917,7 +1925,7 @@ export function ReceptionStation() {
                       {selectedPatientForVisit ? (
                         <div className="mt-1 flex flex-col gap-0.5 text-left">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black text-orange-600 uppercase tracking-wider">Patient:</span>
+                            <span className="text-[10px] font-black text-brand uppercase tracking-wider">Patient:</span>
                             <span className="text-xs font-black text-slate-800 uppercase truncate">
                               {selectedPatientForVisit.name}
                             </span>
@@ -1938,7 +1946,7 @@ export function ReceptionStation() {
                     <div className="space-y-2.5">
                       <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Consulting Physician</Label>
                       <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-                        <SelectTrigger className="h-12 border-slate-200 focus:ring-orange-500/10 hover:border-orange-400 focus:border-orange-500 transition-all bg-white font-medium shadow-sm data-[state=open]:border-orange-500 rounded-none w-full">
+                        <SelectTrigger className="h-12 border-slate-200 focus:ring-brand/10 hover:border-brand/40 focus:border-brand transition-all bg-white font-medium shadow-sm data-[state=open]:border-brand rounded-none w-full">
                           {selectedDoctorId ? (
                             (() => {
                               const doc = doctors.find(d => d.id === selectedDoctorId);
@@ -1951,7 +1959,7 @@ export function ReceptionStation() {
                                     {isActive && (
                                       <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">On Duty</Badge>
                                     )}
-                                    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                                    <span className="text-[10px] font-bold bg-brand/10 text-brand border border-brand/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
                                   </div>
                                 </div>
                               );
@@ -1973,7 +1981,7 @@ export function ReceptionStation() {
                                     <span className="font-bold text-slate-900 uppercase tracking-tight text-xs">{truncateDoctorName(doc.name)}</span>
                                     <Badge className="h-4 px-1.5 text-[8px] bg-emerald-100 hover:bg-emerald-100 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm">On Duty</Badge>
                                   </div>
-                                  <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
+                                  <span className="text-[10px] font-bold bg-brand/10 text-brand border border-brand/10 px-2 py-0.5 rounded-sm uppercase tracking-wider shrink-0">{doc.specialization?.name || "General"}</span>
                                 </div>
                               </SelectItem>
                             ))
@@ -1996,7 +2004,7 @@ export function ReceptionStation() {
                     <Button
                       onClick={confirmStartNewVisit}
                       disabled={!selectedDoctorId || !!startingVisitMrn}
-                      className="gap-2 bg-orange-600 hover:bg-black text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all rounded-none"
+                      className="gap-2 bg-brand hover:bg-black text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all rounded-none"
                     >
                       {startingVisitMrn ? (
                         <>
@@ -2021,8 +2029,8 @@ export function ReceptionStation() {
         <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
           <DialogContent className="max-w-md p-0 overflow-hidden border-slate-200 rounded-none shadow-2xl">
             <div className="bg-white border-b border-slate-100 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
-                <CalendarIcon className="w-6 h-6 text-orange-600" />
+              <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center shrink-0 border border-brand/10">
+                <CalendarIcon className="w-6 h-6 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
                 <DialogTitle className="text-xl font-black uppercase tracking-tight text-slate-900">
@@ -2030,7 +2038,7 @@ export function ReceptionStation() {
                 </DialogTitle>
                 <div className="mt-1 flex flex-col gap-0.5 text-left">
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-black text-orange-600 uppercase tracking-wider">Patient:</span>
+                    <span className="text-[10px] font-black text-brand uppercase tracking-wider">Patient:</span>
                     <span className="text-xs font-black text-slate-800 uppercase truncate">
                       {appointmentPatientName}
                     </span>
@@ -2069,16 +2077,16 @@ export function ReceptionStation() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "flex-1 justify-start text-left font-normal h-10 border-orange-200 bg-orange-50/10 hover:bg-orange-600 hover:text-white transition-all group",
+                          "flex-1 justify-start text-left font-normal h-10 border-brand/20 bg-brand/10/10 hover:bg-brand hover:text-white transition-all group",
                           (!selectedAppointmentDate || appointmentDialogMode === "START_VISIT") && "text-muted-foreground"
                         )}
                         disabled={appointmentDialogMode === "START_VISIT"}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-orange-600 group-hover:text-white" />
+                        <CalendarIcon className="mr-2 h-4 w-4 text-brand group-hover:text-white" />
                         {selectedAppointmentDate ? (
                           <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 leading-none">
-                            <span className="font-bold text-orange-700 group-hover:text-white uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
-                            <span className="hidden sm:inline-block w-[1px] h-3 bg-orange-200 group-hover:bg-white/30"></span>
+                            <span className="font-bold text-brand-hover group-hover:text-white uppercase text-[10px] sm:text-xs transition-colors">{format(selectedAppointmentDate, "EEEE")}</span>
+                            <span className="hidden sm:inline-block w-[1px] h-3 bg-brand/20 group-hover:bg-white/30"></span>
                             <span className="text-slate-700 group-hover:text-white font-semibold transition-colors">{format(selectedAppointmentDate, "PPP")}</span>
                           </div>
                         ) : <span className="text-slate-500">Pick a date</span>}
@@ -2123,7 +2131,7 @@ export function ReceptionStation() {
                             <span className="font-bold text-slate-900 uppercase tracking-tight text-[11px] truncate mr-2">{truncateDoctorName(doc.name)}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <Badge className="h-4 px-1 text-[8px] bg-emerald-100 hover:bg-emerald-100/80 text-emerald-700 border-0 font-black tracking-widest uppercase rounded-sm whitespace-nowrap">Available</Badge>
-                              <span className="text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
+                              <span className="text-[10px] font-bold bg-brand/10 text-brand border border-brand/10 px-1.5 py-0.5 rounded-sm uppercase tracking-wider whitespace-nowrap">{doc.specialization?.name || "General"}</span>
                             </div>
                           </div>
                         );
@@ -2150,10 +2158,10 @@ export function ReceptionStation() {
                           <SelectItem key={doc.id} value={doc.id} className="group">
                             <div className="flex flex-col py-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold leading-none group-hover:text-orange-600 group-focus:text-orange-600 group-data-[state=checked]:text-orange-600 uppercase tracking-tighter transition-colors">{truncateDoctorName(doc.name)}</span>
+                                <span className="font-semibold leading-none group-hover:text-brand group-focus:text-brand group-data-[state=checked]:text-brand uppercase tracking-tighter transition-colors">{truncateDoctorName(doc.name)}</span>
                                 <Badge className="h-3.5 px-1 text-[8px] bg-emerald-500 hover:bg-emerald-600 border-0 text-white font-bold tracking-tighter shadow-sm">AVAILABLE</Badge>
                               </div>
-                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-orange-600/80 group-focus:text-orange-600/80 group-data-[state=checked]:text-orange-600/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
+                              <span className="text-[9px] text-muted-foreground/70 group-hover:text-brand/80 group-focus:text-brand/80 group-data-[state=checked]:text-brand/80 uppercase tracking-tight mt-1 transition-colors">{doc.specialization?.name || "General"}</span>
                             </div>
                           </SelectItem>
                         ))
@@ -2224,7 +2232,7 @@ export function ReceptionStation() {
               <Button
                 onClick={confirmSetAppointment}
                 disabled={!selectedTimeSlot || settingAppointment}
-                className="gap-2 bg-orange-600 hover:bg-black text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all rounded-none"
+                className="gap-2 bg-brand hover:bg-black text-white border border-transparent shadow-sm hover:shadow font-bold uppercase tracking-widest text-xs h-10 transition-all rounded-none"
               >
                 {settingAppointment ? "Booking..." : appointmentDialogMode === "START_VISIT" ? "Start Visit" : "Schedule Appointment"}
               </Button>
@@ -2235,13 +2243,13 @@ export function ReceptionStation() {
         {/* Edit Patient Modal — quick-edit from returning patients list */}
         <Dialog open={editPatientModalOpen} onOpenChange={(open) => { if (!open) { setEditPatientModalOpen(false); setEditPatientData(null); } }}>
           <DialogContent className="max-w-2xl rounded-none border-slate-200 p-0 overflow-hidden">
-            <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-orange-50/30">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-brand/5">
               <DialogTitle className="flex items-center gap-3 text-slate-900">
-                <div className="p-2 bg-orange-600 text-white">
+                <div className="p-2 bg-brand text-white">
                   <Pencil className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Patient Enrollment</div>
+                  <div className="text-[11px] font-black uppercase tracking-widest text-brand mb-0.5">Patient Enrollment</div>
                   <div className="text-base font-black uppercase tracking-tighter">Edit Patient Details</div>
                 </div>
                 {editPatientData && (
@@ -2273,7 +2281,7 @@ export function ReceptionStation() {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-mono text-sm h-10 rounded-none border-slate-200 hover:bg-orange-50/30 hover:border-orange-200 transition-all",
+                            "w-full justify-start text-left font-mono text-sm h-10 rounded-none border-slate-200 hover:bg-brand/5 hover:border-brand/20 transition-all",
                             !editPatientData.dob && "text-muted-foreground"
                           )}
                         >
@@ -2326,8 +2334,8 @@ export function ReceptionStation() {
                             className={cn(
                               "flex-1 text-[11px] font-black uppercase tracking-wider transition-all border rounded-none h-full px-2",
                               isSelected
-                                ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                                : "bg-white text-slate-500 border-slate-200 hover:bg-orange-50/50 hover:border-orange-200 hover:text-orange-600"
+                                ? "bg-brand text-white border-brand-hover shadow-md"
+                                : "bg-white text-slate-500 border-slate-200 hover:bg-brand/5 hover:border-brand/20 hover:text-brand"
                             )}
                           >
                             {opt.label}
@@ -2440,9 +2448,9 @@ export function ReceptionStation() {
                       />
                     </div>
                     <div className="col-span-4 space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase">District</Label>
+                      <Label className="text-[10px] font-bold text-slate-400 uppercase">County</Label>
                       <Input
-                        placeholder="District"
+                        placeholder="County"
                         className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
                         value={editPatientData.district}
                         onChange={(e) => setEditPatientData((prev: any) => ({ ...prev, district: e.target.value }))}
@@ -2458,13 +2466,16 @@ export function ReceptionStation() {
                       />
                     </div>
                     <div className="col-span-3 space-y-1">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase">PIN</Label>
+                      <Label className="text-[10px] font-bold text-slate-400 uppercase">ZIP</Label>
                       <Input
-                        placeholder="PIN"
+                        placeholder="ZIP"
                         className="h-9 text-[13px] border-0 border-b border-input rounded-none focus-visible:ring-0 focus-visible:border-b-primary bg-transparent shadow-none"
-                        value={editPatientData.pincode}
-                        onChange={(e) => setEditPatientData((prev: any) => ({ ...prev, pincode: e.target.value }))}
-                        maxLength={6}
+                        value={editPatientData.zip}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 5);
+                          setEditPatientData((prev: any) => ({ ...prev, zip: val }));
+                        }}
+                        maxLength={5}
                       />
                     </div>
                   </div>
@@ -2483,7 +2494,7 @@ export function ReceptionStation() {
               <Button
                 onClick={handleUpdatePatient}
                 disabled={editSaving}
-                className="rounded-none gap-2 bg-orange-50 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-200 font-black uppercase tracking-widest text-[11px] shadow-md hover:shadow-xl transition-all"
+                className="rounded-none gap-2 bg-brand/10 hover:bg-brand text-brand hover:text-white border border-brand/20 font-black uppercase tracking-widest text-[11px] shadow-md hover:shadow-xl transition-all"
               >
                 <Check className="w-4 h-4" />
                 {editSaving ? "Saving..." : "Save Changes"}
@@ -2498,8 +2509,8 @@ export function ReceptionStation() {
           <DialogContent className="print:hidden no-print max-w-3xl p-0 overflow-hidden border-0 bg-white rounded-none shadow-2xl flex flex-col max-h-[85vh]">
             <DialogHeader className="p-4 md:p-6 bg-slate-50 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3 md:gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 flex items-center justify-center rounded-none shadow-inner border border-orange-200 shrink-0">
-                  <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-brand/10 flex items-center justify-center rounded-none shadow-inner border border-brand/20 shrink-0">
+                  <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-brand" />
                 </div>
                 <div className="min-w-0">
                   <DialogTitle className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tighter truncate">
@@ -2516,7 +2527,7 @@ export function ReceptionStation() {
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
               {loadingHistory ? (
                 <div className="flex flex-col items-center justify-center h-40 text-slate-400 gap-3">
-                  <div className="w-6 h-6 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
                   <span className="text-[10px] font-black uppercase tracking-widest">Loading Patient History...</span>
                 </div>
               ) : patientHistory.length === 0 ? (
@@ -2605,7 +2616,7 @@ export function ReceptionStation() {
 
                     return (
                       <div key={idx} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-100 text-slate-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 group-[.is-active]:bg-orange-600 group-[.is-active]:text-white z-10">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-slate-100 text-slate-400 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 group-[.is-active]:bg-brand group-[.is-active]:text-white z-10">
                           <CalendarIcon className="w-4 h-4" />
                         </div>
                         <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-none border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all">
@@ -2682,7 +2693,7 @@ export function ReceptionStation() {
             <DialogHeader className="p-4 md:p-6 bg-slate-50 border-b border-slate-100 shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <DialogTitle className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-2">
-                  <ClipboardList className="w-5 h-5 text-orange-600" />
+                  <ClipboardList className="w-5 h-5 text-brand" />
                   Clinical Refraction Report Summary
                 </DialogTitle>
                 <DialogDescription className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
@@ -2691,7 +2702,7 @@ export function ReceptionStation() {
               </div>
               <Button
                 size="sm"
-                className="w-full md:w-auto h-10 md:h-9 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] gap-2 rounded-none shadow-sm md:mr-6 border-0"
+                className="w-full md:w-auto h-10 md:h-9 px-4 bg-brand hover:bg-brand-hover text-white font-black uppercase tracking-widest text-[10px] gap-2 rounded-none shadow-sm md:mr-6 border-0"
                 onClick={() => handlePrintReport(viewingRefractionVisit, 'refraction')}
               >
                 <Printer className="w-4 h-4" /> Print Refraction

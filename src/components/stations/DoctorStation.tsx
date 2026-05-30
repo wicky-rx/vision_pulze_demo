@@ -101,9 +101,9 @@ const getFamilyLevels = (members: any[]) => {
 function SectionHeader({ icon: Icon, category, title }: { icon: any, category: string, title: string }) {
   return (
     <div className="flex items-center gap-3 mb-4">
-      <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Icon className="w-5 h-5 shrink-0" /></div>
+      <div className="p-2.5 bg-brand text-white shadow-md rounded-md"><Icon className="w-5 h-5 shrink-0" /></div>
       <div className="flex flex-col">
-        <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">{category}</span>
+        <span className="text-[9.5px] font-black uppercase tracking-wider text-brand mb-0.5">{category}</span>
         <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">{title}</h3>
       </div>
     </div>
@@ -395,7 +395,7 @@ const PowerPaletteInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("up", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Increment"
             >
               <ChevronUp className="w-3.5 h-3.5 stroke-[3]" />
@@ -405,7 +405,7 @@ const PowerPaletteInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("down", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Decrement"
             >
               <ChevronDown className="w-3.5 h-3.5 stroke-[3]" />
@@ -468,7 +468,7 @@ const PowerPaletteInput = React.memo(({
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
                   sign === "+"
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    ? "bg-white text-brand shadow-sm border border-slate-100"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
@@ -482,7 +482,7 @@ const PowerPaletteInput = React.memo(({
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
                   sign === "-"
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    ? "bg-white text-brand shadow-sm border border-slate-100"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
@@ -500,7 +500,7 @@ const PowerPaletteInput = React.memo(({
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
-                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md"
+                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-brand hover:text-brand bg-slate-50 hover:bg-brand/5 transition-all rounded-md"
                 >
                   {val}°
                 </button>
@@ -513,7 +513,7 @@ const PowerPaletteInput = React.memo(({
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
-                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md col-span-2"
+                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-brand hover:text-brand bg-slate-50 hover:bg-brand/5 transition-all rounded-md col-span-2"
                 >
                   {val}
                 </button>
@@ -526,7 +526,7 @@ const PowerPaletteInput = React.memo(({
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
-                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md col-span-2"
+                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-brand hover:text-brand bg-slate-50 hover:bg-brand/5 transition-all rounded-md col-span-2"
                 >
                   {val}
                 </button>
@@ -552,7 +552,7 @@ const PowerPaletteInput = React.memo(({
                   tabIndex={-1}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(val)}
-                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-orange-500 hover:text-orange-600 bg-slate-50 hover:bg-orange-50/30 transition-all rounded-md"
+                  className="py-2 text-[10px] font-black border border-slate-100 hover:border-brand hover:text-brand bg-slate-50 hover:bg-brand/5 transition-all rounded-md"
                 >
                   {val === "0.00" ? "0.00" : sign + val}
                 </button>
@@ -666,7 +666,7 @@ const InvestigationPaletteInput = React.memo(({
           <Input
             ref={inputRef}
             className={cn(
-              "doctor-investigation-input h-10 text-sm font-bold rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm pr-3 w-full uppercase",
+              "doctor-investigation-input h-10 text-sm font-bold rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-white transition-all shadow-sm pr-3 w-full uppercase",
               className
             )}
             value={value}
@@ -771,8 +771,8 @@ const InvestigationPaletteInput = React.memo(({
                   className={cn(
                     "py-1.5 px-2 text-[10px] font-black uppercase tracking-wider text-slate-800 border rounded shadow-sm transition-all whitespace-normal break-words text-center leading-tight min-h-[36px]",
                     isSelected
-                      ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                      : "bg-slate-50 border-slate-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                      ? "bg-brand text-white border-brand-hover shadow-md"
+                      : "bg-slate-50 border-slate-200 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                   )}
                 >
                   {val}
@@ -1880,7 +1880,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 className={cn(
                   "text-[9px] font-bold border px-1.5 py-0.5 transition-all cursor-pointer max-w-[200px] truncate",
                   isSelected
-                    ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                    ? "bg-brand text-white border-brand shadow-sm"
                     : "text-slate-800 hover:text-white bg-white hover:bg-slate-800 border-slate-300"
                 )}
               >
@@ -2007,7 +2007,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
       toast({
         title: "Consultation Completed",
         description: "Clinical records and prescriptions have been successfully synchronized.",
-        className: "bg-orange-600 text-white border-0 rounded-none font-bold"
+        className: "bg-brand text-white border-0 rounded-none font-bold"
       });
 
       // Clear draft on successful save
@@ -2045,18 +2045,18 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-orange-50/30 relative doctor-station-container" onKeyDown={handleContainerKeyDown}>
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-brand/5 relative doctor-station-container" onKeyDown={handleContainerKeyDown}>
       {/* Premium Diagnostic Header */}
       <div className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-2 md:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between shrink-0 shadow-sm z-30 gap-4 md:gap-8 sticky top-0">
         <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2 md:p-3 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
+          <div className="bg-gradient-to-br from-brand to-brand-hover text-white p-2 md:p-3 rounded-xl shrink-0 shadow-lg shadow-brand/20 hidden xs:flex items-center justify-center">
             <Stethoscope className="w-4 h-4 md:w-5 md:h-5" />
           </div>
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <h2 className="text-sm md:text-lg font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
               <div className="flex items-center gap-1.5 shrink-0">
-                <Badge className="bg-orange-600 text-white text-[9px] md:text-[10px] px-2 md:px-2.5 font-mono tracking-widest rounded-full h-4 md:h-5 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                <Badge className="bg-brand text-white text-[9px] md:text-[10px] px-2 md:px-2.5 font-mono tracking-widest rounded-full h-4 md:h-5 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
                 <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[8px] md:text-[10px] px-2 font-black rounded-full h-4 md:h-5">T-{patient.tokenNumber || "—"}</Badge>
               </div>
             </div>
@@ -2066,7 +2066,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <span className="text-slate-300">•</span>
               <span>{getPatientAgeString(patient)}</span>
               <span className="text-slate-300">•</span>
-              <span className="text-orange-600 font-black tracking-widest uppercase">Clinical Consultation</span>
+              <span className="text-brand font-black tracking-widest uppercase">Clinical Consultation</span>
             </div>
           </div>
         </div>
@@ -2090,7 +2090,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     className={cn(
                       "h-8 md:h-10 px-5 md:px-6 font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px] rounded-none shadow-xl transition-all gap-2",
                       canAttend
-                        ? "bg-orange-600 hover:bg-black text-white"
+                        ? "bg-brand hover:bg-black text-white"
                         : "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none hover:bg-slate-300"
                     )}
                     title={!canAttend ? "Cannot begin consultation until Refraction is done (except for Follow-up patients)" : ""}
@@ -2106,25 +2106,25 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               {showLockedToast && (
                 <div
                   onClick={() => setShowLockedToast(false)}
-                  className="absolute right-0 top-full mt-3 z-[999] w-[280px] sm:w-[320px] bg-white text-slate-800 p-4 shadow-2xl rounded-none cursor-pointer transform transition-all duration-300 ease-out animate-bounce-short border-2 border-orange-500"
+                  className="absolute right-0 top-full mt-3 z-[999] w-[280px] sm:w-[320px] bg-white text-slate-800 p-4 shadow-2xl rounded-none cursor-pointer transform transition-all duration-300 ease-out animate-bounce-short border-2 border-brand"
                 >
-                  <div className="absolute right-6 -top-2 w-4 h-4 bg-white rotate-45 border-t-2 border-l-2 border-orange-500" />
+                  <div className="absolute right-6 -top-2 w-4 h-4 bg-white rotate-45 border-t-2 border-l-2 border-brand" />
 
                   <div className="space-y-3 relative">
                     <div className="flex items-start gap-2.5">
-                      <div className="p-1.5 bg-orange-100 rounded-none mt-0.5">
-                        <UserCheck className="w-4 h-4 text-orange-600" />
+                      <div className="p-1.5 bg-brand/10 rounded-none mt-0.5">
+                        <UserCheck className="w-4 h-4 text-brand" />
                       </div>
                       <div className="space-y-1 flex-1">
-                        <h4 className="text-xs font-black uppercase tracking-wider text-orange-600">Start Consultation First</h4>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-brand">Start Consultation First</h4>
                         <p className="text-[11px] font-semibold text-slate-600 leading-relaxed">
-                          Please click this <strong className="text-orange-600 underline font-black">Begin Consultation</strong> button to unlock editing on clinical findings.
+                          Please click this <strong className="text-brand underline font-black">Begin Consultation</strong> button to unlock editing on clinical findings.
                         </p>
                       </div>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                       <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Click to close</span>
-                      <button className="text-[10px] font-black uppercase px-3 py-1 bg-orange-600 text-white hover:bg-black transition-colors rounded-none">
+                      <button className="text-[10px] font-black uppercase px-3 py-1 bg-brand text-white hover:bg-black transition-colors rounded-none">
                         Got it
                       </button>
                     </div>
@@ -2138,7 +2138,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             <Button
               className={cn(
                 "h-8 md:h-10 px-5 md:px-6 font-black uppercase tracking-[0.2em] text-[9px] md:text-[10px] rounded-none shadow-xl transition-all gap-2",
-                localStatus === "consulted" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-orange-600 hover:bg-black text-white"
+                localStatus === "consulted" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-brand hover:bg-black text-white"
               )}
               onClick={saveConsultation}
               disabled={isSubmitting}
@@ -2185,9 +2185,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-4 data-[state=active]:border-orange-600 rounded-none px-5 sm:px-0 text-[12px] sm:text-[11px] font-black uppercase tracking-widest h-full text-slate-600 opacity-60 hover:opacity-100 data-[state=active]:opacity-100 data-[state=active]:text-orange-600 flex gap-2 sm:gap-2.5 items-center transition-all shrink-0 snap-start whitespace-nowrap"
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-4 data-[state=active]:border-brand rounded-none px-5 sm:px-0 text-[12px] sm:text-[11px] font-black uppercase tracking-widest h-full text-slate-600 opacity-60 hover:opacity-100 data-[state=active]:opacity-100 data-[state=active]:text-brand flex gap-2 sm:gap-2.5 items-center transition-all shrink-0 snap-start whitespace-nowrap"
                   >
-                    <tab.icon className={cn("w-3.5 h-3.5 transition-colors hidden md:block", activeTab === tab.id ? "text-orange-600" : "text-slate-400")} />
+                    <tab.icon className={cn("w-3.5 h-3.5 transition-colors hidden md:block", activeTab === tab.id ? "text-brand" : "text-slate-400")} />
                     {tab.label}
                   </TabsTrigger>
                 ))}
@@ -2195,16 +2195,16 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             </div>
           </div>
 
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent relative z-10 bg-orange-50/50">
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto flex flex-col scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent relative z-10 bg-brand/5">
             <TabsContent value="summary" className="p-4 sm:p-6 outline-none">
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Demographics - col-span-3 */}
                 <Card className="lg:col-span-3 clinical-card border border-slate-200 shadow-sm">
-                  <div className="p-4 border-b bg-orange-50/30 flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-black text-orange-600 uppercase tracking-wider flex items-center gap-2">
+                  <div className="p-4 border-b bg-brand/5 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-black text-brand uppercase tracking-wider flex items-center gap-2">
                       <User className="w-4 h-4" /> Patient Demographics
                     </h3>
-                    <Badge className="bg-orange-600 text-[10px] font-black h-5 uppercase px-2 rounded-none whitespace-nowrap shrink-0">
+                    <Badge className="bg-brand text-[10px] font-black h-5 uppercase px-2 rounded-none whitespace-nowrap shrink-0">
                       MRN: {patient.mrNumber || "N/A"}
                     </Badge>
                   </div>
@@ -2212,7 +2212,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase text-slate-400 font-black tracking-wider">Full Legal Name</label>
-                      <p className="font-bold text-base text-orange-600 truncate" title={patient.name}>{patient.name}</p>
+                      <p className="font-bold text-base text-brand truncate" title={patient.name}>{patient.name}</p>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase text-slate-400 font-black tracking-wider">Gender & Age</label>
@@ -2241,9 +2241,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 {/* Administrative Details / Scan Reports */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
                   <Card className="clinical-card !shadow-sm border border-slate-200">
-                    <div className="p-3 bg-orange-600 text-white flex justify-between items-center">
+                    <div className="p-3 bg-brand text-white flex justify-between items-center">
                       <span className="text-[10px] font-black uppercase tracking-widest opacity-95">Administrative Details</span>
-                      <Badge className="bg-white text-orange-600 text-[9px] font-black h-4 uppercase px-1.5 rounded-none">Active</Badge>
+                      <Badge className="bg-white text-brand text-[9px] font-black h-4 uppercase px-1.5 rounded-none">Active</Badge>
                     </div>
                     <div className="p-3 grid grid-cols-3 gap-2 divide-x divide-slate-100 text-center">
                       <div className="px-1">
@@ -2252,7 +2252,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       </div>
                       <div className="px-1">
                         <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phase</span>
-                        <span className="text-xs font-black text-orange-600 uppercase tracking-wider">
+                        <span className="text-xs font-black text-brand uppercase tracking-wider">
                           {(patient.complaint?.toLowerCase().includes("followup") ||
                             patient.complaint?.toLowerCase().includes("review") ||
                             refractionData?.ocularComplaint?.toLowerCase().includes("followup") ||
@@ -2275,8 +2275,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               {/* Family / Linked Accounts Flow Tree */}
               {familyMembers.length > 1 && (
                 <Card className="clinical-card border border-slate-200 shadow-sm mt-6 overflow-hidden bg-white">
-                  <div className="p-4 border-b bg-orange-50/30 flex items-center justify-between">
-                    <h3 className="text-sm font-black text-orange-600 uppercase tracking-wider flex items-center gap-2">
+                  <div className="p-4 border-b bg-brand/5 flex items-center justify-between">
+                    <h3 className="text-sm font-black text-brand uppercase tracking-wider flex items-center gap-2">
                       <Network className="w-4 h-4" /> Linked Accounts Flow
                     </h3>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2290,7 +2290,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         <div className="flex flex-col items-center">
                           {/* Phone Number Hub */}
                           <div className="relative flex flex-col items-center mb-3">
-                            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[11px] uppercase tracking-wider px-5 py-2 rounded-full shadow-md shadow-orange-500/10 flex items-center gap-2 border-2 border-white z-10">
+                            <div className="bg-gradient-to-r from-brand to-brand-hover text-white font-black text-[11px] uppercase tracking-wider px-5 py-2 rounded-full shadow-md shadow-brand/10 flex items-center gap-2 border-2 border-white z-10">
                               <Phone className="w-3.5 h-3.5" />
                               <span>Primary Phone: {patient.contactNumber}</span>
                             </div>
@@ -2329,14 +2329,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     className={cn(
                                       "w-full p-4 rounded-xl border transition-all text-center select-none",
                                       isCurrent
-                                        ? "bg-orange-50/80 border-orange-500 shadow-sm shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
-                                        : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-md cursor-pointer group"
+                                        ? "bg-brand/10/80 border-brand shadow-sm shadow-brand/10 ring-2 ring-brand/20 cursor-default"
+                                        : "bg-white border-slate-200 hover:border-brand hover:shadow-md cursor-pointer group"
                                     )}
                                   >
                                     <div className="flex flex-col items-center gap-1.5">
                                       <div className={cn(
                                         "w-9 h-9 rounded-full flex items-center justify-center font-black text-xs transition-transform group-hover:scale-110",
-                                        isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
+                                        isCurrent ? "bg-brand text-white" : "bg-slate-100 text-slate-700"
                                       )}>
                                         {member.name.charAt(0).toUpperCase()}
                                       </div>
@@ -2360,7 +2360,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                           </Badge>
                                         )}
                                         {isCurrent ? (
-                                          <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
+                                          <Badge className="text-[8px] px-1.5 py-0 bg-brand text-white font-black uppercase">
                                             Active Patient
                                           </Badge>
                                         ) : (
@@ -2415,14 +2415,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       className={cn(
                                         "w-full p-4 rounded-xl border transition-all text-center select-none",
                                         isCurrent
-                                          ? "bg-orange-50/80 border-orange-500 shadow-sm shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
-                                          : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-md cursor-pointer group"
+                                          ? "bg-brand/10/80 border-brand shadow-sm shadow-brand/10 ring-2 ring-brand/20 cursor-default"
+                                          : "bg-white border-slate-200 hover:border-brand hover:shadow-md cursor-pointer group"
                                       )}
                                     >
                                       <div className="flex flex-col items-center gap-1.5">
                                         <div className={cn(
                                           "w-9 h-9 rounded-full flex items-center justify-center font-black text-xs transition-transform group-hover:scale-110",
-                                          isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
+                                          isCurrent ? "bg-brand text-white" : "bg-slate-100 text-slate-700"
                                         )}>
                                           {member.name.charAt(0).toUpperCase()}
                                         </div>
@@ -2446,7 +2446,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                             </Badge>
                                           )}
                                           {isCurrent ? (
-                                            <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
+                                            <Badge className="text-[8px] px-1.5 py-0 bg-brand text-white font-black uppercase">
                                               Active Patient
                                             </Badge>
                                           ) : (
@@ -2626,7 +2626,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         onMouseEnter={handleNavMouseEnter}
                         onMouseLeave={handleNavMouseLeave}
                         className={cn(
-                          "absolute left-[-72px] top-[-40px] bg-white border border-slate-200 shadow-lg transition-all duration-300 overflow-hidden rounded-lg py-1 border-l-4 border-l-orange-500",
+                          "absolute left-[-72px] top-[-40px] bg-white border border-slate-200 shadow-lg transition-all duration-300 overflow-hidden rounded-lg py-1 border-l-4 border-l-brand",
                           isNavHovered ? "w-60" : "w-16"
                         )}
                       >
@@ -2660,7 +2660,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               className={cn(
                                 "w-full text-left transition-all leading-tight flex items-center py-4 px-3 border-b border-slate-100 last:border-b-0",
                                 activeSection === sec.id
-                                  ? "text-orange-600 border-l-2 border-l-orange-600 bg-orange-50/50"
+                                  ? "text-brand border-l-2 border-l-brand bg-brand/5"
                                   : "text-slate-400 border-l-2 border-l-transparent hover:text-slate-600 hover:border-l-slate-300 hover:bg-slate-50/30"
                               )}
                             >
@@ -2687,11 +2687,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                   <div className="flex-1 w-full space-y-6">
                     {isLocked && (
-                      <div className="bg-orange-100 border-l-4 border-orange-500 p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
-                        <AlertCircle className="w-6 h-6 text-orange-600" />
+                      <div className="bg-brand/10 border-l-4 border-brand p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
+                        <AlertCircle className="w-6 h-6 text-brand" />
                         <div>
-                          <h4 className="text-sm font-black text-orange-600 uppercase">Input Locked</h4>
-                          <p className="text-xs font-bold text-orange-600">Please click "Begin Consultation" at the top to start entering diagnostic findings.</p>
+                          <h4 className="text-sm font-black text-brand uppercase">Input Locked</h4>
+                          <p className="text-xs font-bold text-brand">Please click "Begin Consultation" at the top to start entering diagnostic findings.</p>
                         </div>
                       </div>
                     )}
@@ -2702,7 +2702,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         <div className="space-y-6">
                           {/* Group 1: Ocular Surface & Adnexa */}
                           <div id="sec-surface-adnexa" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-orange-500" /> Ocular Surface & Adnexa</h4>
+                            <h4 className="text-[12px] font-black uppercase text-brand tracking-wider border-b border-brand/10/50 pb-2 flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-brand" /> Ocular Surface & Adnexa</h4>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                               {[
                                 { id: "lids", label: "Lids" },
@@ -2763,7 +2763,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                           {/* Group 2: Anterior Chamber & Lens */}
                           <div id="sec-intraocular-pupil" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Microscope className="w-3.5 h-3.5 text-orange-500" /> Intraocular Structures & Pupil</h4>
+                            <h4 className="text-[12px] font-black uppercase text-brand tracking-wider border-b border-brand/10/50 pb-2 flex items-center gap-2"><Microscope className="w-3.5 h-3.5 text-brand" /> Intraocular Structures & Pupil</h4>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                               {[
                                 { id: "ac", label: "Anterior Chamber" },
@@ -2793,7 +2793,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                             />
                                             {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OD === "Dilated" && (
                                               <div className="mt-2 p-2 bg-slate-50 border border-slate-200 shadow-inner w-full">
-                                                <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                                <label className="text-[10px] font-black uppercase text-brand tracking-widest block mb-2">Dilation Agent</label>
                                                 <InvestigationPaletteInput
                                                   value={typeof investigation.slitLamp.dilation === 'object' ? investigation.slitLamp.dilation?.OD || "" : ""}
                                                   onChange={val => updateInvestigation(['slitLamp', 'dilation', 'OD'], val)}
@@ -2827,7 +2827,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                             />
                                             {item.id === 'pupil' && (investigation.slitLamp as any).pupil.OS === "Dilated" && (
                                               <div className="mt-2 p-2 bg-slate-50 border border-slate-200 shadow-inner w-full">
-                                                <label className="text-[10px] font-black uppercase text-orange-600 tracking-widest block mb-2">Dilation Agent</label>
+                                                <label className="text-[10px] font-black uppercase text-brand tracking-widest block mb-2">Dilation Agent</label>
                                                 <InvestigationPaletteInput
                                                   value={typeof investigation.slitLamp.dilation === 'object' ? investigation.slitLamp.dilation?.OS || "" : ""}
                                                   onChange={val => updateInvestigation(['slitLamp', 'dilation', 'OS'], val)}
@@ -2891,7 +2891,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                           {/* Group 3: Motility & Angles */}
                           <div id="sec-motility-angles" className="scroll-mt-24 bg-white border border-slate-200/80 p-4 sm:p-6 shadow-sm space-y-4">
-                            <h4 className="text-[12px] font-black uppercase text-orange-600 tracking-wider border-b border-orange-100/50 pb-2 flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-orange-500" /> Motility & Angles</h4>
+                            <h4 className="text-[12px] font-black uppercase text-brand tracking-wider border-b border-brand/10/50 pb-2 flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-brand" /> Motility & Angles</h4>
                             <div className="grid grid-cols-1 gap-6">
 
                               {/* EOM */}
@@ -2987,7 +2987,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         <SectionHeader icon={Activity} category="Retinal Analysis" title="Posterior Segment" />
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div id="sec-vitreous" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
+                            <label className="clinical-label !bg-brand/10 !text-brand !border-brand/10 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Vitreous Environment</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="flex flex-col group w-full max-w-xs">
                                 <EyeIndicator eye="OD" />
@@ -3012,7 +3012,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             </div>
                           </div>
                           <div id="sec-retina-macula" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
+                            <label className="clinical-label !bg-brand/10 !text-brand !border-brand/10 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Retina & Macula Findings</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="flex flex-col group w-full max-w-xs">
                                 <EyeIndicator eye="OD" />
@@ -3039,7 +3039,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                           <div id="sec-optic-disc" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-2 sm:p-5 space-y-4 shadow-sm">
-                            <label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Optic Disc Profile</label>
+                            <label className="clinical-label !bg-brand/10 !text-brand !border-brand/10 border px-2 py-1 text-[11px] inline-block mb-3 sm:mb-0">Optic Disc Profile</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="flex flex-col group w-full max-w-xs">
                                 <EyeIndicator eye="OD" />
@@ -3076,7 +3076,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <Select value={investigation.required} onValueChange={v => {
                                 setInvestigation({ ...investigation, required: v, other: v === "Other" ? investigation.other : "" });
                               }}>
-                                <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-orange-600"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                                <SelectTrigger className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:ring-0 focus:ring-offset-0 focus:border-brand"><SelectValue placeholder="Select type..." /></SelectTrigger>
                                 <SelectContent className="rounded-none font-bold">
                                   <SelectItem value="Nothing selected">Nothing selected</SelectItem>
                                   <SelectItem value="OCT">OCT: Optical Coherence Tomography</SelectItem>
@@ -3091,14 +3091,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             {investigation.required === "Other" && (
                               <div className="flex-1 space-y-2 animate-in fade-in slide-in-from-right-4 duration-300 w-full">
                                 <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500">Other / Specification</Label>
-                                <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
+                                <Input placeholder="Specify other investigations..." className="h-12 text-sm font-bold rounded-none border-slate-300 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={investigation.other} onChange={e => updateInvestigation(['other'], e.target.value)} />
                               </div>
                             )}
                           </div>
                         </div>
                         <div id="sec-final-diagnosis" className="scroll-mt-24 clinical-group bg-white border border-slate-300 p-3 sm:p-8 space-y-4 shadow-md">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-b border-slate-100 pb-4">
-                            <Label className="clinical-label !bg-orange-50 !text-orange-600 !border-orange-100 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
+                            <Label className="clinical-label !bg-brand/10 !text-brand !border-brand/10 border px-3 py-1.5 inline-block m-0">Final Clinical Diagnosis</Label>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                             <div className="flex flex-col flex-1 group gap-4">
@@ -3114,7 +3114,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 ))}
                               </div>
-                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-brand rounded-none border-brand/20 bg-brand/5 p-3 shadow-inner focus:bg-white focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OD || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OD: sanitizeOptometryInput(e.target.value, 'notes') }))} />
                             </div>
                             <div className="flex flex-col flex-1 group gap-4">
                               <EyeIndicator eye="OS" />
@@ -3129,7 +3129,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 ))}
                               </div>
-                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-orange-600 rounded-none border-orange-200 bg-orange-50/30 p-3 shadow-inner focus:bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                              <Textarea placeholder="Other manual diagnosis..." className="min-h-[80px] text-sm font-black text-brand rounded-none border-brand/20 bg-brand/5 p-3 shadow-inner focus:bg-white focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={finalDiagnosis.OS || ""} onChange={e => setFinalDiagnosis(prev => ({ ...prev, OS: sanitizeOptometryInput(e.target.value, 'notes') }))} />
                             </div>
                           </div>
                         </div>
@@ -3144,11 +3144,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <fieldset disabled={isLocked} className="contents">
                 <div className="max-w-7xl mx-auto space-y-10 mb-12">
                   {isLocked && (
-                    <div className="bg-orange-100 border-l-4 border-orange-500 p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
-                      <AlertCircle className="w-6 h-6 text-orange-600" />
+                    <div className="bg-brand/10 border-l-4 border-brand p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
+                      <AlertCircle className="w-6 h-6 text-brand" />
                       <div>
-                        <h4 className="text-sm font-black text-orange-600 uppercase">Input Locked</h4>
-                        <p className="text-xs font-bold text-orange-600">Please click "Begin Consultation" at the top to enable lens prescription fields.</p>
+                        <h4 className="text-sm font-black text-brand uppercase">Input Locked</h4>
+                        <p className="text-xs font-bold text-brand">Please click "Begin Consultation" at the top to enable lens prescription fields.</p>
                       </div>
                     </div>
                   )}
@@ -3157,12 +3157,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       <SectionHeader icon={Glasses} category="Optometry Outcome" title="Final Optometrist Recommendation" />
                     </div>
                     <div className="p-6 sm:p-8 space-y-8">
-                      <div className="bg-orange-50/80 border border-orange-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-3 bg-orange-100/50 border-b border-orange-200 flex items-center gap-3">
-                          <Activity className="w-4 h-4 text-orange-600" />
-                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-orange-600">Refraction Acceptance Data (Read-Only)</label>
+                      <div className="bg-brand/10/80 border border-brand/20 shadow-sm overflow-hidden">
+                        <div className="px-6 py-3 bg-brand/20 border-b border-brand/20 flex items-center gap-3">
+                          <Activity className="w-4 h-4 text-brand" />
+                          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-brand">Refraction Acceptance Data (Read-Only)</label>
                         </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-orange-200/50">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-brand/20">
                           <div className="p-5 flex flex-col gap-1.5 bg-blue-50/30">
                             <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeMutedLabelClass("OD"))}>OD - DISTANCE</span>
                             <span className={cn("text-lg font-black font-mono tracking-tighter", eyeValueClass("OD"))}>
@@ -3204,23 +3204,23 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <Card className="clinical-card group overflow-hidden mt-6">
                     <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Glasses className="w-5 h-5 shrink-0" /></div>
+                        <div className="p-2.5 bg-brand text-white shadow-md rounded-md"><Glasses className="w-5 h-5 shrink-0" /></div>
                         <div className="flex flex-col">
-                          <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">Clinical Optics</span>
+                          <span className="text-[9.5px] font-black uppercase tracking-wider text-brand mb-0.5">Clinical Optics</span>
                           <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">Final Spectacles RX</h3>
                         </div>
                       </div>
                       <Button
                         type="button"
                         onClick={() => triggerPrint('glass')}
-                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
+                        className="bg-brand hover:bg-brand-hover text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
                       >
                         <Printer className="w-3.5 h-3.5" />
                         Print RX
                       </Button>
                     </div>
                     <div className="p-6">
-                      <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
+                      <div className="space-y-6 pb-6 mb-6 border-b border-brand/10">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Lens Architecture</label>
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -3240,8 +3240,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   className={cn(
                                     "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
                                     isSelected
-                                      ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                      : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                      ? "bg-brand text-white border-brand shadow-md"
+                                      : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand"
                                   )}
                                 >
                                   {opt.label}
@@ -3271,8 +3271,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   className={cn(
                                     "px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider transition-all border border-slate-250 rounded-none",
                                     isSelected
-                                      ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                      : "bg-white text-slate-500 hover:border-orange-200 hover:text-orange-600"
+                                      ? "bg-brand text-white border-brand shadow-sm"
+                                      : "bg-white text-slate-500 hover:border-brand/20 hover:text-brand"
                                   )}
                                 >
                                   {opt.label}
@@ -3295,38 +3295,38 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   <EyeIndicator eye="OS" compact tableHeader />
                                 </TableHead>
                               </TableRow>
-                              <TableRow className="hover:bg-orange-600 border-b border-orange-500/40 bg-orange-600">
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-orange-600">SPH</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">CYL</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">AXIS</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-orange-500/40 bg-orange-600">VA</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">SPH</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">CYL</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">AXIS</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">VA</TableHead>
+                              <TableRow className="hover:bg-brand border-b border-brand/40 bg-brand">
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-brand">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-brand/40 bg-brand">VA</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">VA</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               <TableRow className="h-16 bg-white">
                                 <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">DV</span></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.sphere} onChange={val => updateGlassPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.cylinder} onChange={val => updateGlassPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.axis} onChange={val => updateGlassPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
-                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.distance.OD.vn || ""} onChange={val => updateGlassPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.sphere} onChange={val => updateGlassPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.cylinder} onChange={val => updateGlassPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.axis} onChange={val => updateGlassPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.sphere} onChange={val => updateGlassPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.cylinder} onChange={val => updateGlassPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OD.axis} onChange={val => updateGlassPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-brand/20"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.distance.OD.vn || ""} onChange={val => updateGlassPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.sphere} onChange={val => updateGlassPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.cylinder} onChange={val => updateGlassPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={glassPrescription.distance.OS.axis} onChange={val => updateGlassPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
                                 <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={glassPrescription.distance.OS.vn || ""} onChange={val => updateGlassPrescription('distance', 'OS', 'vn', val)} placeholder="6/6" label="OS DV VA" type="dv" /></TableCell>
                               </TableRow>
-                              <TableRow className="h-16 bg-orange-50/30">
-                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-orange-600">NV</span></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.sphere} onChange={val => updateGlassPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.cylinder} onChange={val => updateGlassPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OD.axis} onChange={val => updateGlassPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
-                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.near.OD.vn || ""} onChange={val => updateGlassPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.sphere} onChange={val => updateGlassPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.cylinder} onChange={val => updateGlassPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={glassPrescription.near.OS.axis} onChange={val => updateGlassPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
+                              <TableRow className="h-16 bg-brand/5">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-brand">NV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OD.sphere} onChange={val => updateGlassPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OD.cylinder} onChange={val => updateGlassPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OD.axis} onChange={val => updateGlassPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-brand/20"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={glassPrescription.near.OD.vn || ""} onChange={val => updateGlassPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OS.sphere} onChange={val => updateGlassPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OS.cylinder} onChange={val => updateGlassPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={glassPrescription.near.OS.axis} onChange={val => updateGlassPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
                                 <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={glassPrescription.near.OS.vn || ""} onChange={val => updateGlassPrescription('near', 'OS', 'vn', val)} placeholder="N6" label="OS NV VA" type="nv" /></TableCell>
                               </TableRow>
                               <TableRow className="h-14 bg-slate-50/60">
@@ -3408,9 +3408,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             </div>
                             <div className="pt-2 grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (SPH)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(glassPrescription.near as any)[eye].sphere}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'sphere', val)}
                                   placeholder="0.00"
@@ -3419,9 +3419,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (CYL)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (CYL)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(glassPrescription.near as any)[eye].cylinder}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'cylinder', val)}
                                   label={`${eye} NV (CYL)`}
@@ -3429,9 +3429,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (AXIS)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (AXIS)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(glassPrescription.near as any)[eye].axis}
                                   onChange={val => updateGlassPrescription('near', eye as any, 'axis', val)}
                                   label={`${eye} NV (AXIS)`}
@@ -3495,23 +3495,23 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   <Card className="clinical-card group overflow-hidden mt-6">
                     <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Eye className="w-5 h-5 shrink-0" /></div>
+                        <div className="p-2.5 bg-brand text-white shadow-md rounded-md"><Eye className="w-5 h-5 shrink-0" /></div>
                         <div className="flex flex-col">
-                          <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">Clinical Optics</span>
+                          <span className="text-[9.5px] font-black uppercase tracking-wider text-brand mb-0.5">Clinical Optics</span>
                           <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">Final Contact Lens RX</h3>
                         </div>
                       </div>
                       <Button
                         type="button"
                         onClick={() => triggerPrint('glass')}
-                        className="bg-orange-600 hover:bg-orange-700 text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
+                        className="bg-brand hover:bg-brand-hover text-white font-bold uppercase text-[10px] tracking-wider flex items-center gap-2 h-9 px-4 rounded-none shadow-md shrink-0"
                       >
                         <Printer className="w-3.5 h-3.5" />
                         Print RX
                       </Button>
                     </div>
                     <div className="p-6">
-                      <div className="space-y-6 pb-6 mb-6 border-b border-orange-100">
+                      <div className="space-y-6 pb-6 mb-6 border-b border-brand/10">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest block">Prescribed Contact Lens Type</label>
                           <div className="flex flex-wrap gap-2 pt-1">
@@ -3523,7 +3523,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 <button key={type} type="button" disabled={isDisabled} onClick={() => {
                                   const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
                                   setContactLensPrescription(p => ({ ...p, clType: nextTypes }));
-                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                                }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-brand text-white border-brand shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
                               );
                             })}
                           </div>
@@ -3543,38 +3543,38 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   <EyeIndicator eye="OS" compact tableHeader />
                                 </TableHead>
                               </TableRow>
-                              <TableRow className="hover:bg-orange-600 border-b border-orange-500/40 bg-orange-600">
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-orange-600">SPH</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">CYL</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600">AXIS</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-orange-500/40 bg-orange-600">VA</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">SPH</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">CYL</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">AXIS</TableHead>
-                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-orange-600/80">VA</TableHead>
+                              <TableRow className="hover:bg-brand border-b border-brand/40 bg-brand">
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest h-9 bg-brand">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest border-r border-brand/40 bg-brand">VA</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">SPH</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">CYL</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">AXIS</TableHead>
+                                <TableHead className="text-center text-white font-black uppercase text-[11px] tracking-widest bg-brand/80">VA</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               <TableRow className="h-16 bg-white">
                                 <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-slate-500">DV</span></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.sphere} onChange={val => updateContactLensPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.cylinder} onChange={val => updateContactLensPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.axis} onChange={val => updateContactLensPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
-                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.distance.OD.vn || ""} onChange={val => updateContactLensPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.sphere} onChange={val => updateContactLensPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.cylinder} onChange={val => updateContactLensPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.axis} onChange={val => updateContactLensPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.sphere} onChange={val => updateContactLensPrescription('distance', 'OD', 'sphere', val)} label="OD DV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.cylinder} onChange={val => updateContactLensPrescription('distance', 'OD', 'cylinder', val)} label="OD DV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OD.axis} onChange={val => updateContactLensPrescription('distance', 'OD', 'axis', val)} label="OD DV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-brand/20"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.distance.OD.vn || ""} onChange={val => updateContactLensPrescription('distance', 'OD', 'vn', val)} placeholder="6/6" label="OD DV VA" type="dv" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.sphere} onChange={val => updateContactLensPrescription('distance', 'OS', 'sphere', val)} label="OS DV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.cylinder} onChange={val => updateContactLensPrescription('distance', 'OS', 'cylinder', val)} label="OS DV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-slate-200 focus:border-brand focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all" value={contactLensPrescription.distance.OS.axis} onChange={val => updateContactLensPrescription('distance', 'OS', 'axis', val)} label="OS DV AXIS" type="axis" /></TableCell>
                                 <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={contactLensPrescription.distance.OS.vn || ""} onChange={val => updateContactLensPrescription('distance', 'OS', 'vn', val)} placeholder="6/6" label="OS DV VA" type="dv" /></TableCell>
                               </TableRow>
-                              <TableRow className="h-16 bg-orange-50/30">
-                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-orange-600">NV</span></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.sphere} onChange={val => updateContactLensPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.cylinder} onChange={val => updateContactLensPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
-                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OD.axis} onChange={val => updateContactLensPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
-                                <TableCell className="bg-blue-50/30 border-r border-orange-200"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.near.OD.vn || ""} onChange={val => updateContactLensPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.sphere} onChange={val => updateContactLensPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.cylinder} onChange={val => updateContactLensPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
-                                <TableCell className="bg-orange-50/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 focus:border-orange-600 focus:ring-0 transition-all" value={contactLensPrescription.near.OS.axis} onChange={val => updateContactLensPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
+                              <TableRow className="h-16 bg-brand/5">
+                                <TableCell className="pl-4 border-r border-slate-100"><span className="text-[11px] font-black uppercase tracking-widest text-brand">NV</span></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OD.sphere} onChange={val => updateContactLensPrescription('near', 'OD', 'sphere', val)} placeholder="0.00" label="OD NV SPH" type="sph" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OD.cylinder} onChange={val => updateContactLensPrescription('near', 'OD', 'cylinder', val)} label="OD NV CYL" type="cyl" /></TableCell>
+                                <TableCell><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OD.axis} onChange={val => updateContactLensPrescription('near', 'OD', 'axis', val)} label="OD NV AXIS" type="axis" /></TableCell>
+                                <TableCell className="bg-blue-50/30 border-r border-brand/20"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-blue-100 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-blue-700" value={contactLensPrescription.near.OD.vn || ""} onChange={val => updateContactLensPrescription('near', 'OD', 'vn', val)} placeholder="N6" label="OD NV VA" type="nv" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OS.sphere} onChange={val => updateContactLensPrescription('near', 'OS', 'sphere', val)} placeholder="0.00" label="OS NV SPH" type="sph" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OS.cylinder} onChange={val => updateContactLensPrescription('near', 'OS', 'cylinder', val)} label="OS NV CYL" type="cyl" /></TableCell>
+                                <TableCell className="bg-brand/10/10"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 focus:border-brand focus:ring-0 transition-all" value={contactLensPrescription.near.OS.axis} onChange={val => updateContactLensPrescription('near', 'OS', 'axis', val)} label="OS NV AXIS" type="axis" /></TableCell>
                                 <TableCell className="bg-emerald-50/30"><PowerPaletteInput className="h-11 text-center text-base font-black bg-white rounded-none border-emerald-100 focus:border-emerald-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all text-emerald-700" value={contactLensPrescription.near.OS.vn || ""} onChange={val => updateContactLensPrescription('near', 'OS', 'vn', val)} placeholder="N6" label="OS NV VA" type="nv" /></TableCell>
                               </TableRow>
                             </TableBody>
@@ -3638,9 +3638,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                             </div>
                             <div className="pt-2 grid grid-cols-4 gap-3">
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (SPH)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (SPH)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(contactLensPrescription.near as any)[eye].sphere}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'sphere', val)}
                                   placeholder="0.00"
@@ -3649,9 +3649,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (CYL)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (CYL)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(contactLensPrescription.near as any)[eye].cylinder}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'cylinder', val)}
                                   label={`${eye} NV (CYL)`}
@@ -3659,9 +3659,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-orange-600">NV (AXIS)</label>
+                                <label className="text-[10px] font-black uppercase text-brand">NV (AXIS)</label>
                                 <PowerPaletteInput
-                                  className="h-11 text-center font-black bg-orange-50/10 border-orange-100 rounded-none text-orange-600"
+                                  className="h-11 text-center font-black bg-brand/10/10 border-brand/10 rounded-none text-brand"
                                   value={(contactLensPrescription.near as any)[eye].axis}
                                   onChange={val => updateContactLensPrescription('near', eye as any, 'axis', val)}
                                   label={`${eye} NV (AXIS)`}
@@ -3700,18 +3700,18 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <fieldset disabled={isLocked} className="contents">
                 <div className="max-w-6xl mx-auto space-y-10 mb-12">
                   {isLocked && (
-                    <div className="bg-orange-100 border-l-4 border-orange-500 p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
-                      <AlertCircle className="w-6 h-6 text-orange-600" />
+                    <div className="bg-brand/10 border-l-4 border-brand p-4 mb-4 flex items-center gap-4 shadow-sm animate-pulse-slow">
+                      <AlertCircle className="w-6 h-6 text-brand" />
                       <div>
-                        <h4 className="text-sm font-black text-orange-600 uppercase">Medical Rx Locked</h4>
-                        <p className="text-xs font-bold text-orange-600">Medication entry is only permitted after starting the patient consultation.</p>
+                        <h4 className="text-sm font-black text-brand uppercase">Medical Rx Locked</h4>
+                        <p className="text-xs font-bold text-brand">Medication entry is only permitted after starting the patient consultation.</p>
                       </div>
                     </div>
                   )}
                   <Card className="clinical-card bg-white shadow-md overflow-hidden border border-slate-200">
                     <div className="p-6 sm:p-8 border-b border-slate-100 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                       <SectionHeader icon={Pill} category="Clinical Pharmacy" title="Drug Prescription Portfolio" />
-                      <Button size="lg" className="h-14 gap-3 font-black bg-orange-600 hover:bg-black rounded-none px-8 tracking-widest shadow-xl uppercase w-full sm:w-auto" onClick={addMedication}>
+                      <Button size="lg" className="h-14 gap-3 font-black bg-brand hover:bg-black rounded-none px-8 tracking-widest shadow-xl uppercase w-full sm:w-auto" onClick={addMedication}>
                         <Plus className="w-5 h-5 border-2 border-white rounded-full" /> New Medication
                       </Button>
                     </div>
@@ -3722,12 +3722,12 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           <TableHeader className="bg-slate-50 border-b-2 border-slate-100">
                             <TableRow className="h-16 hover:bg-transparent">
                               <TableHead className="w-16 text-center text-[12px] font-black uppercase tracking-widest text-slate-400">#</TableHead>
-                              <TableHead className="min-w-[280px] text-[12px] font-black uppercase tracking-widest text-orange-600">Drug / Formula Name</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Dosage</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Route</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Frequency</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Duration</TableHead>
-                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-orange-600">Eye / Food Timing</TableHead>
+                              <TableHead className="min-w-[280px] text-[12px] font-black uppercase tracking-widest text-brand">Drug / Formula Name</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-brand">Dosage</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-brand">Route</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-brand">Frequency</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-brand">Duration</TableHead>
+                              <TableHead className="text-[12px] font-black uppercase tracking-widest text-brand">Eye / Food Timing</TableHead>
                               <TableHead className="w-20"></TableHead>
                             </TableRow>
                           </TableHeader>
@@ -3742,19 +3742,19 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 </TableCell>
                               </TableRow>
                             ) : medications.map((med, index) => (
-                              <TableRow key={med.id} className="group hover:bg-orange-50/50 transition-colors">
+                              <TableRow key={med.id} className="group hover:bg-brand/5 transition-colors">
                                 <TableCell className="text-center font-black text-slate-300 py-4 align-top">{index + 1}</TableCell>
                                 <TableCell className="py-4 align-top">
                                   <Input
                                     readOnly
-                                    className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:bg-yellow-50/30 cursor-pointer transition-all"
+                                    className="h-12 text-sm font-black border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:bg-yellow-50/30 cursor-pointer transition-all"
                                     value={med.drug}
                                     placeholder="Hover row to select from catalog"
                                   />
                                   {renderDrugInventoryChips(med.id, med.drug, "max-w-[280px]")}
                                 </TableCell>
                                 <TableCell className="py-4 align-top">
-                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.dosage} onChange={e => updateMedication(med.id, "dosage", e.target.value)} placeholder="1 Drop" />
+                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.dosage} onChange={e => updateMedication(med.id, "dosage", e.target.value)} placeholder="1 Drop" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden group-hover:max-h-20 group-hover:opacity-100 group-hover:mt-1.5 focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1.5 transition-all duration-200 ease-out max-w-[120px]">
                                     {["1 Drop", "2 Drops", "1 Tab", "1 Cap"].map(p => (
                                       <button
@@ -3776,8 +3776,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       className={cn(
                                         "px-3 py-2 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
                                         med.route === "Topical"
-                                          ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          ? "bg-brand text-white border-brand shadow-sm"
+                                          : "bg-white text-slate-500 border-slate-200 hover:border-brand/40 hover:text-brand"
                                       )}
                                     >
                                       Topical
@@ -3788,8 +3788,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                       className={cn(
                                         "px-3 py-2 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
                                         med.route === "Oral"
-                                          ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                          : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                          ? "bg-brand text-white border-brand shadow-sm"
+                                          : "bg-white text-slate-500 border-slate-200 hover:border-brand/40 hover:text-brand"
                                       )}
                                     >
                                       Oral
@@ -3797,7 +3797,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 </TableCell>
                                 <TableCell className="py-4 align-top">
-                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.frequency} onChange={e => updateMedication(med.id, "frequency", e.target.value)} placeholder="QID (4 times)" />
+                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.frequency} onChange={e => updateMedication(med.id, "frequency", e.target.value)} placeholder="QID (4 times)" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden group-hover:max-h-20 group-hover:opacity-100 group-hover:mt-1.5 focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1.5 transition-all duration-200 ease-out max-w-[140px]">
                                     {[
                                       { label: "QID", value: "QID (4 times)" },
@@ -3818,7 +3818,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   </div>
                                 </TableCell>
                                 <TableCell className="py-4 align-top">
-                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white font-mono focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.duration} onChange={e => updateMedication(med.id, "duration", e.target.value)} placeholder="5 Days" />
+                                  <Input className="h-12 text-sm font-bold border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-white font-mono focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.duration} onChange={e => updateMedication(med.id, "duration", e.target.value)} placeholder="5 Days" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden group-hover:max-h-20 group-hover:opacity-100 group-hover:mt-1.5 focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1.5 transition-all duration-200 ease-out max-w-[120px]">
                                     {["5 Days", "7 Days", "10 Days", "15 Days", "1 Mo"].map(p => (
                                       <button
@@ -3846,8 +3846,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                           className={cn(
                                             "px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
                                             med.foodRelation === p.value
-                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                              ? "bg-brand text-white border-brand shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-brand/40 hover:text-brand"
                                           )}
                                         >
                                           {p.label}
@@ -3869,8 +3869,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                           className={cn(
                                             "px-2 py-2 text-[10px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-12 flex items-center justify-center",
                                             med.eye === p.value
-                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600"
+                                              ? "bg-brand text-white border-brand shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-brand/40 hover:text-brand"
                                           )}
                                         >
                                           {p.label}
@@ -3880,7 +3880,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   )}
                                 </TableCell>
                                 <TableCell>
-                                  <Button variant="ghost" size="icon" className="h-12 w-12 text-slate-300 hover:text-red-600 hover:bg-orange-50 transition-all" onClick={() => removeMedication(med.id)}>
+                                  <Button variant="ghost" size="icon" className="h-12 w-12 text-slate-300 hover:text-red-600 hover:bg-brand/10 transition-all" onClick={() => removeMedication(med.id)}>
                                     <Trash2 className="w-5 h-5" />
                                   </Button>
                                 </TableCell>
@@ -3900,7 +3900,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                         ) : medications.map((med, index) => (
                           <div key={med.id} className="p-4 space-y-4 bg-white relative">
                             <div className="flex items-center justify-between">
-                              <span className="text-[12px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-2 py-0.5">DRUG #{index + 1}</span>
+                              <span className="text-[12px] font-black text-brand uppercase tracking-widest bg-brand/10 px-2 py-0.5">DRUG #{index + 1}</span>
                               <Button variant="ghost" size="sm" className="h-8 w-8 text-slate-300 hover:text-red-600 p-0" onClick={() => removeMedication(med.id)}>
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -3909,7 +3909,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <div className="group">
                                 <Input
                                   readOnly
-                                  className="h-12 text-sm font-black border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-slate-50/30 cursor-pointer"
+                                  className="h-12 text-sm font-black border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-slate-50/30 cursor-pointer"
                                   value={med.drug}
                                   placeholder="Tap field to select from catalog"
                                 />
@@ -3918,7 +3918,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                   <label className="text-[10px] font-black uppercase text-slate-400">Dosage</label>
-                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.dosage} onChange={e => updateMedication(med.id, "dosage", e.target.value)} placeholder="Dosage" />
+                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.dosage} onChange={e => updateMedication(med.id, "dosage", e.target.value)} placeholder="Dosage" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden focus-within:max-h-16 focus-within:opacity-100 focus-within:mt-1 transition-all duration-200 ease-out">
                                     {["1 Drop", "2 Drops", "1 Tab", "1 Cap"].map(p => (
                                       <button
@@ -3934,7 +3934,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 </div>
                                 <div className="space-y-1.5">
                                   <label className="text-[10px] font-black uppercase text-slate-400">Duration</label>
-                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.duration} onChange={e => updateMedication(med.id, "duration", e.target.value)} placeholder="Duration" />
+                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.duration} onChange={e => updateMedication(med.id, "duration", e.target.value)} placeholder="Duration" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden focus-within:max-h-16 focus-within:opacity-100 focus-within:mt-1 transition-all duration-200 ease-out">
                                     {["5 Days", "7 Days", "10 Days", "15 Days", "1 Mo"].map(p => (
                                       <button
@@ -3952,7 +3952,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                   <label className="text-[10px] font-black uppercase text-slate-400">Frequency</label>
-                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0" value={med.frequency} onChange={e => updateMedication(med.id, "frequency", e.target.value)} placeholder="Frequency" />
+                                  <Input className="h-10 text-xs font-bold rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0" value={med.frequency} onChange={e => updateMedication(med.id, "frequency", e.target.value)} placeholder="Frequency" />
                                   <div className="flex flex-wrap gap-1 max-h-0 opacity-0 overflow-hidden focus-within:max-h-20 focus-within:opacity-100 focus-within:mt-1 transition-all duration-200 ease-out">
                                     {[
                                       { label: "QID", value: "QID (4 times)" },
@@ -3989,8 +3989,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                           className={cn(
                                             "px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
                                             med.foodRelation === p.value
-                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                              ? "bg-brand text-white border-brand shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-brand/40"
                                           )}
                                         >
                                           {p.label}
@@ -4009,8 +4009,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                           className={cn(
                                             "px-2 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
                                             med.eye === p.value
-                                              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                              : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                              ? "bg-brand text-white border-brand shadow-sm"
+                                              : "bg-white text-slate-500 border-slate-200 hover:border-brand/40"
                                           )}
                                         >
                                           {p.label}
@@ -4029,8 +4029,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     className={cn(
                                       "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
                                       med.route === "Topical"
-                                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                        ? "bg-brand text-white border-brand shadow-sm"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-brand/40"
                                     )}
                                   >
                                     Topical
@@ -4041,8 +4041,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                     className={cn(
                                       "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider transition-all border-2 rounded-none leading-none grow text-center h-10 flex items-center justify-center",
                                       med.route === "Oral"
-                                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                                        : "bg-white text-slate-500 border-slate-200 hover:border-orange-400"
+                                        ? "bg-brand text-white border-brand shadow-sm"
+                                        : "bg-white text-slate-500 border-slate-200 hover:border-brand/40"
                                     )}
                                   >
                                     Oral
@@ -4053,9 +4053,9 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           </div>
                         ))}
                       </div>
-                      <div className="p-10 bg-orange-600/5 border-t-2 border-slate-100">
+                      <div className="p-10 bg-brand/5 border-t-2 border-slate-100">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                          <label className="text-xs font-black uppercase tracking-widest text-orange-600">Special Administration Instructions</label>
+                          <label className="text-xs font-black uppercase tracking-widest text-brand">Special Administration Instructions</label>
                           <div className="flex flex-wrap gap-2">
                             {[
                               { name: "Shake Well", text: "Shake well before use." },
@@ -4073,7 +4073,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                   const newVal = currentVal ? `${currentVal}\n${tmpl.text}` : tmpl.text;
                                   updateInvestigation(['adminInstructions'], newVal);
                                 }}
-                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-orange-50 text-slate-500 hover:text-orange-600 border border-slate-200 hover:border-orange-200 active:scale-95 transition-all rounded-none"
+                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-brand/10 text-slate-500 hover:text-brand border border-slate-200 hover:border-brand/20 active:scale-95 transition-all rounded-none"
                               >
                                 {tmpl.name}
                               </button>
@@ -4102,15 +4102,15 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                   <div className="p-4 sm:p-6 space-y-6">
                     {/* Section 1: Current Status */}
-                    <div className="bg-orange-50/40 border border-orange-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="bg-brand/10/40 border border-brand/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Current Follow-up Plan</span>
                         {investigation.followUpDate ? (
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-black text-orange-600">
+                            <span className="text-sm font-black text-brand">
                               Scheduled for {new Date(investigation.followUpDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </span>
-                            <Badge className="bg-orange-600/10 text-orange-600 border border-orange-200/50 text-[10px] font-black uppercase px-2 h-5 rounded-none whitespace-nowrap shrink-0">
+                            <Badge className="bg-brand/10 text-brand border border-brand/20/50 text-[10px] font-black uppercase px-2 h-5 rounded-none whitespace-nowrap shrink-0">
                               {investigation.followUpTimeFrame}
                             </Badge>
                           </div>
@@ -4161,11 +4161,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               updateInvestigation(['opinion'], tmpl.text);
                               selectFollowUpTimeFrame(tmpl.time);
                             }}
-                            className="p-3 text-left border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 transition-all duration-200 bg-slate-50/30 active:scale-[0.98] rounded-sm"
+                            className="p-3 text-left border border-slate-200 hover:border-brand/40 hover:bg-brand/5 transition-all duration-200 bg-slate-50/30 active:scale-[0.98] rounded-sm"
                           >
                             <div className="flex justify-between items-center mb-1">
                               <span className="text-xs font-black uppercase tracking-wider text-slate-700">{tmpl.name}</span>
-                              <Badge className="bg-orange-600/10 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-none">{tmpl.time}</Badge>
+                              <Badge className="bg-brand/10 text-brand text-[8px] font-black px-1.5 py-0.5 rounded-none">{tmpl.time}</Badge>
                             </div>
                             <p className="text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed">{tmpl.text}</p>
                           </button>
@@ -4174,7 +4174,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
                       <Textarea
                         placeholder="Provide specific instructions or reason for the review visit..."
-                        className="min-h-[140px] text-base font-medium rounded-none border-slate-300 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0 p-5 leading-relaxed bg-white"
+                        className="min-h-[140px] text-base font-medium rounded-none border-slate-300 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0 p-5 leading-relaxed bg-white"
                         value={investigation.opinion}
                         onChange={e => updateInvestigation(['opinion'], e.target.value)}
                       />
@@ -4197,7 +4197,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                                 followUpTimeFrame: val ? "Custom Date" : ""
                               }));
                             }}
-                            className="h-9 px-3 border border-slate-200 text-xs font-bold text-slate-700 bg-white focus:outline-none focus:border-orange-600"
+                            className="h-9 px-3 border border-slate-200 text-xs font-bold text-slate-700 bg-white focus:outline-none focus:border-brand"
                           />
                         </div>
                       </div>
@@ -4223,8 +4223,8 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               className={cn(
                                 "px-3 py-2 text-[10px] font-black uppercase tracking-widest border transition-all active:scale-95 rounded-none text-center",
                                 investigation.followUpTimeFrame === option.value
-                                  ? "bg-orange-600 border-orange-600 text-white shadow-sm"
-                                  : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200"
+                                  ? "bg-brand border-brand text-white shadow-sm"
+                                  : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-brand/10 hover:text-brand hover:border-brand/20"
                               )}
                             >
                               {option.name}
@@ -4243,7 +4243,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
               <div className="max-w-5xl mx-auto space-y-12 mb-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-black text-orange-600 uppercase tracking-normal flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-black text-brand uppercase tracking-normal flex items-center gap-2">
                       <History className="w-5 h-5 opacity-50 shrink-0" /> Patient Longitudinal Profile
                     </h3>
                     <p className="text-xs font-bold text-slate-400 pl-7">Total Clinical Footprint: {visitHistory.length} Comprehensive Visits</p>
@@ -4265,23 +4265,23 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     {visitHistory.map((visit) => (
                       <div
                         key={visit.id}
-                        className="group relative clinical-card !shadow-sm hover:shadow-xl hover:border-orange-600/20 border border-slate-100 transition-all cursor-pointer overflow-hidden"
+                        className="group relative clinical-card !shadow-sm hover:shadow-xl hover:border-brand/20 border border-slate-100 transition-all cursor-pointer overflow-hidden"
                         onClick={() => {
                           setSelectedHistoricalVisit(visit);
                           setIsHistoryDetailsOpen(true);
                         }}
                       >
                         <div className="flex items-stretch min-h-[140px]">
-                          <div className="w-1.5 sm:w-3 bg-slate-200 group-hover:bg-orange-600 transition-colors shrink-0" />
+                          <div className="w-1.5 sm:w-3 bg-slate-200 group-hover:bg-brand transition-colors shrink-0" />
                           <div className="flex-1 p-5 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                             <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
                               <div className="flex flex-col min-w-0">
                                 <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest mb-1">Diagnostic Date</span>
-                                <span className="text-xl sm:text-2xl font-black text-orange-600 tracking-tighter uppercase whitespace-nowrap">
+                                <span className="text-xl sm:text-2xl font-black text-brand tracking-tighter uppercase whitespace-nowrap">
                                   {new Date(visit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
                                 <div className="flex items-center gap-2 mt-2">
-                                  <Badge className="h-5 rounded-none bg-orange-50 text-orange-600 border-orange-200 font-black text-[10px] uppercase tracking-widest shrink-0">{visit.status}</Badge>
+                                  <Badge className="h-5 rounded-none bg-brand/10 text-brand border-brand/20 font-black text-[10px] uppercase tracking-widest shrink-0">{visit.status}</Badge>
                                   <span className="text-[12px] font-mono text-slate-400 truncate md:hidden">ID: {(visit.id || "").substring(0, 8)}</span>
                                 </div>
                               </div>
@@ -4298,11 +4298,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                               <div className="text-left sm:text-right flex flex-col sm:items-end">
                                 <p className="text-[12px] uppercase font-black text-slate-400 tracking-[0.2em] mb-1">Lead Consultant</p>
                                 <div className="flex items-center gap-2">
-                                  <Stethoscope className="w-4 h-4 text-orange-500 sm:hidden" />
+                                  <Stethoscope className="w-4 h-4 text-brand sm:hidden" />
                                   <p className="text-base sm:text-lg font-black text-slate-800 tracking-tight whitespace-nowrap">{visit.consultingDoctorName || visit.consultation?.doctorName || "Dr. Clinical Lead"}</p>
                                 </div>
                               </div>
-                              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-none border-2 border-slate-100 flex items-center justify-center group-hover:bg-orange-600 group-hover:border-orange-600 transition-all shrink-0">
+                              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-none border-2 border-slate-100 flex items-center justify-center group-hover:bg-brand group-hover:border-brand transition-all shrink-0">
                                 <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300 group-hover:text-white transition-all transform group-hover:translate-x-1" />
                               </div>
                             </div>
@@ -4358,13 +4358,13 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
             <>
               <DialogHeader className="bg-white border-b border-slate-200 p-5 shrink-0 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-base uppercase">
+                  <div className="w-10 h-10 rounded-full bg-brand/10 text-brand flex items-center justify-center font-black text-base uppercase">
                     {selectedFamilyPatient.name.charAt(0)}
                   </div>
                   <div>
                     <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
                       <span>{selectedFamilyPatient.name}</span>
-                      <Badge className="bg-orange-600 text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
+                      <Badge className="bg-brand text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
                         MRN: {selectedFamilyPatient.mrNumber}
                       </Badge>
                       {selectedFamilyPatient.familyMaps?.[0]?.relationshipType && (
@@ -4405,14 +4405,14 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       {familyPatientHistory.map((visit) => (
                         <div
                           key={visit.id}
-                          className="group relative bg-white p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4"
+                          className="group relative bg-white p-4 rounded-xl border border-slate-200 hover:border-brand hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4"
                           onClick={() => {
                             setSelectedHistoricalVisit(visit);
                             setIsHistoryDetailsOpen(true);
                           }}
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-2 h-2 rounded-full bg-orange-500" />
+                            <div className="w-2 h-2 rounded-full bg-brand/100" />
                             <div className="flex flex-col">
                               <span className="text-xs font-black text-slate-800">
                                 {new Date(visit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -4424,10 +4424,10 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <Badge variant="outline" className="h-5 rounded-none bg-orange-50 text-orange-600 border-orange-200 text-[8px] font-black uppercase hover:bg-orange-50 hover:text-orange-600">
+                            <Badge variant="outline" className="h-5 rounded-none bg-brand/10 text-brand border-brand/20 text-[8px] font-black uppercase hover:bg-brand/10 hover:text-brand">
                               {visit.status}
                             </Badge>
-                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-orange-600 transition-colors" />
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-brand transition-colors" />
                           </div>
                         </div>
                       ))}

@@ -266,7 +266,7 @@ const TagInput = React.memo(({
                 "group flex items-center transition-all border uppercase",
                 isKeratometry
                   ? "bg-slate-100 text-black text-xs sm:text-sm font-bold px-3 py-1.5 border-slate-300 gap-1.5 tracking-normal"
-                  : "bg-blue-100/50 text-orange-600 text-[10px] font-black px-2 py-0.5 border-blue-200 gap-1 tracking-tighter"
+                  : "bg-blue-100/50 text-brand text-[10px] font-black px-2 py-0.5 border-blue-200 gap-1 tracking-tighter"
               )}>
                 {v}
                 {!disabled && (
@@ -320,7 +320,7 @@ const TagInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("up", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Increment"
             >
               <ChevronUp className="w-3.5 h-3.5 stroke-[3]" />
@@ -330,7 +330,7 @@ const TagInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("down", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Decrement"
             >
               <ChevronDown className="w-3.5 h-3.5 stroke-[3]" />
@@ -465,7 +465,7 @@ const DiagnosticCard = React.memo(({
         </div>
         <div className="flex items-center gap-3">
           {action && action}
-          {badge && <Badge variant="outline" className="border-orange-300 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">{badge}</Badge>}
+          {badge && <Badge variant="outline" className="border-brand/30 text-brand text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">{badge}</Badge>}
           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </div>
       </div>
@@ -541,13 +541,13 @@ const DualEyePrescriptionBlock = React.memo(({
       sectionId={stateKey}
       openSections={{ [stateKey]: isOpen }}
       onToggle={onToggle}
-      headerClassName={headerClassName || "bg-orange-50 text-orange-600 border-l-orange-600"}
+      headerClassName={headerClassName || "bg-brand/10 text-brand border-l-brand"}
       badge={data?.distance?.OD?.sphere ? "Assessment Active" : undefined}
       action={onSync && (
         <Button
           variant="default"
           size="sm"
-          className="h-8 px-4 bg-orange-600 hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
+          className="h-8 px-4 bg-brand hover:bg-black text-white rounded-none text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg"
           onClick={(e) => {
             e.stopPropagation();
             onSync();
@@ -561,7 +561,7 @@ const DualEyePrescriptionBlock = React.memo(({
         <div className="p-2 sm:p-5 space-y-4 sm:space-y-6">
           {["OD", "OS"].map((eye) => (
             <div key={eye} className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-4 border-b border-orange-100 pb-2">
+              <div className="flex items-center gap-4 border-b border-brand/10 pb-2">
                 <div className={eyeBoxClass(eye)}>{eye}</div>
                 <span className={cn("text-[10px] font-black uppercase tracking-widest", eyeLabelClass(eye))}>{eye === "OD" ? "Right Eye" : "Left Eye"} Result</span>
               </div>
@@ -569,7 +569,7 @@ const DualEyePrescriptionBlock = React.memo(({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-orange-50 px-2 py-0.5">Distance Vision (DV)</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-brand/10 px-2 py-0.5">Distance Vision (DV)</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="space-y-1">
@@ -580,7 +580,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.distance?.[eye]?.sphere || ""}
                         onChange={(val) => update("distance", eye as any, "sphere", val)}
                         placeholder="0.00"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -592,7 +592,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.distance?.[eye]?.cylinder || ""}
                         onChange={(val) => update("distance", eye as any, "cylinder", val)}
                         placeholder="0.00"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -604,7 +604,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.distance?.[eye]?.axis || ""}
                         onChange={(val) => update("distance", eye as any, "axis", val)}
                         placeholder="0"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -625,7 +625,7 @@ const DualEyePrescriptionBlock = React.memo(({
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-orange-50 px-2 py-0.5">Near Vision (NV)</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-brand/10 px-2 py-0.5">Near Vision (NV)</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <div className="space-y-1">
@@ -636,7 +636,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.near?.[eye]?.sphere || ""}
                         onChange={(val) => update("near", eye as any, "sphere", val)}
                         placeholder="0.00"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -648,7 +648,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.near?.[eye]?.cylinder || ""}
                         onChange={(val) => update("near", eye as any, "cylinder", val)}
                         placeholder="0.00"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -660,7 +660,7 @@ const DualEyePrescriptionBlock = React.memo(({
                         value={(data as any)?.near?.[eye]?.axis || ""}
                         onChange={(val) => update("near", eye as any, "axis", val)}
                         placeholder="0"
-                        className="h-11 text-center text-base font-black rounded-none border-orange-100 bg-white text-slate-950 focus:border-orange-400"
+                        className="h-11 text-center text-base font-black rounded-none border-brand/10 bg-white text-slate-950 focus:border-brand"
                         disabled={disabled}
                       />
                     </div>
@@ -812,7 +812,7 @@ const TonometrySection = React.memo(({
                           });
                         }}
                         placeholder="Value"
-                        className="h-11 flex-1 min-w-[70px] bg-white border-blue-100 text-orange-600 text-center text-base font-black focus:border-blue-400"
+                        className="h-11 flex-1 min-w-[70px] bg-white border-blue-100 text-brand text-center text-base font-black focus:border-blue-400"
                         disabled={disabled}
                       />
                       <Select disabled={disabled} value={(formData.tonometryDetails?.schiotz as any)?.[eye]?.weight || ""} onValueChange={(val) => {
@@ -823,7 +823,7 @@ const TonometrySection = React.memo(({
                           return { ...p, tonometryDetails: { ...currentDetails, schiotz: { ...currentSchiotz, [eye]: { ...currentEye, weight: val } } } };
                         });
                       }}>
-                        <SelectTrigger className="h-11 w-[70px] shrink-0 bg-white border-blue-100 text-orange-600 text-[10px] font-black transition-none focus:border-blue-400"><SelectValue placeholder="W" /></SelectTrigger>
+                        <SelectTrigger className="h-11 w-[70px] shrink-0 bg-white border-blue-100 text-brand text-[10px] font-black transition-none focus:border-blue-400"><SelectValue placeholder="W" /></SelectTrigger>
                         <SelectContent className="font-bold"><SelectItem value="5.5">5.5g</SelectItem><SelectItem value="7.5">7.5g</SelectItem><SelectItem value="10">10g</SelectItem></SelectContent>
                       </Select>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -840,7 +840,7 @@ const TonometrySection = React.memo(({
                             });
                           }}
                           placeholder="Value"
-                          className="h-11 w-16 bg-white border-blue-100 text-orange-600 text-center text-[13px] font-black focus:border-blue-400"
+                          className="h-11 w-16 bg-white border-blue-100 text-brand text-center text-[13px] font-black focus:border-blue-400"
                           disabled={disabled}
                         />
                         <span className="text-[11px] font-bold text-slate-400">mmHg</span>
@@ -1126,7 +1126,7 @@ const PowerPaletteInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("up", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Increment"
             >
               <ChevronUp className="w-3.5 h-3.5 stroke-[3]" />
@@ -1136,7 +1136,7 @@ const PowerPaletteInput = React.memo(({
               tabIndex={-1}
               onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => handleStep("down", e)}
-              className="text-slate-400 hover:text-orange-600 active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
+              className="text-slate-400 hover:text-brand active:scale-95 transition-all p-0 h-[14px] flex items-center justify-center cursor-pointer"
               title="Decrement"
             >
               <ChevronDown className="w-3.5 h-3.5 stroke-[3]" />
@@ -1202,7 +1202,7 @@ const PowerPaletteInput = React.memo(({
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
                   sign === "+"
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    ? "bg-white text-brand shadow-sm border border-slate-100"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
@@ -1216,7 +1216,7 @@ const PowerPaletteInput = React.memo(({
                 className={cn(
                   "flex-1 py-1.5 text-xs font-black uppercase rounded-md tracking-wider transition-all",
                   sign === "-"
-                    ? "bg-white text-orange-600 shadow-sm border border-slate-100"
+                    ? "bg-white text-brand shadow-sm border border-slate-100"
                     : "text-slate-400 hover:text-slate-600"
                 )}
               >
@@ -1243,8 +1243,8 @@ const PowerPaletteInput = React.memo(({
                     className={cn(
                       "py-2 px-1 text-[10px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
                       isSelected
-                        ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                        : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                        ? "bg-brand text-white border-brand-hover shadow-md"
+                        : "bg-slate-50 border-slate-100 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                     )}
                   >
                     {val}
@@ -1264,8 +1264,8 @@ const PowerPaletteInput = React.memo(({
                       className={cn(
                         "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
                         isSelected
-                          ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                          : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                          ? "bg-brand text-white border-brand-hover shadow-md"
+                          : "bg-slate-50 border-slate-100 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                       )}
                     >
                       {val}
@@ -1285,8 +1285,8 @@ const PowerPaletteInput = React.memo(({
                         className={cn(
                           "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
                           isSelected
-                            ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                            : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                            ? "bg-brand text-white border-brand-hover shadow-md"
+                            : "bg-slate-50 border-slate-100 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                         )}
                       >
                         {val}
@@ -1306,8 +1306,8 @@ const PowerPaletteInput = React.memo(({
                           className={cn(
                             "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
                             isSelected
-                              ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                              : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                              ? "bg-brand text-white border-brand-hover shadow-md"
+                              : "bg-slate-50 border-slate-100 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                           )}
                         >
                           {val}
@@ -1350,7 +1350,7 @@ const PowerPaletteInput = React.memo(({
                               className={cn(
                                 "py-2 px-1 text-[11px] font-black border rounded shadow-sm transition-all truncate",
                                 isSelected
-                                  ? "bg-orange-600 text-white border-orange-700 shadow-md"
+                                  ? "bg-brand text-white border-brand-hover shadow-md"
                                   : isNormal
                                     ? "bg-white text-emerald-600 border-emerald-100 hover:border-emerald-400 hover:bg-emerald-50/50"
                                     : "bg-white text-rose-600 border-rose-100 hover:border-rose-400 hover:bg-rose-50/50"
@@ -1373,8 +1373,8 @@ const PowerPaletteInput = React.memo(({
                               className={cn(
                                 "py-2 px-1 text-[11px] font-black text-slate-800 border rounded shadow-sm transition-all truncate",
                                 isSelected
-                                  ? "bg-orange-600 text-white border-orange-700 shadow-md"
-                                  : "bg-slate-50 border-slate-100 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-100"
+                                  ? "bg-brand text-white border-brand-hover shadow-md"
+                                  : "bg-slate-50 border-slate-100 hover:bg-brand/10 hover:text-brand hover:border-brand/10"
                               )}
                             >
                               {displayVal}
@@ -2471,14 +2471,14 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
             {/* Premium Diagnostic Header - Moved inside scrollable area */}
             <div className="bg-white border border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-md gap-4 md:gap-8 mb-4">
               <div className="flex items-center gap-4 md:gap-6 w-full sm:w-auto relative z-10">
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-orange-200/50 hidden xs:flex items-center justify-center">
+                <div className="bg-gradient-to-br from-brand to-brand-hover text-white p-2.5 md:p-3.5 rounded-xl shrink-0 shadow-lg shadow-brand/20 hidden xs:flex items-center justify-center">
                   <Eye className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                     <h2 className="text-base md:text-xl font-black text-slate-900 tracking-tight uppercase truncate">{patient.name || "UNNAMED PATIENT"}</h2>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge className="bg-orange-600 text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
+                      <Badge className="bg-brand text-white text-[10px] md:text-xs px-2 md:px-3 font-mono tracking-widest rounded-full h-5 md:h-6 font-black border-2 border-white shadow-sm">MR-{patient.mrNumber || "0000"}</Badge>
                       <Badge className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] md:text-xs px-2 font-black rounded-full h-5 md:h-6">T-{patient.tokenNumber || "—"}</Badge>
                     </div>
                   </div>
@@ -2488,7 +2488,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                     <span className="text-slate-300">•</span>
                     <span>{getPatientAgeString(patient)}</span>
                     <span className="text-slate-300">•</span>
-                    <span className="text-orange-600 font-black tracking-widest">Diagnostic Phase</span>
+                    <span className="text-brand font-black tracking-widest">Diagnostic Phase</span>
                   </div>
                 </div>
               </div>
@@ -2505,7 +2505,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                     size="sm"
                     onClick={handleAdvanceToRefraction}
                     disabled={advanceLoading}
-                    className="h-9 md:h-11 gap-2 bg-orange-600 hover:bg-black text-white font-black uppercase tracking-widest rounded-none px-3 md:px-6 shadow-md transition-all text-[9px] md:text-xs"
+                    className="h-9 md:h-11 gap-2 bg-brand hover:bg-black text-white font-black uppercase tracking-widest rounded-none px-3 md:px-6 shadow-md transition-all text-[9px] md:text-xs"
                   >
                     <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
                     {advanceLoading ? "..." : "Begin Refraction"}
@@ -2516,7 +2516,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                     variant="ghost"
                     size="sm"
                     onClick={expandAll}
-                    className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-orange-600 hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
+                    className="h-8 px-3 text-[10px] font-black uppercase tracking-tight text-slate-600 hover:text-brand hover:bg-white rounded-md transition-all shadow-sm hover:shadow"
                   >
                     Expand All
                   </Button>
@@ -2558,7 +2558,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       onMouseEnter={handleNavMouseEnter}
                       onMouseLeave={handleNavMouseLeave}
                       className={cn(
-                        "absolute left-[-72px] top-[-40px] bg-white border border-slate-200 shadow-lg transition-all duration-300 overflow-hidden rounded-lg py-1 border-l-4 border-l-orange-500",
+                        "absolute left-[-72px] top-[-40px] bg-white border border-slate-200 shadow-lg transition-all duration-300 overflow-hidden rounded-lg py-1 border-l-4 border-l-brand",
                         isNavHovered ? "w-60" : "w-16"
                       )}
                     >
@@ -2633,12 +2633,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                               hoverBg: "hover:bg-indigo-50/20"
                             },
                             acceptance: {
-                              activeText: "text-orange-600",
-                              activeBorder: "border-l-orange-600",
-                              activeBg: "bg-orange-50/50",
-                              hoverText: "hover:text-orange-600",
-                              hoverBorder: "hover:border-l-orange-300",
-                              hoverBg: "hover:bg-orange-50/20"
+                              activeText: "text-brand",
+                              activeBorder: "border-l-brand",
+                              activeBg: "bg-brand/5",
+                              hoverText: "hover:text-brand",
+                              hoverBorder: "hover:border-l-brand/30",
+                              hoverBg: "hover:bg-brand/10/20"
                             },
                             refining: {
                               activeText: "text-fuchsia-600",
@@ -2683,12 +2683,12 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           };
 
                           const colors = sectionColorMap[sec.id] || {
-                            activeText: "text-orange-600",
-                            activeBorder: "border-l-orange-600",
-                            activeBg: "bg-orange-50/50",
-                            hoverText: "hover:text-orange-600",
-                            hoverBorder: "hover:border-l-orange-300",
-                            hoverBg: "hover:bg-orange-50/20"
+                            activeText: "text-brand",
+                            activeBorder: "border-l-brand",
+                            activeBg: "bg-brand/5",
+                            hoverText: "hover:text-brand",
+                            hoverBorder: "hover:border-l-brand/30",
+                            hoverBg: "hover:bg-brand/10/20"
                           };
 
                           return (
@@ -3056,7 +3056,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
                                     placeholder="DV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -3065,7 +3065,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
                                     placeholder="NV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
@@ -3081,7 +3081,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
                                     placeholder="DV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -3090,7 +3090,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
                                     placeholder="NV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
@@ -3106,7 +3106,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
                                     placeholder="DV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                   <PowerPaletteInput
@@ -3115,7 +3115,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
                                     onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
                                     placeholder="NV"
-                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                     disabled={isLocked}
                                   />
                                 </div>
@@ -3130,7 +3130,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                   value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
                                   onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
                                   placeholder="DV"
-                                  className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  className="h-12 text-sm font-black rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"
                                   disabled={isLocked}
                                 />
                               </div>
@@ -3145,7 +3145,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           <Table className="border-collapse table-fixed w-full">
                             <TableHeader>
                               <TableRow className="h-16 hover:bg-transparent border-b-2 border-slate-200">
-                                <TableHead className="w-[70px] text-[10px] font-black uppercase tracking-widest text-orange-600 pl-6">Eye</TableHead>
+                                <TableHead className="w-[70px] text-[10px] font-black uppercase tracking-widest text-brand pl-6">Eye</TableHead>
                                 <TableHead className="w-[190px] text-center">
                                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1 block">Unaided Vision</span>
                                   <div className="flex justify-around text-[8px] font-black text-slate-400"><span>DV</span><span>NV</span></div>
@@ -3178,7 +3178,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.unaided || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "unaided", val)}
                                         placeholder="6/6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                       <PowerPaletteInput
@@ -3187,7 +3187,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.nearVision || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "nearVision", val)}
                                         placeholder="N6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                     </div>
@@ -3200,7 +3200,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.aided || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "aided", val)}
                                         placeholder="6/6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                       <PowerPaletteInput
@@ -3209,7 +3209,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.aidedNear || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "aidedNear", val)}
                                         placeholder="N6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                     </div>
@@ -3222,7 +3222,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.contactLens || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLens", val)}
                                         placeholder="6/6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                       <PowerPaletteInput
@@ -3231,7 +3231,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.contactLensNear || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "contactLensNear", val)}
                                         placeholder="N6"
-                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-[13px] sm:text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                     </div>
@@ -3244,7 +3244,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.visualAcuity as any)?.[eye]?.pinhole || ""}
                                         onChange={(val) => updateEyeGrid("visualAcuity", eye, "pinhole", val)}
                                         placeholder="6/6"
-                                        className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-orange-600 bg-white shadow-none transition-none min-w-0"
+                                        className="h-full w-full text-center text-sm font-black rounded-none border-slate-200 focus:border-brand bg-white shadow-none transition-none min-w-0"
                                         disabled={isLocked}
                                       />
                                     </div>
@@ -3275,13 +3275,13 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           onValueChange={(val) => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: val } }))}
                           className="flex flex-col sm:flex-row gap-4 sm:gap-8"
                         >
-                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'glass' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'glass' } }))}>
-                            <RadioGroupItem value="glass" id="pg-glass" className="w-5 h-5 border-2 text-orange-600" />
-                            <Label htmlFor="pg-glass" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Spectacles</Label>
+                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'glass' ? 'bg-brand/5 border-brand' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'glass' } }))}>
+                            <RadioGroupItem value="glass" id="pg-glass" className="w-5 h-5 border-2 text-brand" />
+                            <Label htmlFor="pg-glass" className="text-sm font-black uppercase tracking-widest text-brand cursor-pointer">Spectacles</Label>
                           </div>
-                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'contact' ? 'bg-orange-600/5 border-orange-600' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'contact' } }))}>
-                            <RadioGroupItem value="contact" id="pg-contact" className="w-5 h-5 border-2 text-orange-600" />
-                            <Label htmlFor="pg-contact" className="text-sm font-black uppercase tracking-widest text-orange-600 cursor-pointer">Contact Lens</Label>
+                          <div className={cn("flex items-center space-x-3 px-4 sm:px-6 py-3 sm:py-4 border cursor-pointer", formData.pgPower.activeTab === 'contact' ? 'bg-brand/5 border-brand' : 'bg-slate-50 border-slate-100')} onClick={() => setFormData(p => ({ ...p, pgPower: { ...p.pgPower, activeTab: 'contact' } }))}>
+                            <RadioGroupItem value="contact" id="pg-contact" className="w-5 h-5 border-2 text-brand" />
+                            <Label htmlFor="pg-contact" className="text-sm font-black uppercase tracking-widest text-brand cursor-pointer">Contact Lens</Label>
                           </div>
                         </RadioGroup>
 
@@ -3305,8 +3305,8 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     className={cn(
                                       "px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
                                       isSelected
-                                        ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                        : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                        ? "bg-brand text-white border-brand shadow-md"
+                                        : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand"
                                     )}
                                   >
                                     {opt.label}
@@ -3329,7 +3329,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     <button key={type} type="button" disabled={isDisabled} onClick={() => {
                                       const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
                                       setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-brand text-white border-brand shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand", isDisabled && "opacity-50 cursor-not-allowed hover:border-slate-100 hover:text-slate-400")}>{type}</button>
                                   );
                                 })}
                               </div>
@@ -3344,7 +3344,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     <button key={type} type="button" onClick={() => {
                                       const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
                                       setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-brand text-white border-brand shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand")}>{type}</button>
                                   );
                                 })}
                               </div>
@@ -3359,7 +3359,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     <button key={type} type="button" onClick={() => {
                                       const nextTypes = isSelected ? currentTypes.filter(t => t !== type) : [...currentTypes, type];
                                       setFormData(p => ({ ...p, pgPower: { ...p.pgPower, contact: { ...p.pgPower.contact, clType: nextTypes } } }));
-                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-orange-600 text-white border-orange-600 shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600")}>{type}</button>
+                                    }} className={cn("px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none", isSelected ? "bg-brand text-white border-brand shadow-md" : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand")}>{type}</button>
                                   );
                                 })}
                               </div>
@@ -3371,7 +3371,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                         {["OD", "OS"].map((eye) => (
                           <div key={eye} className="border-2 border-slate-100 bg-white/50 p-3 md:border-0 md:bg-transparent md:p-0 space-y-4">
-                            <div className="flex items-center gap-3 border-b border-orange-100 pb-2">
+                            <div className="flex items-center gap-3 border-b border-brand/10 pb-2">
                               <span className={cn(
                                 "w-9 h-9 flex items-center justify-center font-black text-xs border-2",
                                 eye === "OD" || eye === "od" ? "border-blue-600 text-blue-600" : eye === "OS" || eye === "os" ? "border-emerald-600 text-emerald-600" : "border-slate-600 text-slate-600"
@@ -3391,7 +3391,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
                                         onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
                                         placeholder={f === "vnNear1" ? "N6" : "6/6"}
-                                        className="h-11 text-center text-sm font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                        className="h-11 text-center text-sm font-black bg-white rounded-none border-brand/10 text-slate-900 focus:border-brand"
                                         disabled={isLocked}
                                       />
                                     ) : (
@@ -3401,7 +3401,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                         value={(formData.pgPower as any)[formData.pgPower.activeTab]?.[eye]?.[f] || ""}
                                         onChange={(val) => updateEyeGrid("pgPower", eye, f, val, formData.pgPower.activeTab)}
                                         placeholder={f === "axis1" ? "0" : "0.00"}
-                                        className="h-11 text-center text-base font-black bg-white rounded-none border-orange-100 text-slate-900 focus:border-orange-400"
+                                        className="h-11 text-center text-base font-black bg-white rounded-none border-brand/10 text-slate-900 focus:border-brand"
                                         disabled={isLocked}
                                       />
                                     )}
@@ -3677,7 +3677,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       syncTitle="Sync from Obj"
                       isOpen={!!openSections['acceptance']}
                       onToggle={() => toggleSection('acceptance')}
-                      headerClassName="bg-orange-50 text-orange-600 border-l-orange-600"
+                      headerClassName="bg-brand/10 text-brand border-l-brand"
                     />
                   </div>
 
@@ -4239,8 +4239,8 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                       className={cn(
                                         "flex-1 h-14 px-4 text-[10px] font-black uppercase tracking-widest transition-all border-2 rounded-none",
                                         isSelected
-                                          ? "bg-orange-600 text-white border-orange-600 shadow-md"
-                                          : "bg-white text-slate-400 border-slate-100 hover:border-orange-200 hover:text-orange-600"
+                                          ? "bg-brand text-white border-brand shadow-md"
+                                          : "bg-white text-slate-400 border-slate-100 hover:border-brand/20 hover:text-brand"
                                       )}
                                     >
                                       {opt.label}
@@ -4260,7 +4260,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                   } else {
                                     if (def === "Red") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-red-400 hover:text-red-600";
                                     else if (def === "Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600";
-                                    else if (def === "Red-Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-orange-400 hover:text-orange-600";
+                                    else if (def === "Red-Green") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-brand/40 hover:text-brand";
                                     else if (def === "Total") colorClass = "bg-white text-slate-500 border-slate-200 hover:border-slate-500 hover:text-slate-700";
                                   }
 
@@ -4300,7 +4300,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     const current = p.schirmerTest || {};
                                     return { ...p, schirmerTest: { ...current, [eye]: val } };
                                   })}>
-                                    <SelectTrigger className="h-14 font-black bg-white rounded-none border-slate-200 focus:border-orange-600 focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="Normal (> 15 mm)" /></SelectTrigger>
+                                    <SelectTrigger className="h-14 font-black bg-white rounded-none border-slate-200 focus:border-brand focus-visible:ring-0 focus-visible:ring-offset-0"><SelectValue placeholder="Normal (> 15 mm)" /></SelectTrigger>
                                     <SelectContent className="max-h-[300px] font-bold">
                                       {SCHIRMER_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                                     </SelectContent>
@@ -4316,9 +4316,9 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-100 pt-6">
                         <div className="space-y-3">
                           <label className="text-[10px] font-black uppercase text-slate-600 pl-1 flex items-center gap-2">
-                            <Scan className="w-3.5 h-3.5 text-orange-600" /> Amsler Grid Assessment
+                            <Scan className="w-3.5 h-3.5 text-brand" /> Amsler Grid Assessment
                           </label>
-                          <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-orange-400 text-slate-900" placeholder="Macular Grid Result" value={formData.amslerGrid || ""} onChange={(e) => setFormData(p => ({ ...p, amslerGrid: sanitizeOptometryInput(e.target.value, 'notes') }))} />
+                          <Input className="h-14 font-bold border-slate-200 bg-white rounded-none focus:border-brand text-slate-900" placeholder="Macular Grid Result" value={formData.amslerGrid || ""} onChange={(e) => setFormData(p => ({ ...p, amslerGrid: sanitizeOptometryInput(e.target.value, 'notes') }))} />
                         </div>
 
                         <div className="space-y-3">
@@ -4406,7 +4406,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                                     return { ...v, optometristNotes: sanitizeOptometryInput(updated, 'notes') };
                                   });
                                 }}
-                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-orange-50 text-slate-500 hover:text-orange-600 border border-slate-200 hover:border-orange-200 active:scale-95 transition-all rounded-none"
+                                className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest bg-white hover:bg-brand/10 text-slate-500 hover:text-brand border border-slate-200 hover:border-brand/20 active:scale-95 transition-all rounded-none"
                               >
                                 {tmpl.name}
                               </button>
@@ -4430,13 +4430,13 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                         {/* Left Side: Identification and Certification */}
                         <div className="space-y-6 flex-1">
                           <div className="flex items-center gap-5">
-                            <div className="p-3 bg-orange-600 text-white shadow-lg"><Check className="w-6 h-6 shrink-0" /></div>
+                            <div className="p-3 bg-brand text-white shadow-lg"><Check className="w-6 h-6 shrink-0" /></div>
                             <div className="flex flex-col">
-                              <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">Optometry Finalization</span>
+                              <span className="text-[12px] font-black uppercase tracking-widest text-brand mb-0.5">Optometry Finalization</span>
                               <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">Diagnostic Verification</h3>
                             </div>
                           </div>
-                          <p className="text-slate-500 text-sm max-w-2xl italic border-l-4 border-orange-200 pl-6 font-medium leading-relaxed">
+                          <p className="text-slate-500 text-sm max-w-2xl italic border-l-4 border-brand/20 pl-6 font-medium leading-relaxed">
                             I hereby certify that the above clinical findings are accurate and have been verified according to clinical protocols.
                           </p>
                         </div>
@@ -4466,7 +4466,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                           <div
                             className={cn(
                               "flex items-center gap-4 px-8 py-4 cursor-pointer border-2 transition-all w-full sm:w-auto shadow-sm h-14",
-                              isVerified ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-emerald-500/10" : "bg-slate-50 border-slate-200 text-slate-400 hover:border-orange-200 hover:text-orange-600"
+                              isVerified ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-emerald-500/10" : "bg-slate-50 border-slate-200 text-slate-400 hover:border-brand/20 hover:text-brand"
                             )}
                             onClick={() => {
                               if (!isVerified) {
@@ -4491,7 +4491,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                             disabled={!isVerified || isSubmitting}
                             className={cn(
                               "h-14 px-12 rounded-none font-black uppercase tracking-[0.2em] transition-all text-[10px] w-full sm:w-auto shadow-xl",
-                              isVerified ? "bg-orange-600 text-white hover:bg-black" : "bg-slate-100 text-slate-300 pointer-events-none"
+                              isVerified ? "bg-brand text-white hover:bg-black" : "bg-slate-100 text-slate-300 pointer-events-none"
                             )}
                             onClick={async () => {
                               if (!isVerified || !patient?.id) return;
@@ -4537,7 +4537,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                 <DialogHeader className="border-b border-slate-100 pb-4 mb-4 flex flex-row items-start justify-between">
                   <div className="flex-1">
                     <DialogTitle className="text-xl font-black text-slate-900 tracking-tight uppercase flex items-center gap-2">
-                      <ClipboardList className="w-5 h-5 text-orange-600" />
+                      <ClipboardList className="w-5 h-5 text-brand" />
                       Clinical Refraction Report Summary
                     </DialogTitle>
                     <DialogDescription className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">
@@ -4546,7 +4546,7 @@ export function RefractionStation({ patient, doctors = [] }: { patient?: Patient
                   </div>
                   <Button
                     size="sm"
-                    className="h-9 px-4 bg-orange-600 hover:bg-orange-700 text-white font-black uppercase tracking-widest text-[10px] gap-2 rounded-none shadow-sm mr-6 no-print shrink-0 border-0"
+                    className="h-9 px-4 bg-brand hover:bg-brand-hover text-white font-black uppercase tracking-widest text-[10px] gap-2 rounded-none shadow-sm mr-6 no-print shrink-0 border-0"
                     onClick={() => handlePrintRefractionReport()}
                   >
                     <Printer className="w-4 h-4" /> Print Refraction

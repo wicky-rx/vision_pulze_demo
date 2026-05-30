@@ -156,8 +156,8 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
     if (!patient) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center bg-white p-12">
-                <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mb-6">
-                    <Pill className="w-10 h-10 text-orange-200" />
+                <div className="w-24 h-24 bg-brand/10 rounded-full flex items-center justify-center mb-6">
+                    <Pill className="w-10 h-10 text-brand/20" />
                 </div>
                 <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-300">Awaiting Patient Selection</h2>
                 <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Select a patient from the queue to manage dispensing</p>
@@ -238,13 +238,13 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
 
                     {/* Left: Prescription Detail (5 cols) */}
                     <div className="xl:col-span-5 space-y-6">
-                        <div className="bg-white border-2 border-orange-100 rounded-none shadow-sm overflow-hidden">
-                            <div className="bg-orange-100 text-orange-600 px-6 py-3 flex items-center justify-between border-l-4 border-orange-600">
+                        <div className="bg-white border-2 border-brand/10 rounded-none shadow-sm overflow-hidden">
+                            <div className="bg-brand/10 text-brand px-6 py-3 flex items-center justify-between border-l-4 border-brand">
                                 <div className="flex items-center gap-3">
-                                    <ClipboardList className="w-4 h-4 text-orange-600" />
+                                    <ClipboardList className="w-4 h-4 text-brand" />
                                     <h3 className="text-[11px] font-black uppercase tracking-[0.3em]">Medication Order #Rx-{patient.id?.slice(-6)}</h3>
                                 </div>
-                                <Badge variant="outline" className="border-orange-300 text-orange-600 text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">Official Rx</Badge>
+                                <Badge variant="outline" className="border-brand/30 text-brand text-[8px] font-black uppercase tracking-widest rounded-none bg-white/50">Official Rx</Badge>
                             </div>
 
                             <div className="p-6 space-y-6">
@@ -263,17 +263,17 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                                     <div className="space-y-3">
                                         {Array.isArray(consultation?.medicalPrescription) ? (
                                             consultation.medicalPrescription.map((m: any, i: number) => (
-                                                <div key={i} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-slate-100 items-center bg-white hover:bg-orange-50/30 transition-colors">
+                                                <div key={i} className="grid grid-cols-12 gap-4 px-4 py-4 border-b border-slate-100 items-center bg-white hover:bg-brand/5 transition-colors">
                                                     <div className="col-span-5">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="w-6 h-6 flex items-center justify-center bg-orange-600 text-white text-[10px] font-black">{i+1}</span>
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-brand text-white text-[10px] font-black">{i+1}</span>
                                                             <p className="font-black text-slate-900 uppercase text-[11px] tracking-tight">{m.drug || m.medicine}</p>
                                                         </div>
                                                         <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 pl-9">Duration: {m.duration}</p>
                                                     </div>
                                                     <div className="col-span-3 text-center text-[11px] font-bold text-slate-600">{m.dosage}</div>
                                                     <div className="col-span-2 text-center">
-                                                        <Badge variant="outline" className="rounded-none border-orange-100 text-orange-600 text-[9px] font-black">{m.frequency}</Badge>
+                                                        <Badge variant="outline" className="rounded-none border-brand/10 text-brand text-[9px] font-black">{m.frequency}</Badge>
                                                     </div>
                                                     <div className="col-span-2 text-right">
                                                         <span className={cn("px-2 py-0.5 text-[10px] font-black uppercase", m.eye === 'OD' ? 'bg-blue-50 text-blue-600' : m.eye === 'OS' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-600')}>{m.eye}</span>
@@ -300,7 +300,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Pharmacist Notes</label>
                                     <textarea
-                                        className="w-full h-28 p-3 text-[11px] font-bold border-2 border-slate-100 rounded-none focus:border-orange-600 focus:ring-0 transition-all bg-white placeholder:text-slate-300"
+                                        className="w-full h-28 p-3 text-[11px] font-bold border-2 border-slate-100 rounded-none focus:border-brand focus:ring-0 transition-all bg-white placeholder:text-slate-300"
                                         placeholder="Batch numbers, dispensing remarks..."
                                         value={pharmacistNotes}
                                         onChange={(e) => setPharmacistNotes(e.target.value)}
@@ -442,7 +442,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
             <div className="bg-white border-t border-slate-200 p-6 shadow-2xl z-30">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-3">
-                        <Button variant="outline" className="h-14 px-8 rounded-none border-2 border-slate-200 font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 hover:text-white transition-all gap-3" onClick={() => setShowPrint(true)}>
+                        <Button variant="outline" className="h-14 px-8 rounded-none border-2 border-slate-200 font-black uppercase text-[10px] tracking-widest hover:bg-brand hover:text-white transition-all gap-3" onClick={() => setShowPrint(true)}>
                             <Printer className="w-4 h-4" /> Print Invoice
                         </Button>
                     </div>
@@ -473,19 +473,19 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
             {/* Print Modal */}
             <Dialog open={showPrint} onOpenChange={setShowPrint}>
                 <DialogContent className="max-w-xl p-0 border-0 rounded-none overflow-hidden shadow-2xl">
-                    <div className="bg-orange-600 p-6 text-center no-print">
+                    <div className="bg-brand p-6 text-center no-print">
                         <h2 className="text-white font-black uppercase tracking-[0.4em] text-xs">Pharmacy Bill Preview</h2>
                     </div>
                     <div id="print-section" className="bg-white p-10 space-y-8">
                         {/* Hospital Header in the style of Vision Xpress */}
-                        <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+                        <div className="border border-brand p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
                             <img 
                                 src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
                                 alt="VPN Logo" 
                                 className="h-10 w-auto object-contain shrink-0"
                             />
                             <div className="flex-1 text-center pr-10">
-                                <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                                <h1 className="text-sm font-black uppercase text-brand-hover tracking-wider">VPN EYE HOSPITAL</h1>
                                 <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
                                 <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                             </div>
@@ -529,7 +529,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                                         <tr key={i} className="border-b border-slate-50">
                                             <td className="py-3 font-black text-slate-900 uppercase">{m.drug || m.medicine}</td>
                                             <td className="py-3 text-center font-bold text-slate-600">{m.dosage}</td>
-                                            <td className="py-3 text-right font-black text-orange-600">{m.eye}</td>
+                                            <td className="py-3 text-right font-black text-brand">{m.eye}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -538,7 +538,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
 
                         <div className="pt-12 flex justify-between items-end border-t border-slate-100 italic">
                             <div className="space-y-1">
-                                <p className="text-[9px] font-black text-orange-600 uppercase">Hospital Contact</p>
+                                <p className="text-[9px] font-black text-brand uppercase">Hospital Contact</p>
                                 <p className="text-[8px] text-slate-400 font-bold">+91 4365 242000</p>
                             </div>
                             <div className="text-right">
@@ -550,7 +550,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                     </div>
                     <DialogFooter className="p-6 bg-slate-50 border-t flex flex-row items-center justify-center gap-4 no-print">
                         <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel</Button>
-                        <Button className="rounded-none bg-orange-600 hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3" onClick={() => window.print()}>
+                        <Button className="rounded-none bg-brand hover:bg-black font-black uppercase text-[10px] tracking-widest px-8 shadow-xl gap-3" onClick={() => window.print()}>
                             <Printer className="w-4 h-4" /> Print Document
                         </Button>
                     </DialogFooter>
