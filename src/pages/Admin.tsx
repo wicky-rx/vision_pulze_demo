@@ -117,7 +117,7 @@ const Admin = () => {
                 title: "Access Denied",
                 description: `Your role (${role}) is not authorized for Admin Panel.`,
             });
-            navigate("/");
+            navigate("/home");
             return;
         }
 
@@ -329,7 +329,7 @@ const Admin = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user_session");
         toast({ title: "Logged out successfully" });
-        navigate("/");
+        navigate("/home");
     };
 
     const handleCreateUser = async () => {

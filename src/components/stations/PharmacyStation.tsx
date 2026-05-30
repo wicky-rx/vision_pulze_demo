@@ -301,27 +301,42 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                         <h2 className="text-white font-black uppercase tracking-[0.4em] text-xs">Pharmacy Bill Preview</h2>
                     </div>
                     <div id="print-section" className="bg-white p-10 space-y-8">
-                        <div className="text-center flex flex-col items-center leading-none">
-                            <div className="flex flex-col items-center gap-0.5 leading-none mb-3">
-                                <span
-                                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                                    className="font-extrabold text-xl tracking-tight leading-none"
-                                >
-                                    <span style={{ color: "#0F172A" }}>Vision</span>
-                                    <span style={{ color: "#2563EB" }}>Pulze</span>
-                                </span>
-                                <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
-                                    Ophthalmic Ecosystem
-                                </span>
+                        {/* Hospital Header in the style of Vision Xpress */}
+                        <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+                            <img 
+                                src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                                alt="VPN Logo" 
+                                className="h-10 w-auto object-contain shrink-0"
+                            />
+                            <div className="flex-1 text-center pr-10">
+                                <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                                <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                                <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                             </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[10px] py-6 border-y border-slate-100">
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Patient Name</span> <p className="font-black text-orange-600 uppercase text-xs">{patient.name}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">MR Number</span> <p className="font-black text-orange-600 font-mono text-xs">MR-{patient.mrNumber}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Visit Date</span> <p className="font-bold text-slate-800">{new Date().toLocaleDateString("en-IN")}</p></div>
-                            <div><span className="text-slate-400 font-black uppercase tracking-widest block mb-1">Token No.</span> <p className="font-bold text-slate-800 uppercase tracking-tighter">Token-{patient.tokenNumber}</p></div>
+                        <div className="text-center my-2">
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black text-slate-900">Pharmacy Bill Invoice</span>
                         </div>
+
+                        {/* Outer report container with double borders */}
+                        <div className="report-print-container space-y-4 text-left">
+                            {/* Patient Info Block structured as a clean 1px border table */}
+                            <table className="w-full text-[8.5px]">
+                                <tbody>
+                                    <tr>
+                                        <td className="p-1 font-bold bg-gray-50 w-[20%] text-slate-900">Patient Name:</td>
+                                        <td className="p-1 w-[30%] text-slate-900">{patient.name}</td>
+                                        <td className="p-1 font-bold bg-gray-50 w-[20%] text-slate-900">UIN / MRN:</td>
+                                        <td className="p-1 w-[30%] text-slate-900">MR-{patient.mrNumber}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="p-1 font-bold bg-gray-50 text-slate-900">Visit Date:</td>
+                                        <td className="p-1 text-slate-900">{new Date().toLocaleDateString("en-IN")}</td>
+                                        <td className="p-1 font-bold bg-gray-50 text-slate-900">Token Number:</td>
+                                        <td className="p-1 text-slate-900 uppercase tracking-tight">{patient.tokenNumber || "—"}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
                         <div className="space-y-4">
                             <h5 className="text-[10px] font-black uppercase text-slate-900 tracking-[0.2em] border-b-2 border-slate-900 pb-1 w-fit">Bill Summary</h5>
@@ -354,6 +369,7 @@ export function PharmacyStation({ patient, doctors = [] }: { patient?: Patient |
                                 <div className="w-24 h-px bg-slate-200 mb-2 ml-auto" />
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-900">Pharmacist Seal</p>
                             </div>
+                        </div>
                         </div>
                     </div>
                     <DialogFooter className="p-6 bg-slate-50 border-t flex flex-row items-center justify-center gap-4 no-print">

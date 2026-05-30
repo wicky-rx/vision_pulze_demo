@@ -101,7 +101,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       setTimeout(() => {
         localStorage.removeItem("token");
         localStorage.removeItem("user_session");
-        navigate("/");
+        navigate("/home");
       }, 1500);
 
       handleClose(false);

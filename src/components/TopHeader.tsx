@@ -41,7 +41,7 @@ export function TopHeader({ activeStation }: TopHeaderProps) {
     toast({
       title: "Logged out successfully",
     });
-    navigate("/");
+    navigate("/home");
   };
 
   return (

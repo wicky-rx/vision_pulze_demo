@@ -495,42 +495,42 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
             <DialogTitle className="text-white font-black uppercase tracking-[0.3em] text-[10px]">Optical Order Specification</DialogTitle>
           </DialogHeader>
           <div id="print-section" className="bg-white p-12 space-y-10">
-            {/* Header with Hospital Info */}
-            <div className="text-center border-b border-slate-100 pb-8 flex flex-col items-center leading-none">
-              <div className="flex flex-col items-center gap-0.5 leading-none mb-3">
-                <span
-                  style={{ fontFamily: "'Outfit', sans-serif" }}
-                  className="font-extrabold text-2xl tracking-tight leading-none"
-                >
-                  <span style={{ color: "#0F172A" }}>Vision</span>
-                  <span style={{ color: "#2563EB" }}>Pulze</span>
-                </span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
-                  Ophthalmic Ecosystem
-                </span>
+            {/* Hospital Header in the style of Vision Xpress */}
+            <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+              <img 
+                src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                alt="VPN Logo" 
+                className="h-10 w-auto object-contain shrink-0"
+              />
+              <div className="flex-1 text-center pr-10">
+                <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
               </div>
-              <h4 className="text-lg font-black text-[orange-600] uppercase tracking-tighter mt-2">Optical RX Order</h4>
+            </div>
+            <div className="text-center my-2">
+              <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black text-slate-900">Optical RX Order</span>
             </div>
 
-            {/* Patient Info Table */}
-            <div className="grid grid-cols-2 gap-10 bg-slate-50 p-6">
-              <div className="space-y-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Medical Record Link</span>
-                <p className="font-black text-base text-[orange-600] font-mono whitespace-nowrap">MR-{patient?.mrNumber}</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Patient Name</span>
-                <p className="font-black text-base text-[orange-600] uppercase">{patient?.name}</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Date</span>
-                <p className="font-bold text-sm text-slate-800">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Lead Physician</span>
-                <p className="font-bold text-sm text-slate-800">{consultation?.doctorName || "—"}</p>
-              </div>
-            </div>
+            {/* Outer report container with double borders */}
+            <div className="report-print-container space-y-4 text-left">
+              {/* Patient Info Block structured as a clean 1px border table */}
+              <table className="w-full text-[8.5px]">
+                <tbody>
+                  <tr>
+                    <td className="p-1 font-bold bg-gray-50 w-[20%] text-slate-900">Patient Name:</td>
+                    <td className="p-1 w-[30%] text-slate-900">{patient?.name}</td>
+                    <td className="p-1 font-bold bg-gray-50 w-[20%] text-slate-900">UIN / MRN:</td>
+                    <td className="p-1 w-[30%] text-slate-900">MR-{patient?.mrNumber}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-1 font-bold bg-gray-50 text-slate-900">Diagnostic Date:</td>
+                    <td className="p-1 text-slate-900">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="p-1 font-bold bg-gray-50 text-slate-900">Lead Physician:</td>
+                    <td className="p-1 text-slate-900">{consultation?.doctorName || "—"}</td>
+                  </tr>
+                </tbody>
+              </table>
 
             {/* Final Spectacle Specifications */}
             {hasGlassRx && (
@@ -641,6 +641,7 @@ export function OpticalStation({ patient, doctors = [] }: { patient?: Patient | 
                   <p className="text-[9px] font-black uppercase tracking-widest text-[orange-600]">Official Optical Seal</p>
                </div>
             </div>
+          </div>
           </div>
           <DialogFooter className="p-8 bg-slate-50 border-t items-center sm:justify-center no-print">
             <Button variant="ghost" onClick={() => setShowPrint(false)} className="rounded-none font-bold text-slate-500 uppercase text-[10px] tracking-widest hover:bg-slate-100">Cancel & Edit</Button>

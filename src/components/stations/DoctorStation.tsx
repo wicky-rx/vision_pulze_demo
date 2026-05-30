@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer, Calendar } from "lucide-react";
+import { Send, Eye, UserCheck, Loader2, User, ClipboardList, Stethoscope, Microscope, Glasses, Pill, History, Plus, Trash2, ChevronRight, ChevronUp, ChevronDown, X, FileText, RefreshCw, ShieldCheck, Activity, AlertCircle, CheckCircle2, Clock, Heart, Printer, Calendar, Phone, Network, GitFork, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type Patient } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
+import { API_BASE_URL } from "@/config";
 import { RefractionSummaryView } from "./RefractionSummaryView";
 import { getPatientAgeString, getPatientAgeNumber, cn, calculateSessionSlot } from "@/lib/utils";
 import { sanitizeOptometryInput, getFieldTypeFromName } from "@/lib/validation";
@@ -26,11 +27,11 @@ import { Popover, PopoverContent, PopoverAnchor } from "@/components/ui/popover"
 
 function SectionHeader({ icon: Icon, category, title }: { icon: any, category: string, title: string }) {
   return (
-    <div className="flex items-center gap-4 mb-6">
-      <div className="p-3 bg-orange-600 text-white shadow-lg"><Icon className="w-6 h-6 shrink-0" /></div>
+    <div className="flex items-center gap-3 mb-4">
+      <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Icon className="w-5 h-5 shrink-0" /></div>
       <div className="flex flex-col">
-        <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">{category}</span>
-        <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">{title}</h3>
+        <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">{category}</span>
+        <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">{title}</h3>
       </div>
     </div>
   );
@@ -411,6 +412,11 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
   const [refractionData, setRefractionData] = useState<any>(null);
   const [selectedHistoricalVisit, setSelectedHistoricalVisit] = useState<any>(null);
   const [isHistoryDetailsOpen, setIsHistoryDetailsOpen] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [loadingFamily, setLoadingFamily] = useState(false);
+  const [selectedFamilyPatient, setSelectedFamilyPatient] = useState<any | null>(null);
+  const [familyPatientHistory, setFamilyPatientHistory] = useState<any[]>([]);
+  const [loadingFamilyPatientHistory, setLoadingFamilyPatientHistory] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLockedToast, setShowLockedToast] = useState(false);
 
@@ -423,6 +429,44 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
+
+  useEffect(() => {
+    if (!patient?.contactNumber) {
+      setFamilyMembers([]);
+      return;
+    }
+    const fetchFamily = async () => {
+      setLoadingFamily(true);
+      try {
+        const data = await api.searchPatients(patient.contactNumber);
+        setFamilyMembers(data || []);
+      } catch (e) {
+        console.error("Failed to fetch family members:", e);
+      } finally {
+        setLoadingFamily(false);
+      }
+    };
+    fetchFamily();
+  }, [patient?.contactNumber, patient?.mrNumber]);
+
+  useEffect(() => {
+    if (!selectedFamilyPatient?.mrNumber) {
+      setFamilyPatientHistory([]);
+      return;
+    }
+    const fetchFamilyPatientHistory = async () => {
+      setLoadingFamilyPatientHistory(true);
+      try {
+        const data = await api.getVisitHistory(selectedFamilyPatient.mrNumber);
+        setFamilyPatientHistory(data.visits || []);
+      } catch (e) {
+        console.error("Failed to fetch family patient history:", e);
+      } finally {
+        setLoadingFamilyPatientHistory(false);
+      }
+    };
+    fetchFamilyPatientHistory();
+  }, [selectedFamilyPatient?.mrNumber]);
 
   const triggerPrint = (type: 'all' | 'glass' | 'medical') => {
     setPrintType(type);
@@ -1668,11 +1712,114 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                     </div>
                   </Card>
 
-                  <Card className="border border-slate-200 shadow-sm p-4 bg-white">
-                    <ScanReportGallery mrNumber={patient.mrNumber?.toString()} variant="compact" />
-                  </Card>
+                  <ScanReportGallery mrNumber={patient.mrNumber?.toString()} variant="compact" wrapInCard={true} />
                 </div>
               </div>
+
+              {/* Family / Linked Accounts Flow Tree */}
+              {familyMembers.length > 1 && (
+                <Card className="clinical-card border border-slate-200 shadow-sm mt-6 overflow-hidden bg-white">
+                  <div className="p-4 border-b bg-orange-50/30 flex items-center justify-between">
+                    <h3 className="text-sm font-black text-orange-600 uppercase tracking-wider flex items-center gap-2">
+                      <Network className="w-4 h-4" /> Linked Accounts Flow
+                    </h3>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Shared Phone Number Network
+                    </span>
+                  </div>
+                  <div className="p-8 bg-slate-50/30">
+                    <div className="flex flex-col items-center">
+                      {/* Phone Number Hub */}
+                      <div className="relative flex flex-col items-center mb-6">
+                        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-[11px] uppercase tracking-wider px-5 py-2.5 rounded-full shadow-lg shadow-orange-500/20 flex items-center gap-2 border-2 border-white z-10">
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>Primary Phone: {patient.contactNumber}</span>
+                        </div>
+                        {/* Vertical Connector Down */}
+                        <div className="w-0.5 h-8 bg-slate-300 mt-0.5" />
+                      </div>
+
+                      {/* Flow Branches */}
+                      <div className="relative flex flex-wrap justify-center gap-8 w-full max-w-5xl px-4">
+                        {/* Horizontal Bridge Line */}
+                        {familyMembers.length > 1 && (
+                          <div 
+                            className="absolute top-0 h-0.5 bg-slate-300"
+                            style={{
+                              left: `${100 / (familyMembers.length * 2)}%`,
+                              right: `${100 / (familyMembers.length * 2)}%`
+                            }}
+                          />
+                        )}
+
+                        {familyMembers.map((member) => {
+                          const isCurrent = member.mrNumber === patient.mrNumber;
+                          const relationship = member.familyMaps?.[0]?.relationshipType || member.relationshipType;
+                          return (
+                            <div key={member.mrNumber} className="relative flex flex-col items-center flex-1 min-w-[220px] max-w-[280px]">
+                              {/* Vertical Branch Line */}
+                              <div className="w-0.5 h-6 bg-slate-300 mb-2" />
+
+                              {/* Member Card */}
+                              <div
+                                onClick={() => {
+                                  if (!isCurrent) {
+                                    setSelectedFamilyPatient(member);
+                                  }
+                                }}
+                                className={cn(
+                                  "w-full p-5 rounded-xl border transition-all text-center select-none",
+                                  isCurrent
+                                    ? "bg-orange-50/80 border-orange-500 shadow-md shadow-orange-100/50 ring-2 ring-orange-200/50 cursor-default"
+                                    : "bg-white border-slate-200 hover:border-orange-500 hover:shadow-xl cursor-pointer group"
+                                )}
+                              >
+                                <div className="flex flex-col items-center gap-2">
+                                  <div className={cn(
+                                    "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm transition-transform group-hover:scale-110",
+                                    isCurrent ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-700"
+                                  )}>
+                                    {member.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  
+                                  <div className="space-y-0.5">
+                                    <h4 className="font-black text-sm text-slate-800 uppercase tracking-tight truncate max-w-[200px]">
+                                      {member.name}
+                                    </h4>
+                                    <p className="text-[10px] font-mono font-bold text-slate-400">
+                                      MRN: {member.mrNumber}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1">
+                                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 border-slate-200 text-slate-500 uppercase font-black">
+                                      {member.gender.charAt(0)} • {getPatientAgeString(member)}
+                                    </Badge>
+                                    {relationship && (
+                                      <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 font-black uppercase">
+                                        {relationship}
+                                      </Badge>
+                                    )}
+                                    {isCurrent ? (
+                                      <Badge className="text-[8px] px-1.5 py-0 bg-orange-600 text-white font-black uppercase">
+                                        Active Patient
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="text-[8px] px-1.5 py-0 bg-slate-100 text-slate-600 border border-slate-200 font-black uppercase">
+                                        Linked
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </TabsContent>
 
             {/* 2. Diagnosis (from Refraction Station) */}
@@ -4081,33 +4228,48 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
 
         return (
           <div id="print-section" className="hidden print:block w-full bg-white text-black text-[9px] font-sans p-4 space-y-4 leading-tight">
-                  {/* Hospital Header */}
-                  <div className="border-b-2 border-black pb-1.5 flex justify-between items-start">
-                    <div className="flex flex-col gap-0.5 leading-none">
-                      <span
-                        style={{ fontFamily: "'Outfit', sans-serif" }}
-                        className="font-extrabold text-xs tracking-tight leading-none"
-                      >
-                        <span style={{ color: "#0F172A" }}>Vision</span>
-                        <span style={{ color: "#2563EB" }}>Pulze</span>
-                      </span>
-                      <span className="text-[7px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
-                        Ophthalmic Ecosystem
-                      </span>
+                  {/* Hospital Header in the style of Vision Xpress */}
+                  <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+                    <img 
+                      src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                      alt="VPN Logo" 
+                      className="h-10 w-auto object-contain shrink-0"
+                    />
+                    <div className="flex-1 text-center pr-10">
+                      <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                      <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                      <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                     </div>
-                    <div className="text-right text-[8px] space-y-0.5">
-                      <p><strong>Consulting Doctor:</strong> {selectedHistoricalVisit.consultation?.doctorName || selectedHistoricalVisit.consultingDoctorName || "Dr. Clinical Lead"}</p>
-                      <p><strong>Visit Date:</strong> {new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    </div>
+                  </div>
+                  <div className="text-center my-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Optometrist Clinical Summary</span>
                   </div>
 
-                  {/* Patient Info Block */}
-                  <div className="border border-black p-1.5 grid grid-cols-4 gap-2 text-[8px] bg-gray-50">
-                    <div><strong>Patient Name:</strong> {patientName}</div>
-                    <div><strong>Age / Gender:</strong> {patientAge} / {patientGender}</div>
-                    <div><strong>MR Number:</strong> MR-{patientMRN}</div>
-                    <div><strong>Contact Number:</strong> {selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber || "—"}</div>
-                  </div>
+                  {/* Outer report container with double borders */}
+                  <div className="report-print-container space-y-4">
+                    {/* Patient Info Block structured as a clean 1px border table */}
+                    <table className="w-full text-[8.5px]">
+                      <tbody>
+                        <tr>
+                          <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
+                          <td className="p-1 w-[30%]">{patientName}</td>
+                          <td className="p-1 font-bold bg-gray-50 w-[20%]">Age / Gender:</td>
+                          <td className="p-1 w-[30%]">{patientAge} / {patientGender}</td>
+                        </tr>
+                        <tr>
+                          <td className="p-1 font-bold bg-gray-50">MR Number:</td>
+                          <td className="p-1">MR-{patientMRN}</td>
+                          <td className="p-1 font-bold bg-gray-50">Contact Number:</td>
+                          <td className="p-1">{selectedHistoricalVisit.patient?.contactNumber || patient?.contactNumber || "—"}</td>
+                        </tr>
+                        <tr>
+                          <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
+                          <td className="p-1">{selectedHistoricalVisit.consultation?.doctorName || selectedHistoricalVisit.consultingDoctorName || "Dr. Clinical Lead"}</td>
+                          <td className="p-1 font-bold bg-gray-50">Visit Date:</td>
+                          <td className="p-1">{new Date(selectedHistoricalVisit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        </tr>
+                      </tbody>
+                    </table>
 
                   {/* Optometry & Refraction */}
                   {selectedHistoricalVisit.refraction && (() => {
@@ -4649,6 +4811,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                       </div>
                     );
                   })()}
+          </div>
         </div>
       );
     })()}
@@ -4656,54 +4819,162 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
         </DialogContent>
       </Dialog>
 
-        {/* Consolidated / Separate Print Section */}
+      {/* 4. Family Patient Longitudinal Profile Dialog */}
+      <Dialog 
+        open={!!selectedFamilyPatient} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedFamilyPatient(null);
+            setFamilyPatientHistory([]);
+          }
+        }}
+      >
+        <DialogContent className="no-print max-w-[95vw] w-[1100px] h-[80vh] p-0 overflow-hidden bg-slate-50 flex flex-col rounded-xl border border-slate-200 shadow-2xl">
+          {selectedFamilyPatient && (
+            <>
+              <DialogHeader className="bg-white border-b border-slate-200 p-5 shrink-0 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-base uppercase">
+                    {selectedFamilyPatient.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                      <span>{selectedFamilyPatient.name}</span>
+                      <Badge className="bg-orange-600 text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
+                        MRN: {selectedFamilyPatient.mrNumber}
+                      </Badge>
+                      {(selectedFamilyPatient.familyMaps?.[0]?.relationshipType || selectedFamilyPatient.relationshipType) && (
+                        <Badge className="bg-blue-600 text-white text-[9px] font-black h-4.5 uppercase px-2 rounded-none">
+                          {selectedFamilyPatient.familyMaps?.[0]?.relationshipType || selectedFamilyPatient.relationshipType}
+                        </Badge>
+                      )}
+                    </h2>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                      {selectedFamilyPatient.gender} • {getPatientAgeString(selectedFamilyPatient)} • Contact: {selectedFamilyPatient.contactNumber}
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Side: Past Visits History */}
+                <div className="lg:col-span-2 print:col-span-3 space-y-4">
+                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                    <History className="w-3.5 h-3.5 text-slate-400" /> Longitudinal Visit Records
+                  </h3>
+
+                  {loadingFamilyPatientHistory ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-20 bg-slate-100 animate-pulse border border-slate-200 rounded-lg" />
+                      ))}
+                    </div>
+                  ) : familyPatientHistory.length === 0 ? (
+                    <div className="bg-white p-12 border border-dashed border-slate-200 text-center flex flex-col items-center justify-center rounded-xl">
+                      <FileText className="w-10 h-10 text-slate-305 mb-3" />
+                      <h4 className="font-black text-sm text-slate-400 uppercase tracking-tighter mb-1">No Clinical History</h4>
+                      <p className="text-xs text-slate-400 max-w-xs">There are no documented past visits for this MRN in our database.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {familyPatientHistory.map((visit) => (
+                        <div
+                          key={visit.id}
+                          className="group relative bg-white p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-4"
+                          onClick={() => {
+                            setSelectedHistoricalVisit(visit);
+                            setIsHistoryDetailsOpen(true);
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-2 h-2 rounded-full bg-orange-500" />
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-slate-800">
+                                {new Date(visit.visitedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                Doctor: {visit.consultingDoctorName || visit.consultation?.doctorName || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline" className="h-5 rounded-none bg-orange-50 text-orange-600 border-orange-200 text-[8px] font-black uppercase hover:bg-orange-50 hover:text-orange-600">
+                              {visit.status}
+                            </Badge>
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-orange-600 transition-colors" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 no-print">
+                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                    <FileText className="w-3.5 h-3.5 text-slate-400" /> Scanned Reports
+                  </h3>
+                  <ScanReportGallery 
+                    mrNumber={selectedFamilyPatient.mrNumber?.toString()} 
+                    variant="compact" 
+                    showButton={false} 
+                    allowUpload={false} 
+                    wrapInCard={true}
+                    forceShow={true}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
         <div id="print-section" className="hidden print:block w-full bg-white text-black text-[9px] font-sans p-4 space-y-4 leading-tight">
           {printType === 'glass' && (
             <div className="space-y-4">
-              {/* Hospital Header */}
-              <div className="border-b-2 border-black pb-2 text-center flex flex-col items-center leading-none">
-                <div className="flex flex-col items-center gap-0.5 leading-none">
-                  <span
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                    className="font-extrabold text-lg tracking-tight leading-none"
-                  >
-                    <span style={{ color: "#0F172A" }}>Vision</span>
-                    <span style={{ color: "#2563EB" }}>Pulze</span>
-                  </span>
-                  <span className="text-[8px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
-                    Ophthalmic Ecosystem
-                  </span>
-                </div>
-                <div className="mt-2 text-center border-t border-black pt-1">
-                  <span className="text-sm font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Glass Prescription</span>
+              {/* Hospital Header in the style of Vision Xpress */}
+              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white">
+                <img 
+                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                  alt="VPN Logo" 
+                  className="h-10 w-auto object-contain shrink-0"
+                />
+                <div className="flex-1 text-center pr-10">
+                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                 </div>
               </div>
+              <div className="text-center my-2">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Glass Prescription</span>
+              </div>
 
-              {/* Patient Info Block */}
-              <div className="border border-black p-2 bg-gray-50/50">
-                <table className="w-full text-[9px] leading-relaxed">
+              {/* Outer report container with double borders */}
+              <div className="report-print-container space-y-4">
+                {/* Patient Info Block structured as a clean 1px border table */}
+                <table className="w-full text-[8.5px]">
                   <tbody>
                     <tr>
-                      <td className="w-[15%] font-bold">Patient Name:</td>
-                      <td className="w-[35%] font-medium">{printData.patientName}</td>
-                      <td className="w-[15%] font-bold">UIN / MRN:</td>
-                      <td className="w-[35%] font-semibold">{printData.mrNumber}</td>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
+                      <td className="p-1 w-[30%]">{printData.patientName}</td>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">UIN / MRN:</td>
+                      <td className="p-1 w-[30%]">MR-{printData.mrNumber}</td>
                     </tr>
                     <tr>
-                      <td className="font-bold">Age / Gender:</td>
-                      <td className="font-medium">{printData.ageGender}</td>
-                      <td className="font-bold">Prescription Date:</td>
-                      <td className="font-semibold">{printData.date}</td>
+                      <td className="p-1 font-bold bg-gray-50">Age / Gender:</td>
+                      <td className="p-1">{printData.ageGender}</td>
+                      <td className="p-1 font-bold bg-gray-50">Prescription Date:</td>
+                      <td className="p-1">{printData.date}</td>
                     </tr>
                     <tr>
-                      <td className="font-bold">Contact No:</td>
-                      <td className="font-medium">{printData.contactNumber}</td>
-                      <td className="font-bold">Consultant:</td>
-                      <td className="font-semibold">{printData.doctorName}</td>
+                      <td className="p-1 font-bold bg-gray-50">Contact No:</td>
+                      <td className="p-1">{printData.contactNumber || "—"}</td>
+                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
+                      <td className="p-1">{printData.doctorName}</td>
                     </tr>
                   </tbody>
                 </table>
-              </div>
 
               {/* Glass prescription table */}
               <table className="w-full border-collapse border border-black text-center text-[9px] my-3">
@@ -4840,54 +5111,53 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 </p>
               </div>
             </div>
+          </div>
           )}
 
           {printType === 'medical' && (
-            <div className="space-y-6">
-              {/* Hospital Header */}
-              <div className="border-b-2 border-black pb-2 text-center flex flex-col items-center leading-none">
-                <div className="flex flex-col items-center gap-0.5 leading-none">
-                  <span
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                    className="font-extrabold text-lg tracking-tight leading-none"
-                  >
-                    <span style={{ color: "#0F172A" }}>Vision</span>
-                    <span style={{ color: "#2563EB" }}>Pulze</span>
-                  </span>
-                  <span className="text-[8px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-1">
-                    Ophthalmic Ecosystem
-                  </span>
-                </div>
-                <div className="mt-2 text-center border-t border-black pt-1">
-                  <span className="text-sm font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Medical Prescription</span>
+            <div className="space-y-4">
+              {/* Hospital Header in the style of Vision Xpress */}
+              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white text-left">
+                <img 
+                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                  alt="VPN Logo" 
+                  className="h-10 w-auto object-contain shrink-0"
+                />
+                <div className="flex-1 text-center pr-10">
+                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                 </div>
               </div>
+              <div className="text-center my-2">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Medical Prescription</span>
+              </div>
 
-              {/* Patient Info Block */}
-              <div className="border border-black p-2 bg-gray-50/50">
-                <table className="w-full text-[9px] leading-relaxed">
+              {/* Outer report container with double borders */}
+              <div className="report-print-container space-y-4 text-left">
+                {/* Patient Info Block structured as a clean 1px border table */}
+                <table className="w-full text-[8.5px]">
                   <tbody>
                     <tr>
-                      <td className="w-[15%] font-bold">Patient Name:</td>
-                      <td className="w-[35%] font-medium">{printData.patientName}</td>
-                      <td className="w-[15%] font-bold">UIN / MRN:</td>
-                      <td className="w-[35%] font-semibold">{printData.mrNumber}</td>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
+                      <td className="p-1 w-[30%]">{printData.patientName}</td>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">UIN / MRN:</td>
+                      <td className="p-1 w-[30%]">MR-{printData.mrNumber}</td>
                     </tr>
                     <tr>
-                      <td className="font-bold">Age / Gender:</td>
-                      <td className="font-medium">{printData.ageGender}</td>
-                      <td className="font-bold">Prescription Date:</td>
-                      <td className="font-semibold">{printData.date}</td>
+                      <td className="p-1 font-bold bg-gray-50">Age / Gender:</td>
+                      <td className="p-1">{printData.ageGender}</td>
+                      <td className="p-1 font-bold bg-gray-50">Prescription Date:</td>
+                      <td className="p-1">{printData.date}</td>
                     </tr>
                     <tr>
-                      <td className="font-bold">Contact No:</td>
-                      <td className="font-medium">{printData.contactNumber}</td>
-                      <td className="font-bold">Consultant:</td>
-                      <td className="font-semibold">{printData.doctorName}</td>
+                      <td className="p-1 font-bold bg-gray-50">Contact No:</td>
+                      <td className="p-1">{printData.contactNumber || "—"}</td>
+                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
+                      <td className="p-1">{printData.doctorName}</td>
                     </tr>
                   </tbody>
                 </table>
-              </div>
 
               {/* Diagnosis Section */}
               {printData.diagnosisText && (
@@ -4949,37 +5219,53 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                 </div>
               </div>
             </div>
+          </div>
           )}
 
           {(printType === 'all' || !printType) && (
             <>
-              {/* Hospital Header */}
-              <div className="border-b-2 border-black pb-1.5 flex justify-between items-start">
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span
-                    style={{ fontFamily: "'Outfit', sans-serif" }}
-                    className="font-extrabold text-xs tracking-tight leading-none"
-                  >
-                    <span style={{ color: "#0F172A" }}>Vision</span>
-                    <span style={{ color: "#2563EB" }}>Pulze</span>
-                  </span>
-                  <span className="text-[7px] font-semibold uppercase tracking-[0.22em] text-slate-400 mt-0.5">
-                    Ophthalmic Ecosystem
-                  </span>
+              {/* Hospital Header in the style of Vision Xpress */}
+              <div className="border border-orange-500 p-2.5 flex items-center justify-between gap-4 w-full mb-3 bg-white">
+                <img 
+                  src="https://res.cloudinary.com/autodapp/image/upload/v1775219907/VPN%20Eye%20Hospital%20Logo.png" 
+                  alt="VPN Logo" 
+                  className="h-10 w-auto object-contain shrink-0"
+                />
+                <div className="flex-1 text-center pr-10">
+                  <h1 className="text-sm font-black uppercase text-orange-700 tracking-wider">VPN EYE HOSPITAL</h1>
+                  <p className="text-[8px] font-bold text-gray-700">25, Neela West Street, Nagapattinam - 611001</p>
+                  <p className="text-[8px] font-medium text-gray-600">Phone: 04365-224000 | Mobile: 9324234343</p>
                 </div>
-                <div className="text-right text-[8px] space-y-0.5">
-                  <p><strong>Consulting Doctor:</strong> {printData.doctorName}</p>
-                  <p><strong>Visit Date:</strong> {printData.date}</p>
-                </div>
+              </div>
+              <div className="text-center my-2">
+                <span className="text-[10px] font-black uppercase tracking-widest bg-white px-3 py-0.5 border border-black">Optometrist Clinical Summary</span>
               </div>
 
-              {/* Patient Info Block */}
-              <div className="border border-black p-1.5 grid grid-cols-4 gap-2 text-[8px] bg-gray-50">
-                <div><strong>Patient Name:</strong> {printData.patientName}</div>
-                <div><strong>Age / Gender:</strong> {printData.ageGender}</div>
-                <div><strong>MR Number:</strong> MR-{printData.mrNumber}</div>
-                <div><strong>Contact Number:</strong> {printData.contactNumber}</div>
-              </div>
+              {/* Outer report container with double borders */}
+              <div className="report-print-container space-y-4">
+                {/* Patient Info Block structured as a clean 1px border table */}
+                <table className="w-full text-[8.5px]">
+                  <tbody>
+                    <tr>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Patient Name:</td>
+                      <td className="p-1 w-[30%]">{printData.patientName}</td>
+                      <td className="p-1 font-bold bg-gray-50 w-[20%]">Age / Gender:</td>
+                      <td className="p-1 w-[30%]">{printData.ageGender}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1 font-bold bg-gray-50">MR Number:</td>
+                      <td className="p-1">MR-{printData.mrNumber}</td>
+                      <td className="p-1 font-bold bg-gray-50">Contact Number:</td>
+                      <td className="p-1">{printData.contactNumber || "—"}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-1 font-bold bg-gray-50">Consulting Doctor:</td>
+                      <td className="p-1">{printData.doctorName}</td>
+                      <td className="p-1 font-bold bg-gray-50">Visit Date:</td>
+                      <td className="p-1">{printData.date}</td>
+                    </tr>
+                  </tbody>
+                </table>
 
               {/* Optometry & Refraction */}
               {printData.refraction && (() => {
@@ -5327,6 +5613,7 @@ export function DoctorStation({ patient, doctors = [] }: { patient?: Patient | n
                   </div>
                 );
               })()}
+              </div>
             </>
           )}
         </div>

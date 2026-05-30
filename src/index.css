@@ -249,6 +249,32 @@
     border: none !important;
   }
 
+  .report-print-container {
+    border: 4px double #9ca3af !important;
+    padding: 12px !important;
+    background-color: #ffffff !important;
+  }
+
+  .report-print-container table {
+    border-collapse: separate !important;
+    border-spacing: 0px !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    border: 2px outset #9ca3af !important;
+  }
+
+  .report-print-container th {
+    border: 1px inset #d1d5db !important;
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+    font-weight: 800 !important;
+  }
+
+  .report-print-container td {
+    border: 1px inset #e5e7eb !important;
+    color: #374151 !important;
+  }
+
   [data-radix-scroll-area-viewport] {
     overflow: visible !important;
     height: auto !important;
@@ -256,7 +282,9 @@
     display: block !important;
   }
 
-  .no-print {
+  .no-print,
+  [role="dialog"].no-print,
+  [data-state="open"].no-print {
     display: none !important;
   }
 

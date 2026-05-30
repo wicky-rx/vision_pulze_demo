@@ -601,6 +601,8 @@ export class DemoDatabase {
       status: "reception",
       waitTime: "0 min",
       registeredAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      parentMrNumber: formData.parentMrn || formData.parentMrNumber || "",
+      relationshipType: formData.relationshipType || "",
     };
 
     const updatedPatients = [...patients, newPatient];

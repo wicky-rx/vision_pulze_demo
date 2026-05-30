@@ -502,37 +502,57 @@ export function DoctorSchedulesPanel({
                                  doc.todayAppointments.map((app: any) => (
                                    <div key={app.id} className="group relative flex items-center justify-between p-2 rounded-lg bg-orange-50/30 border border-orange-100/30 hover:bg-orange-100/20 transition-all">
                                       <div className="min-w-0 flex-1 mr-2">
-                                         <div className="flex items-center justify-between gap-3">
-                                            <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{app.patient?.name}</p>
-                                            <p className="text-xs text-slate-500 font-bold font-mono tracking-tighter shrink-0">{app.patient?.mrNumber}</p>
-                                         </div>
-                                         <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
-                                            {app.appointmentId && (
-                                              <p className="text-[11px] text-orange-600/70 font-bold shrink-0">ID: {app.appointmentId}</p>
-                                            )}
-                                            {app.timeSlot && (
-                                              <div className="text-[11px] text-orange-600/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
-                                                 {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-orange-50 text-orange-600 px-1 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[16px] text-center border border-orange-200/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
-                                              </div>
-                                            )}
-                                            {app.notes && (
-                                              <div className="border-l border-slate-200 pl-1.5 ml-0.5 pt-px">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                             <p className="text-sm font-bold text-slate-900 truncate tracking-tight">
+                                               {app.patient?.name ? (app.patient.name.length > 12 ? `${app.patient.name.slice(0, 12)}...` : app.patient.name) : ""}
+                                             </p>
+                                             <div className="shrink-0 pt-0.5">
                                                 <TooltipProvider delayDuration={0}>
                                                   <Tooltip>
                                                     <TooltipTrigger asChild>
                                                       <div className="cursor-help transition-colors hover:text-orange-600">
-                                                        <Info className="w-3 h-3 text-slate-400" />
+                                                        <Info className="w-3.5 h-3.5 text-slate-400" />
                                                       </div>
                                                     </TooltipTrigger>
-                                                    <TooltipContent className="max-w-[200px] text-xs p-2 bg-slate-900 text-white border-0 shadow-xl">
-                                                      <p className="font-medium mb-1 border-b border-white/10 pb-1 text-xs opacity-70">Instructional Note:</p>
-                                                      <p>{app.notes}</p>
+                                                    <TooltipContent className="w-64 p-3 bg-slate-900 text-white border-0 shadow-xl rounded-lg text-xs space-y-2">
+                                                      <div className="border-b border-white/10 pb-1.5">
+                                                        <p className="font-black text-sm uppercase text-orange-400 leading-tight">{app.patient?.name}</p>
+                                                        <p className="text-[10px] font-mono font-bold text-slate-400 mt-0.5">MRN: {app.patient?.mrNumber}</p>
+                                                      </div>
+                                                      <div className="space-y-1 text-slate-300 font-medium">
+                                                        <p className="flex justify-between"><span className="opacity-60">Gender:</span> <span>{app.patient?.gender || "N/A"}</span></p>
+                                                        {app.patient?.age && (
+                                                          <p className="flex justify-between"><span className="opacity-60">Age:</span> <span>{app.patient.age} Yrs</span></p>
+                                                        )}
+                                                        {app.patient?.dob && (
+                                                          <p className="flex justify-between"><span className="opacity-60">DOB:</span> <span>{new Date(app.patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                                                        )}
+                                                        <p className="flex justify-between"><span className="opacity-60">Contact:</span> <span>{app.patient?.contactNumber || "N/A"}</span></p>
+                                                        {(app.patient?.street || app.patient?.city) && (
+                                                          <p className="flex justify-between"><span className="opacity-60">City:</span> <span>{[app.patient.street, app.patient.city].filter(Boolean).join(', ')}</span></p>
+                                                        )}
+                                                      </div>
+                                                      {app.notes && (
+                                                        <div className="border-t border-white/10 pt-1.5 mt-1.5">
+                                                          <p className="font-bold text-[10px] uppercase tracking-wider text-orange-400 opacity-80 mb-0.5">Instructional Note:</p>
+                                                          <p className="text-slate-300 font-medium leading-relaxed italic">{app.notes}</p>
+                                                        </div>
+                                                      )}
                                                     </TooltipContent>
                                                   </Tooltip>
                                                 </TooltipProvider>
-                                              </div>
-                                            )}
-                                         </div>
+                                             </div>
+                                          </div>
+                                          <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
+                                             {app.appointmentId && (
+                                               <p className="text-[11px] text-orange-600/70 font-bold shrink-0">ID: {app.appointmentId}</p>
+                                             )}
+                                             {app.timeSlot && (
+                                               <div className="text-[11px] text-orange-600/90 font-bold shrink-0 flex items-center gap-1.5 border-l border-slate-200 pl-1.5 ml-0.5">
+                                                  {(() => { const slotIdx = doc.todaySlots.findIndex((s: any) => `${s.startTime}-${s.endTime}` === app.timeSlot); const slotLabel = slotIdx !== -1 ? `S${slotIdx + 1}` : "W"; return <span className="bg-orange-50 text-orange-600 px-1 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[16px] text-center border border-orange-200/60 tracking-tighter">{slotLabel}</span>; })()} {app.patient?.city && ( <span className="text-slate-400 font-medium ml-0.5 flex items-center gap-1 truncate max-w-[80px]"> <MapPin className="w-2.5 h-2.5 text-slate-300" /> {app.patient.city} </span> )}
+                                               </div>
+                                             )}
+                                          </div>
                                       </div>
                                       <div className="flex items-center gap-1 shrink-0 ml-1">
                                          {app.status === 'PENDING' && (

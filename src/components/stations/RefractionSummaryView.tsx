@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 
 function SectionHeader({ icon: Icon, title, category = "Clinical Assessment" }: { icon: any, title: string, category?: string }) {
   return (
-    <div className="flex items-center gap-4 py-3 mb-4 border-b border-slate-100">
-      <div className="p-3 bg-orange-600 text-white shadow-lg"><Icon className="w-6 h-6 shrink-0" /></div>
+    <div className="flex items-center gap-3 py-2 mb-3 border-b border-slate-100">
+      <div className="p-2.5 bg-orange-600 text-white shadow-md rounded-md"><Icon className="w-5 h-5 shrink-0" /></div>
       <div className="flex flex-col">
-        <span className="text-[12px] font-black uppercase tracking-widest text-orange-600 mb-0.5">{category}</span>
-        <h3 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tighter">{title}</h3>
+        <span className="text-[9.5px] font-black uppercase tracking-wider text-orange-600 mb-0.5">{category}</span>
+        <h3 className="text-sm sm:text-base font-black text-slate-800 uppercase tracking-normal">{title}</h3>
       </div>
     </div>
   );
@@ -288,7 +288,6 @@ export function RefractionSummaryView({
 
       {/* 5. Final Optometrist Recommendation */}
       <div className="space-y-4">
-        <SectionHeader icon={Glasses} title="Final Optometrist Recommendation" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Spectacles Table */}
           <div className="space-y-2">
