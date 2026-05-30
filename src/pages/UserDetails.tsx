@@ -154,9 +154,9 @@ const MiniDashboard = () => (
                     Patient Queue
                 </p>
                 {[
-                    { name: "Rajan M.", stage: "Doctor", badge: "bg-indigo-100 text-indigo-700" },
-                    { name: "Priya S.", stage: "Refraction", badge: "bg-emerald-100 text-emerald-700" },
-                    { name: "Kavitha N.", stage: "Reception", badge: "bg-blue-100 text-blue-700" },
+                    { name: "John D", stage: "Doctor", badge: "bg-indigo-100 text-indigo-700" },
+                    { name: "Miller D", stage: "Refraction", badge: "bg-emerald-100 text-emerald-700" },
+                    { name: "Doe", stage: "Reception", badge: "bg-blue-100 text-blue-700" },
                 ].map((p) => (
                     <div
                         key={p.name}
@@ -672,9 +672,9 @@ const UserDetails = () => {
                                 Want to know more? Write to us!
                             </span>
                             <a
-                                                                href="mailto:connect@flowtency.com"
-                                                                className="text-xl sm:text-2xl font-black text-brand hover:underline underline-offset-2 transition-all break-all"
-                                                            >
+                                href="mailto:connect@flowtency.com"
+                                className="text-xl sm:text-2xl font-black text-brand hover:underline underline-offset-2 transition-all break-all"
+                            >
                                 connect@flowtency.com
                             </a>
                         </div>

@@ -27,6 +27,7 @@ export interface Patient {
   hasActiveVisitToday?: boolean;
   lastVisitStatus?: string;
   appointmentId?: string;
+  consultingDoctorId?: string;
   consultingDoctorName?: string;
   appointment?: any;
   consultation?: any;

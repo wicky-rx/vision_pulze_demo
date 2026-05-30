@@ -21,7 +21,7 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { getPatientAgeString, getPatientAgeNumber, calculateAgeFromDob, calculateWaitTime, parseDDMMYYYY, truncateFileName, formatFileSize } from "@/lib/utils";
+import { getPatientAgeString, getPatientAgeNumber, getPatientGenderString, calculateAgeFromDob, calculateWaitTime, parseDDMMYYYY, truncateFileName, formatFileSize } from "@/lib/utils";
 import { statusLabels, statusColors, type PatientStatus, type Patient } from "@/data/mockData";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
@@ -74,6 +74,122 @@ const backendStatusMap: Record<string, PatientStatus> = {
   COMPLETED: "completed",
 };
 
+interface DoctorTheme {
+  bg: string;
+  hoverBg: string;
+  border: string;
+  text: string;
+  subText: string;
+  icon: string;
+  badge: string;
+}
+
+const doctorThemes: DoctorTheme[] = [
+  {
+    bg: "bg-indigo-55 bg-indigo-50/70 border border-indigo-100/50",
+    hoverBg: "hover:bg-indigo-100/60",
+    border: "border-indigo-100",
+    text: "text-indigo-900",
+    subText: "text-indigo-600/80",
+    icon: "text-indigo-600",
+    badge: "bg-indigo-600 text-white hover:bg-indigo-700"
+  },
+  {
+    bg: "bg-emerald-50/70 border border-emerald-100/50",
+    hoverBg: "hover:bg-emerald-100/60",
+    border: "border-emerald-100",
+    text: "text-emerald-900",
+    subText: "text-emerald-600/80",
+    icon: "text-emerald-600",
+    badge: "bg-emerald-600 text-white hover:bg-emerald-700"
+  },
+  {
+    bg: "bg-purple-50/70 border border-purple-100/50",
+    hoverBg: "hover:bg-purple-100/60",
+    border: "border-purple-100",
+    text: "text-purple-900",
+    subText: "text-purple-600/80",
+    icon: "text-purple-600",
+    badge: "bg-purple-600 text-white hover:bg-purple-700"
+  },
+  {
+    bg: "bg-teal-50/70 border border-teal-100/50",
+    hoverBg: "hover:bg-teal-100/60",
+    border: "border-teal-100",
+    text: "text-teal-900",
+    subText: "text-teal-600/80",
+    icon: "text-teal-600",
+    badge: "bg-teal-600 text-white hover:bg-teal-700"
+  },
+  {
+    bg: "bg-rose-50/70 border border-rose-100/50",
+    hoverBg: "hover:bg-rose-100/60",
+    border: "border-rose-100",
+    text: "text-rose-900",
+    subText: "text-rose-600/80",
+    icon: "text-rose-600",
+    badge: "bg-rose-600 text-white hover:bg-rose-700"
+  },
+  {
+    bg: "bg-cyan-50/70 border border-cyan-100/50",
+    hoverBg: "hover:bg-cyan-100/60",
+    border: "border-cyan-100",
+    text: "text-cyan-900",
+    subText: "text-cyan-600/80",
+    icon: "text-cyan-600",
+    badge: "bg-cyan-600 text-white hover:bg-cyan-700"
+  },
+  {
+    bg: "bg-amber-50/70 border border-amber-100/50",
+    hoverBg: "hover:bg-amber-100/60",
+    border: "border-amber-100",
+    text: "text-amber-900",
+    subText: "text-amber-700/80",
+    icon: "text-amber-700",
+    badge: "bg-amber-600 text-white hover:bg-amber-700"
+  },
+  {
+    bg: "bg-sky-50/70 border border-sky-100/50",
+    hoverBg: "hover:bg-sky-100/60",
+    border: "border-sky-100",
+    text: "text-sky-900",
+    subText: "text-sky-600/80",
+    icon: "text-sky-600",
+    badge: "bg-sky-600 text-white hover:bg-sky-700"
+  }
+];
+
+const greyTheme: DoctorTheme = {
+  bg: "bg-slate-50 border border-slate-100/50",
+  hoverBg: "hover:bg-slate-100/85",
+  border: "border-slate-100",
+  text: "text-slate-500 opacity-70",
+  subText: "text-slate-400 opacity-60",
+  icon: "text-slate-400",
+  badge: "bg-slate-200 text-slate-700 hover:bg-slate-200/80"
+};
+
+const getDoctorTheme = (doctorId: string, hasActiveSlot: boolean): DoctorTheme => {
+  if (!hasActiveSlot) {
+    return greyTheme;
+  }
+  const idStr = doctorId || "unassigned";
+  let hash = 0;
+  for (let i = 0; i < idStr.length; i++) {
+    hash = idStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % doctorThemes.length;
+  return doctorThemes[index];
+};
+
+const normalizeDoctorName = (name: string): string => {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .replace(/\b(dr|md|mbbs|do)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+};
+
 interface EditFormData {
   name: string;
   age: string;
@@ -118,6 +234,28 @@ export function PatientQueue({
 
   // Role-based visibility
   const [userRole, setUserRole] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [sessionUsername, setSessionUsername] = useState<string>("");
+  const [activeStation, setActiveStation] = useState<string>("");
+
+  // Collapsed sections for doctor-wise grouping
+  const [collapsedSlots, setCollapsedSlots] = useState<Record<string, boolean>>({});
+  const [collapsedDoctors, setCollapsedDoctors] = useState<Record<string, boolean>>({});
+
+  const toggleDoctor = (doctorId: string) => {
+    setCollapsedDoctors(prev => ({
+      ...prev,
+      [doctorId]: !(prev[doctorId] !== undefined ? prev[doctorId] : false)
+    }));
+  };
+
+  const toggleSlot = (doctorId: string, slotKey: string) => {
+    const key = `${doctorId}_${slotKey}`;
+    setCollapsedSlots(prev => ({
+      ...prev,
+      [key]: !(prev[key] !== undefined ? prev[key] : false)
+    }));
+  };
 
   // Edit modal state
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
@@ -231,12 +369,18 @@ export function PatientQueue({
     try {
       const session = localStorage.getItem("user_session");
       if (session) {
-        const { role } = JSON.parse(session);
+        const { role, name, stationId, username } = JSON.parse(session);
         currentRole = role || "";
         setUserRole(currentRole);
+        setUserName(name || "");
+        setSessionUsername(username || "");
+        setActiveStation(stationId || "");
       }
     } catch {
       setUserRole("");
+      setUserName("");
+      setSessionUsername("");
+      setActiveStation("");
     }
 
     fetchPatients();
@@ -257,9 +401,7 @@ export function PatientQueue({
       } catch (e) { console.error("Error fetching doctors", e); }
     };
 
-    if (currentRole === "RECEPTIONIST" || currentRole === "ADMIN") {
-      fetchDocs();
-    }
+    fetchDocs(); // Always fetch doctors so we can group by doctor for doctor view
 
     return () => {
       window.removeEventListener("patientQueueUpdated", handlePatientUpdate);
@@ -559,6 +701,123 @@ export function PatientQueue({
 
   const displayPatients = filtered;
 
+  // Group by doctor
+  const doctorGroupsMap = new Map<string, Patient[]>();
+  displayPatients.forEach((p) => {
+    const docId = p.consultingDoctorId || "unassigned";
+    if (!doctorGroupsMap.has(docId)) {
+      doctorGroupsMap.set(docId, []);
+    }
+    doctorGroupsMap.get(docId)!.push(p);
+  });
+
+  interface SlotGroup {
+    slotKey: string;
+    slotLabel: string;
+    timeSlotStr?: string;
+    isEnded: boolean;
+    patients: Patient[];
+  }
+
+  interface DoctorGroup {
+    doctorId: string;
+    doctorName: string;
+    specializationName?: string;
+    slots: SlotGroup[];
+  }
+
+  const doctorGroups: DoctorGroup[] = [];
+  const todayDayOfWeek = new Date().getDay();
+  const now = new Date();
+  const currentTimeNum = now.getHours() * 60 + now.getMinutes();
+
+  doctorGroupsMap.forEach((pList, docId) => {
+    if (docId === "unassigned") {
+      doctorGroups.push({
+        doctorId: "unassigned",
+        doctorName: "General / Unassigned",
+        slots: [
+          {
+            slotKey: "walk-in",
+            slotLabel: "Walk-ins / General",
+            isEnded: false,
+            patients: pList
+          }
+        ]
+      });
+      return;
+    }
+
+    const doc = doctors.find((d) => d.id === docId);
+    const doctorName = doc?.name || pList[0].consultingDoctorName || "Unknown Doctor";
+    const specName = doc?.specialization?.name;
+
+    // Get today's schedules for this doctor, sorted by start time
+    const todaySchedules = (doc?.schedules || [])
+      .filter((s: any) => s.dayOfWeek === todayDayOfWeek)
+      .sort((a: any, b: any) => {
+        const [ah, am] = a.startTime.split(":").map(Number);
+        const [bh, bm] = b.startTime.split(":").map(Number);
+        return (ah * 60 + am) - (bh * 60 + bm);
+      });
+
+    // Create slot groups for today's schedules
+    const slots: SlotGroup[] = todaySchedules.map((s: any, idx: number) => {
+      const [eh, em] = s.endTime.split(":").map(Number);
+      const isEnded = (eh * 60 + em) <= currentTimeNum;
+      const timeSlotStr = `${s.startTime}-${s.endTime}`;
+
+      return {
+        slotKey: `S${idx + 1}`,
+        slotLabel: `Slot ${idx + 1} (${formatToAMPM(s.startTime)} - ${formatToAMPM(s.endTime)})`,
+        timeSlotStr,
+        isEnded,
+        patients: []
+      };
+    });
+
+    const walkInGroup: SlotGroup = {
+      slotKey: "walk-in",
+      slotLabel: "Walk-ins / General",
+      isEnded: false,
+      patients: []
+    };
+
+    // Distribute patients into slots
+    pList.forEach((p) => {
+      const pSlotStr = p.appointment?.timeSlot;
+      if (pSlotStr) {
+        const matchingSlot = slots.find((s) => s.timeSlotStr === pSlotStr);
+        if (matchingSlot) {
+          matchingSlot.patients.push(p);
+          return;
+        }
+      }
+      walkInGroup.patients.push(p);
+    });
+
+    const activeSlots = slots.filter((s) => s.patients.length > 0);
+    if (walkInGroup.patients.length > 0) {
+      activeSlots.push(walkInGroup);
+    }
+
+    if (activeSlots.length > 0) {
+      doctorGroups.push({
+        doctorId: docId,
+        doctorName,
+        specializationName: specName,
+        slots: activeSlots
+      });
+    }
+  });
+
+  // Sort doctor groups: unassigned at the end, otherwise alphabetical
+  doctorGroups.sort((a, b) => {
+    if (a.doctorId === "unassigned") return 1;
+    if (b.doctorId === "unassigned") return -1;
+    return a.doctorName.localeCompare(b.doctorName);
+  });
+
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: "all", label: "All", count: patients.length },
     { id: "in-refraction", label: "Refraction", count: patients.filter((p) => p.status === "optometrist").length },
@@ -626,90 +885,208 @@ export function PatientQueue({
             </div>
           ) : (
             <div className="py-1">
-              {displayPatients.map((patient) => (
-                <div
-                  key={patient.id}
-                  onClick={() => onSelectPatient?.(patient)}
-                  className={cn(
-                    "w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left group cursor-pointer border-l-4 relative",
-                    selectedPatientId === patient.id
-                      ? "bg-brand/5 border-l-brand"
-                      : "border-l-transparent"
-                  )}
-                >
-                  {/* Status dot */}
-                  <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", statusColors[patient.status])} />
+              {doctorGroups.map((group) => {
+                const doc = doctors.find((d) => d.id === group.doctorId);
+                const isRespectiveDoctor = userRole === "DOCTOR" && (
+                  (doc && doc.username && sessionUsername && doc.username.toLowerCase() === sessionUsername.toLowerCase()) ||
+                  (group.doctorName && userName && normalizeDoctorName(group.doctorName) === normalizeDoctorName(userName)) ||
+                  (group.doctorName && userName && group.doctorName.toLowerCase().replace(/\s+/g, "").includes(userName.toLowerCase().replace(/\s+/g, "")))
+                );
+                const hasActiveSlot = group.slots.some(s => !s.isEnded);
+                const defaultDocCollapsed = userRole === "DOCTOR" ? !isRespectiveDoctor : !hasActiveSlot;
+                const isDocCollapsed = collapsedDoctors[group.doctorId] ?? defaultDocCollapsed;
+                const totalDocPatients = group.slots.reduce((sum, s) => sum + s.patients.length, 0);
+                const theme = getDoctorTheme(group.doctorId, hasActiveSlot);
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground truncate">{patient.name}</span>
-                    </div>
-                    <div className="flex flex-col gap-0.5 mt-0.5">
-                      <span className="text-[11px] font-mono text-muted-foreground">MRN-{patient.mrNumber?.toString()}</span>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">Age {patient.age}</span>
-                        <span className="text-[10px] text-muted-foreground/50 shrink-0">•</span>
-                        <span className="text-[10px] text-muted-foreground truncate" title={patient.address}>{patient.address || "-"}</span>
+                return (
+                  <div key={group.doctorId} className="border-b border-border last:border-0">
+                    {/* Doctor Header */}
+                    <div 
+                      onClick={() => toggleDoctor(group.doctorId)}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-2 border-b sticky top-0 z-10 cursor-pointer select-none transition-colors",
+                        theme.bg,
+                        theme.border,
+                        theme.hoverBg
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className={cn("w-3.5 h-3.5", theme.icon)} />
+                        <div className="flex flex-col">
+                          <span className={cn("text-xs font-bold leading-tight", theme.text)}>{group.doctorName}</span>
+                          {group.specializationName && (
+                            <span className={cn("text-[10px] leading-none", theme.subText)}>{group.specializationName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge className={cn(
+                          "border-0 text-[10px] font-bold px-1.5 py-0 h-4.5 transition-colors",
+                          theme.badge
+                        )}>
+                          {totalDocPatients}
+                        </Badge>
+                        {isDocCollapsed ? (
+                          <ChevronDown className={cn("w-3.5 h-3.5", theme.icon)} />
+                        ) : (
+                          <ChevronUp className={cn("w-3.5 h-3.5", theme.icon)} />
+                        )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col items-end gap-1 shrink-0 pl-2 pr-2">
-                    <div className="flex items-center gap-1.5">
-                      {(() => {
-                        const slot = getSlotLabel(patient);
-                        if (!slot) return null;
-                        return (
-                          <span className="text-[10px] font-bold text-brand bg-brand/10 px-1 py-0.5 rounded-sm border border-brand/20/50 shrink-0">
-                            {slot}
-                          </span>
-                        );
-                      })()}
-                      <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1 py-0.5 rounded-sm border shrink-0">
-                        Token-{patient.tokenNumber || "—"}
-                      </span>
-                    </div>
-                    <Badge
-                      className={cn(
-                        "text-[9px] border-0 px-2 py-0 h-5 font-bold text-white opacity-100 rounded-none w-24 flex items-center justify-center uppercase tracking-tighter shadow-sm",
-                        statusColors[patient.status as PatientStatus] || "bg-slate-500"
-                      )}
-                    >
-                      {statusLabels[patient.status as PatientStatus] || patient.status}
-                    </Badge>
-                    {patient.consultingDoctorName && (
-                      <span className="text-[9px] text-muted-foreground/60 italic font-medium truncate max-w-[140px] text-right">
-                        {patient.consultingDoctorName?.toLowerCase().startsWith('dr.') ? "" : "Dr. "}{patient.consultingDoctorName}
-                      </span>
+                    {/* Slots List (only if not collapsed) */}
+                    {!isDocCollapsed && (
+                      <div className="bg-card">
+                        {group.slots.map((slot, idx) => {
+                          const slotKey = `${group.doctorId}_${slot.slotKey}`;
+                          const isLastSlot = idx === group.slots.length - 1;
+                          const defaultSlotCollapsed = userRole === "DOCTOR"
+                            ? ((isRespectiveDoctor && isLastSlot) ? false : slot.isEnded)
+                            : slot.isEnded;
+                          const isSlotCollapsed = collapsedSlots[slotKey] ?? defaultSlotCollapsed;
+
+                          return (
+                            <div key={slot.slotKey} className="border-b border-border/40 last:border-0">
+                              {/* Slot Sub-header */}
+                              <div 
+                                onClick={() => toggleSlot(group.doctorId, slot.slotKey)}
+                                className="flex items-center justify-between px-4 py-1.5 bg-orange-50/20 border-b border-orange-100/30 cursor-pointer select-none hover:bg-orange-50/40 transition-colors"
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className={cn("w-3 h-3", slot.isEnded ? "text-slate-400" : "text-brand")} />
+                                  <span className={cn("text-[10px] font-semibold", slot.isEnded ? "text-slate-500 line-through opacity-70" : "text-slate-700")}>
+                                    {slot.slotLabel}
+                                  </span>
+                                  {slot.isEnded && (
+                                    <Badge className="bg-slate-100 text-slate-400 hover:bg-slate-100 border border-slate-200/60 text-[9px] font-medium px-1 py-0 h-4 leading-none shrink-0 scale-90">
+                                      Past Slot
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-slate-500 font-bold">{slot.patients.length}</span>
+                                  {isSlotCollapsed ? <ChevronDown className="w-3 h-3 text-slate-400" /> : <ChevronUp className="w-3 h-3 text-slate-400" />}
+                                </div>
+                              </div>
+
+                              {/* Patients list under this slot */}
+                              {!isSlotCollapsed && (
+                                <div className="divide-y divide-border/30">
+                                  {slot.patients.map((patient) => (
+                                    <div
+                                      key={patient.id}
+                                      onClick={() => onSelectPatient?.(patient)}
+                                      className={cn(
+                                        "w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left group cursor-pointer border-l-4 relative",
+                                        selectedPatientId === patient.id
+                                          ? "bg-brand/10 border-l-brand"
+                                          : isRespectiveDoctor
+                                            ? "bg-brand/5 hover:bg-brand/10 border-l-brand/50 border-dashed"
+                                            : "border-l-transparent"
+                                      )}
+                                    >
+                                      {/* Status dot */}
+                                      <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", statusColors[patient.status])} />
+
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-medium text-foreground truncate">{patient.name}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5 mt-0.5">
+                                          <span className="text-[11px] font-mono text-muted-foreground">MRN-{patient.mrNumber?.toString()}</span>
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">Age {patient.age || "—"}</span>
+                                            {(() => {
+                                              const genderStr = getPatientGenderString(patient);
+                                              const isMale = genderStr === "Male" || genderStr === "Master";
+                                              const isFemale = genderStr === "Female" || genderStr === "Miss";
+                                              const badgeChar = isMale ? "M" : isFemale ? "F" : "O";
+                                              const colorClass = isMale 
+                                                ? "text-blue-600 bg-blue-50 border-blue-200/60"
+                                                : isFemale
+                                                  ? "text-pink-600 bg-pink-50 border-pink-200/60"
+                                                  : "text-slate-500 bg-slate-50 border-slate-200/60";
+                                              return (
+                                                <span className={cn(
+                                                  "text-[9px] font-bold px-1 py-0 rounded-sm border shrink-0 leading-4",
+                                                  colorClass
+                                                )}>
+                                                  {badgeChar}
+                                                </span>
+                                              );
+                                            })()}
+                                            <span className="text-[10px] text-muted-foreground/50 shrink-0">•</span>
+                                            <span className="text-[10px] text-muted-foreground truncate" title={patient.address}>{patient.address || "-"}</span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex flex-col items-end gap-1 w-[112px] shrink-0 pl-2">
+                                        <div className="flex items-center gap-1.5">
+                                          {(() => {
+                                            const slotLabelStr = getSlotLabel(patient);
+                                            if (!slotLabelStr) return null;
+                                            return (
+                                              <span className="text-[10px] font-bold text-brand bg-brand/10 px-1 py-0.5 rounded-sm border border-brand/20/50 shrink-0">
+                                                {slotLabelStr}
+                                              </span>
+                                            );
+                                          })()}
+                                          <span className="text-[10px] font-medium bg-muted text-muted-foreground px-1 py-0.5 rounded-sm border shrink-0">
+                                            Token-{patient.tokenNumber || "—"}
+                                          </span>
+                                        </div>
+                                        <Badge
+                                          className={cn(
+                                            "text-[9px] border-0 px-2 py-0 h-5 font-bold text-white opacity-100 rounded-none w-24 flex items-center justify-center uppercase tracking-tighter shadow-sm",
+                                            statusColors[patient.status as PatientStatus] || "bg-slate-500"
+                                          )}
+                                        >
+                                          {statusLabels[patient.status as PatientStatus] || patient.status}
+                                        </Badge>
+                                        {(patient.complaint?.toLowerCase().includes("followup") || patient.complaint?.toLowerCase().includes("follow up")) && (
+                                          <span className="text-[9px] font-black text-blue-600 bg-blue-50 border border-blue-200/50 px-2 py-0.5 rounded-none mt-1 w-24 text-center uppercase tracking-wider animate-pulse shadow-sm">
+                                            Follow Up
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Absolute Edit button — only for RECEPTIONIST / ADMIN */}
+                                      {canEdit ? (
+                                        <button
+                                          onClick={(e) => openEditModal(patient, e)}
+                                          title="Edit patient details"
+                                          className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+                                        >
+                                          <Pencil className="w-4 h-4" />
+                                        </button>
+                                      ) : (
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all z-10">
+                                          {userRole === "OPTOMETRIST" ? (
+                                            <Crosshair className="w-4 h-4" />
+                                          ) : userRole === "DOCTOR" ? (
+                                            <Stethoscope className="w-4 h-4" />
+                                          ) : userRole === "OPTICALS" ? (
+                                            <Glasses className="w-4 h-4" />
+                                          ) : userRole === "PHARMACIST" ? (
+                                            <Pill className="w-4 h-4" />
+                                          ) : (
+                                            <ChevronRight className="w-4 h-4" />
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-
-                  {/* Absolute Edit button — only for RECEPTIONIST / ADMIN */}
-                  {canEdit ? (
-                    <button
-                      onClick={(e) => openEditModal(patient, e)}
-                      title="Edit patient details"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 shadow-sm border border-border text-brand opacity-0 group-hover:opacity-100 transition-all z-10">
-                      {userRole === "OPTOMETRIST" ? (
-                        <Crosshair className="w-4 h-4" />
-                      ) : userRole === "DOCTOR" ? (
-                        <Stethoscope className="w-4 h-4" />
-                      ) : userRole === "OPTICALS" ? (
-                        <Glasses className="w-4 h-4" />
-                      ) : userRole === "PHARMACIST" ? (
-                        <Pill className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
